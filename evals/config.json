@@ -1,0 +1,6 @@
+{
+  "min_rank1_percent": 0,
+  "collision_error": 0.75,
+  "collision_warning": 0.5,
+  "notes": "min_rank1_percent is set once all twelve descriptions exist: measure the baseline and fix the floor ten points below it. It is never lowered to make a regression pass; rejected changes go to skill-impact.md."
+}
