@@ -1,0 +1,29 @@
+{
+  "name": "lakehouse-agent-skills",
+  "version": "0.1.0",
+  "description": "Data-engineering discipline for AI coding agents: profile before you clean, clean before you chart, persist to columnar storage, query it with SQL, pick the chart the data deserves, and disclose exactly what was not processed.",
+  "author": {
+    "name": "Luis Castillo",
+    "url": "https://github.com/LuynoxRD"
+  },
+  "homepage": "https://github.com/LuynoxRD/lakehouse-agent-skills",
+  "repository": "https://github.com/LuynoxRD/lakehouse-agent-skills",
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Lakehouse Agent Skills",
+    "shortDescription": "Data-engineering discipline for coding agents: profile, clean, model, query, chart, disclose.",
+    "longDescription": "Lakehouse Agent Skills teaches coding agents to profile data before cleaning it, clean it before charting it, persist it to columnar storage, query it with SQL, choose charts and dashboard layouts the data deserves, and disclose exactly what was and was not processed.",
+    "developerName": "Luis Castillo",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Profile this dataset before we clean or chart anything",
+      "Which lakehouse skill applies to this data task?"
+    ]
+  }
+}
