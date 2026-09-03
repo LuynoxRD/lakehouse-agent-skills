@@ -1,0 +1,21 @@
+# Python tooling (uv, ruff, mypy, pytest)
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Behavioral eval transcripts and verdicts (Tier 3) are local artifacts
+evals/results/
+
+# Environment files never belong in this repository
+.env
+.env.*
+
+# Per-machine agent settings
+.claude/settings.local.json
+
+# Operating system noise
+.DS_Store
+Thumbs.db

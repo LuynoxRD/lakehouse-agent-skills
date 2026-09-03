@@ -1,0 +1,11 @@
+# Every text file is normalized to LF. Bash scripts with CRLF fail in CI.
+* text=auto eol=lf
+
+# Synthetic fixtures in binary formats are never diffed or normalized.
+*.parquet binary
+*.xlsx binary
+*.xlsm binary
+*.png binary
+*.gif binary
+*.jpg binary
+*.woff2 binary
