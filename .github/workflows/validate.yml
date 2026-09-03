@@ -1,0 +1,125 @@
+name: Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_VERSION: "0.11.6"
+  # Node is a tool here, not code: it runs Claude Code's plugin validator. Versions are pinned
+  # by hand because this repository has no package.json for Dependabot to track.
+  CLAUDE_CODE_VERSION: "2.1.259"
+
+jobs:
+  python-quality:
+    name: Python quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - name: Sync environment
+        run: uv sync --locked --extra dev
+      - name: ruff check
+        run: uv run --frozen ruff check .
+      - name: ruff format
+        run: uv run --frozen ruff format --check .
+      - name: mypy --strict
+        run: uv run --frozen mypy
+      - name: pytest
+        run: uv run --frozen pytest
+
+  validate-content:
+    name: Validate content
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - name: Sync environment
+        run: uv sync --locked --extra dev
+      - name: Validate skills
+        run: uv run --frozen python scripts/validate_skills.py
+      - name: Validate commands
+        run: uv run --frozen python scripts/validate_commands.py
+      - name: Validate manifest versions
+        run: uv run --frozen python scripts/validate_versions.py
+      - name: Validate reference links
+        run: uv run --frozen python scripts/validate_reference_links.py
+      - name: Validate artifact paths
+        run: uv run --frozen python scripts/validate_artifact_paths.py
+      - name: Validate fixtures
+        run: uv run --frozen python scripts/validate_fixtures.py
+      - name: Validate skill safety
+        run: uv run --frozen python scripts/validate_skill_safety.py
+      - name: Run evals (tier 2, trigger and routing)
+        run: uv run --frozen python scripts/run_evals.py
+
+  validate-plugin:
+    name: Validate plugin
+    needs: [validate-content]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+      - name: Install Claude Code
+        # The validator is a tool, installed at an exact pinned version; this repository has no
+        # package.json, so there is no lockfile for it by design (see CLAUDE.md, tooling rules).
+        run: npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" # zizmor: ignore[adhoc-packages]
+      - name: Validate plugin and marketplace manifests
+        run: claude plugin validate . --strict
+      - name: Add the marketplace from this checkout
+        run: claude plugin marketplace add ./
+      - name: Install the plugin from the marketplace
+        run: claude plugin install lakehouse-agent-skills@lakehouse-skills --scope user
+
+  lint-workflows:
+    name: Lint workflows
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - name: Sync environment
+        run: uv sync --locked --extra dev
+      - name: zizmor
+        run: uv run --frozen zizmor --persona regular .github/workflows
+      - name: actionlint
+        # rhysd/actionlint 1.7.12, pinned by image digest.
+        run: >-
+          docker run --rm -v "${PWD}:/repo" -w /repo
+          rhysd/actionlint@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
+          -color

@@ -1,0 +1,35 @@
+name: Vendor neutrality
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  vendor-neutrality:
+    name: Vendor neutrality
+    runs-on: ubuntu-latest
+    # The denylist is a repository secret. Pull requests from forks do not receive secrets, so
+    # they skip this job and the maintainer's review covers the check before merge; the push
+    # to main runs it again with the secret.
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Scan tree, commit messages and ref names
+        run: python scripts/check_vendor_neutrality.py --tree --history
+        env:
+          VENDOR_DENYLIST: ${{ secrets.VENDOR_DENYLIST }}
