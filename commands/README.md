@@ -1,0 +1,29 @@
+# Commands
+
+Slash commands for the data lifecycle, one TOML file per command. This directory is the source of
+truth; the per-tool copies under `.claude/commands/` (markdown with a `description` frontmatter
+and the prompt as body) and `.gemini/commands/` (identical TOML) are validated for parity by
+`scripts/validate_commands.py`.
+
+```toml
+description = "Profile a dataset before cleaning or charting it."
+
+prompt = """
+Invoke the `etl-before-dashboard` skill ...
+"""
+```
+
+Every prompt invokes at least one existing skill by its backticked name and writes its artifacts
+to the canonical paths in [docs/skill-anatomy.md](../docs/skill-anatomy.md).
+
+| Phase | Command | Artifact |
+| --- | --- | --- |
+| PROFILE | `/profile` | `docs/data/profile.md` |
+| CLEAN | `/clean` | `docs/data/cleaning-log.md`, `data/clean/` |
+| MODEL | `/model` | `docs/data/model.md`, `data/curated/` |
+| QUERY | `/query` | SQL and its result, with `EXPLAIN` |
+| VISUALIZE | `/chart` | chart specification |
+| ASSEMBLE | `/dashboard` | layout and widgets |
+| NARRATE | `/insight` | insights with sample size and comparison base stated |
+| DISCLOSE | `/disclose` | `docs/data/disclosure.md` |
+| cross-cutting | `/redact` | masked data and a record of what was masked |
