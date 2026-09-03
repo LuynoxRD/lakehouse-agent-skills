@@ -17,6 +17,10 @@ jobs:
   gitleaks:
     name: Gitleaks
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # On pull_request events the action lists the pull request's commits through the API.
+      pull-requests: read
     steps:
       - name: Check out full history
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

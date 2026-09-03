@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   analyze:
-    name: CodeQL (${{ matrix.language }})
+    name: CodeQL
     # Code scanning is available to this repository once it is public. The publication gate
     # sets the repository variable PUBLIC_SCANS_ENABLED to "true"; until then the job is skipped.
     if: vars.PUBLIC_SCANS_ENABLED == 'true'
