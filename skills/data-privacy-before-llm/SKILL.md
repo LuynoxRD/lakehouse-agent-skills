@@ -39,9 +39,29 @@ about to be sent.
 
 ## Core Process
 
-### Step 1: Find what identifies a person, not what looks sensitive
+### Step 1: Read the file without sending it, because the first read is already a send
 
-Write the inventory before anything is sent: every column, which category it falls into, and why.
+An agent that opens a file with a tool has put its contents into its own context, and that
+context goes to a model on this turn and on every turn after it. Printing the file to find out
+whether it may be printed is a decision taken one step too late, and it is the most common way
+this skill gets skipped by the very run that is applying it.
+
+So the inspection is bounded from the start:
+
+- Read the header and a handful of rows, enough to see the shape, never the whole file.
+- Better, let a script do the reading and print only what the inventory needs: column names,
+  types, null and distinct counts, ranges, and pattern counts such as how many values in a text
+  column contain an at sign, a run of digits long enough to be a phone number, or a postcode
+  shape. The script sees the values; the context sees the numbers.
+- A free-text column still has to be examined, and examining it puts some of it into the
+  context. Do that deliberately: match patterns across the whole column with a script, report the
+  counts, and read at most one or two examples chosen because they matched, not because they came
+  first.
+
+### Step 2: Find what identifies a person, not what looks sensitive
+
+Write the inventory from what the profile printed: every column, which category it falls into,
+and why.
 
 - **Direct identifiers** name someone on their own: full name, email address, phone number,
   national or tax identifier, account or customer number, street address, exact date of birth,
@@ -56,7 +76,7 @@ Write the inventory before anything is sent: every column, which category it fal
 A column list is not an inventory until the free-text columns have actually been read, at least
 in sample, for what they contain.
 
-### Step 2: Send the profile, not the rows
+### Step 3: Send the profile, not the rows
 
 The default is that values do not leave. A profile does: column names, types, null counts,
 distinct counts, ranges, distributions, a few *synthetic* examples that show the shape without
@@ -66,7 +86,14 @@ Most questions asked of a dataset are answerable from that. "Which column holds 
 "why does this join produce duplicates", "what does this distribution suggest" need structure,
 not people. Sending rows to answer them is paying a permanent cost for a convenience.
 
-### Step 3: When values genuinely must go, reduce before masking
+When a reason is offered for why sending is fine, answer that reason before deciding anything.
+"The provider does not train on it", "it is our own data", "it is only a sample", "the customer
+agreed to the terms" are each true and each about something else: what happens after a transfer,
+who owns the rows, how many there are, what was consented to in general. None of them says
+whether this transfer should happen, and one sentence saying so is what stops the same reason
+from settling the next one silently. Answer it, then reduce the data anyway.
+
+### Step 4: When values genuinely must go, reduce before masking
 
 In order of preference:
 
@@ -81,7 +108,7 @@ Say what the technique protects against. Masking the direct identifiers while le
 quasi-identifiers intact does not anonymise a row; it removes the label from a record that can
 still be matched back. Calling that "anonymised" is the claim this step exists to prevent.
 
-### Step 4: Local by default when text has to be embedded
+### Step 5: Local by default when text has to be embedded
 
 Turning text into vectors does not require sending it anywhere. Sentence-embedding models run
 locally on a CPU, with no API key and no data leaving the machine, and that is the default for
@@ -91,7 +118,7 @@ Moving to a hosted embedding service, for volume or for quality, is a legitimate
 transfer of every document embedded. It is stated before it happens, in the answer, with what is
 being sent and where. Never call out silently because the hosted path was easier to write.
 
-### Step 5: Record what left, before it leaves
+### Step 6: Record what left, before it leaves
 
 Append to `docs/data/disclosure.md`: which columns, how many rows, in what form, to which service,
 when, and what the transfer was for. Write it as part of doing the send, not afterwards.
@@ -111,12 +138,14 @@ visible at the moment it was taken, so somebody can disagree with it while it st
 | "The user pasted the rows themselves, so it is their call." | It is. Saying what was in them is still yours, because they may not have read the free-text column either. |
 | "Masking every column makes the analysis useless." | Then the analysis needs an aggregate, not raw rows. Useless output is the signal that the wrong shape was chosen, not permission to send everything. |
 | "It would take longer to profile it than to send it." | True, and the profile is the part that is reusable. The send is the part that cannot be taken back. |
+| "I have to read the file before I can tell whether it is sensitive." | Reading it into the context is the send. Read the header, then let a script report what is in the rest. |
 
 ## Red Flags
 
 Stop when any of these is true:
 
 - Rows containing a direct identifier are about to appear in a prompt.
+- A file that may hold personal data is about to be printed whole in order to look at it.
 - A file is about to be attached to a request without having been opened and inventoried.
 - A column was called anonymised and no technique is named.
 - A free-text column is being sent and nobody has read a sample of what is in it.
@@ -126,6 +155,8 @@ Stop when any of these is true:
 
 ## Verification
 
+- [ ] The file was inspected without being printed whole: the inventory was built from a
+      profile, a header and a bounded sample, not from the contents in the context.
 - [ ] Every column is classified as direct identifier, quasi-identifier, free text or neither,
       with a reason.
 - [ ] Free-text columns were sampled and read before any decision about sending them.
