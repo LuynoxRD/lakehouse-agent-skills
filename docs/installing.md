@@ -83,11 +83,46 @@ So `scripts/validate_skills.py` now refuses a plain frontmatter value containing
 Rewrite the sentence, or quote the whole value. A colon with nothing after it, as in a ratio like
 `4.5:1` or a time like `09:30`, is unambiguous and stays allowed.
 
+## Which tools this reaches
+
+Measured by installing one skill with `--agent '*'` into an empty project and listing what
+appeared.
+
+**Skills reach about 77 tools.** The installer writes `.<tool>/skills/<name>/SKILL.md` for each,
+and the list runs from Continue, Windsurf, Roo, Kilo Code, Junie, Trae, Goose, OpenHands and
+Crush through to a long tail. That breadth is the format's, not this pack's: a `SKILL.md` is
+markdown with frontmatter, so anything that reads one can use these.
+
+**Cursor and opencode are not among them.** No `.cursor` or `.opencode` directory is created, and
+asking for them by name is a silent no-op: the installer prints `Done!` and writes nothing. Their
+own conventions have not been verified here, so this document does not tell you a path for them.
+Copying a skill directory into whatever a tool reads is the fallback, and it works because the
+file is just markdown.
+
+**The rest of the pack is narrower, and deliberately so.**
+
+| Component | Reaches |
+| --- | --- |
+| The 14 skills | Every tool above, and anything else that reads a `SKILL.md` |
+| The 9 commands | Claude Code, as `.claude/commands/*.md`, and Gemini, as `.gemini/commands/*.toml`. Both are generated from `commands/*.toml` by `scripts/sync_commands.py`. |
+| The 3 reviewer personas | Claude Code, through the plugin's default `agents/` directory. Other tools have their own subagent mechanisms and none of them has been verified here. |
+| The session hook | Claude Code, through `hooks/hooks.json` |
+
+The skills are the portable part and the pack is built that way on purpose: everything a skill
+cannot work without is inside its own `SKILL.md`, so the tools that get only the skills still get
+the discipline. The commands are a convenience for reaching a stage by name, and the personas and
+the hook are Claude Code affordances layered on top.
+
 ## Verifying an install
 
 ```bash
 npx skills list
 ```
 
-Count what came back. Thirteen is the whole catalogue; anything less means a skill was dropped,
+Count what came back. Fourteen is the whole catalogue; anything less means a skill was dropped,
 and the first place to look is the frontmatter of the ones that are missing.
+
+For the plugin, CI does the counting on every pull request: it installs, reads the component
+inventory, and fails when the names loaded differ from the names this repository ships. That step
+exists because an install exits zero whether it loaded everything or nothing, which is how three
+reviewer personas once shipped with nothing reading them.
