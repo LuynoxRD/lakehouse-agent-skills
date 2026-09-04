@@ -125,3 +125,27 @@ def test_a_quote_in_a_file_name_does_not_break_the_json(tmp_path: Path) -> None:
     text = message(run(tmp_path))
 
     assert 'we"ird.csv' in text
+
+
+def test_an_unusable_temporary_directory_still_exits_cleanly(tmp_path: Path) -> None:
+    """A stale TMPDIR must not turn a reminder into an error notice at every session start."""
+    assert BASH is not None
+    (tmp_path / "orders.csv").write_text("a,b\n", encoding="utf-8")
+
+    result = subprocess.run(
+        [BASH, str(HOOK)],
+        env={
+            "CLAUDE_PROJECT_DIR": str(tmp_path),
+            "TMPDIR": str(tmp_path / "gone" / "deeper"),
+            "PATH": os.environ.get("PATH", ""),
+        },
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=60,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == ""

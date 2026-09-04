@@ -90,7 +90,7 @@ have_gitleaks || {
 }
 
 if [ "$SYNC" = 1 ]; then
-  step "uv sync --locked --extra dev" uv sync --locked --extra dev
+  step "uv sync (dev + fixtures)" uv sync --locked --extra dev --extra fixtures
 fi
 
 step "ruff check"            uv run --frozen ruff check .
@@ -105,6 +105,7 @@ step "validate_reference_links"  uv run --frozen python scripts/validate_referen
 step "validate_artifact_paths"   uv run --frozen python scripts/validate_artifact_paths.py
 step "validate_fixtures"         uv run --frozen python scripts/validate_fixtures.py
 step "validate_skill_safety"     uv run --frozen python scripts/validate_skill_safety.py
+step "validate_skill_scripts"    uv run --frozen python scripts/validate_skill_scripts.py
 step "run_evals (tier 2)"        uv run --frozen python scripts/run_evals.py
 
 step "gitleaks version pin" gitleaks_version_check

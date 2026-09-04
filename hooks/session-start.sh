@@ -16,7 +16,12 @@ readonly MAX_DEPTH=3
 readonly LIST_LIMIT=5
 
 project_dir="${CLAUDE_PROJECT_DIR:-$PWD}"
-work_dir="$(mktemp -d)"
+# A stale TMPDIR makes mktemp fail, and an unguarded failure here would end a reminder hook with a
+# non-zero status, which the tool reports as an error at the start of every session.
+work_dir="$(mktemp -d 2>/dev/null)" || {
+  echo "session-start: no writable temporary directory; nothing to say" >&2
+  exit 0
+}
 trap 'rm -rf "$work_dir"' EXIT
 
 emit() {

@@ -14,6 +14,7 @@ agents/            → reviewer personas used by the lifecycle commands
 hooks/             → session lifecycle hooks (minimal, tested, no network)
 evals/             → eval cases, synthetic fixtures, framework docs (see evals/README.md)
 scripts/           → validators and the eval runner, Python standard library only
+scripts/skill-scripts/ → the one copy of each script a skill ships; `sync_skill_scripts.py` copies it into every skill whose SKILL.md names it
 tests/             → pytest suite covering every validator and the eval runner
 docs/              → skill anatomy, getting started, per-tool setup guides
 .github/           → CI workflows, Dependabot, CODEOWNERS
@@ -33,7 +34,7 @@ The meta-skill `using-lakehouse-skills` routes a task to the right skill. If a t
 - Every skill lives in `skills/<name>/SKILL.md`; `name` in the frontmatter equals the directory name, lowercase-hyphen-separated.
 - The `description` states what the skill does in third person, then one or more `Use when …` triggers. Maximum 1024 characters. Never summarize the workflow in the description.
 - Standard sections: Overview, When to Use (with exclusions), Core Process, Common Rationalizations (excuse | reality), Red Flags, Verification (evidence-backed checklist). Equivalent headings are fine when they serve the same purpose.
-- Keep `SKILL.md` under 500 lines. Move long reference material to `references/` (shared) or a supporting file inside the skill (used by that skill only). Keep critical guidance inline: a per-skill install does not carry `references/`.
+- Keep `SKILL.md` under 500 lines. Move long reference material to `references/` (shared) or a supporting file inside the skill (used by that skill only). Keep critical guidance inline: a per-skill install does not carry `references/`. A per-skill install carries the skill's own directory and nothing above it, so a script the skill tells the reader to run lives in `skills/<name>/scripts/`, generated from `scripts/skill-scripts/` and checked for drift by `validate_skill_scripts.py`.
 - Every skill ships `evals/cases/<name>.json`: at least 3 positive triggers, 2 negative triggers with `owner`, and 1 behavioral eval backed by a fixture under `evals/fixtures/<name>/` with a `FIXTURE.md` describing how it was generated.
 - Commands live in `commands/*.toml`; per-tool copies must stay in parity and share descriptions.
 - Manifest versions (`plugin.json`, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`) must match.
@@ -65,7 +66,7 @@ A `SKILL.md` is code that runs inside someone else's agent. Treat it that way.
 
 ## Working on the repo
 
-- Tooling is Python 3.12+ managed with `uv` (`uv sync --extra dev`), linted with `ruff`, type-checked with `mypy --strict`, tested with `pytest`. Validators and the eval runner use the standard library only; third-party packages exist solely to generate fixtures and are locked in `uv.lock`. Never `pip install` directly. Node is only needed to run Claude Code's plugin validator and the `skills` CLI; this repository has no `package.json`.
+- Tooling is Python 3.12+ managed with `uv` (`uv sync --extra dev --extra fixtures`), linted with `ruff`, type-checked with `mypy --strict`, tested with `pytest`. The `fixtures` extra is installed for tests too, because the shipped `verify-output.sh` needs the query engine it documents and a skipped test is not a test. Validators and the eval runner use the standard library only; third-party packages exist solely to generate fixtures and are locked in `uv.lock`. Never `pip install` directly. Node is only needed to run Claude Code's plugin validator and the `skills` CLI; this repository has no `package.json`.
 - Run `bash scripts/ci-local.sh` before every push. It runs ruff, mypy, pytest, every validator, the Tier 2 evals, the secret scan, and the vendor-neutrality check.
 - Tier 3 behavioral evals spend tokens: run them on demand with `uv run scripts/run_evals.py --behavioral <skill>` and read the results before trusting a skill.
 - Never lower the Tier 2 rank-1 floor to make a regression pass. Fix the description instead and, if a change is rejected on eval evidence, add a row to `evals/skill-impact.md`.
