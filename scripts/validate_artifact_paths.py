@@ -13,7 +13,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from lib.artifact_paths import find_violations
-from lib.repo import Layout, add_root_argument, iter_files, read_checked
+from lib.repo import Layout, add_root_argument, configure_output, iter_files, read_checked
 from lib.report import Report
 
 SCANNED_SUFFIXES = frozenset({".md", ".toml"})
@@ -56,6 +56,7 @@ def validate(layout: Layout) -> Report:
 
 def main(argv: Sequence[str] | None = None) -> int:
     """CLI entry point."""
+    configure_output()
     parser = argparse.ArgumentParser(description=__doc__)
     add_root_argument(parser)
     args = parser.parse_args(argv)

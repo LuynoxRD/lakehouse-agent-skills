@@ -1,0 +1,5 @@
+variant,segment,successes,trials
+A,small,81,87
+A,large,192,263
+B,small,234,270
+B,large,55,80

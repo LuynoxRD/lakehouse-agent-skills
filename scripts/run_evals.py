@@ -22,7 +22,7 @@ from pathlib import Path
 from lib import frontmatter
 from lib.behavioral import BehavioralSettings, EvalOutcome, run_case
 from lib.evals_schema import EvalCase, load_cases
-from lib.repo import Layout, add_root_argument, read_text
+from lib.repo import Layout, add_root_argument, configure_output, read_text
 from lib.report import Report
 from lib.tfidf import Index, build_index
 
@@ -228,16 +228,26 @@ def write_json(path: Path, payload: dict[str, object]) -> None:
 
 def format_outcome(outcome: EvalOutcome, root: Path) -> str:
     """Human-readable Tier 3 outcome."""
-    verdict = "PASS" if outcome.passed else "FAIL"
+    verdict = "PASS" if outcome.passed else ("BLOCKED" if outcome.blocked else "FAIL")
     header = (
         f"{outcome.skill} eval {outcome.eval_id}: {verdict} "
         f"({outcome.duration_seconds:.0f}s, agent exit {outcome.agent_returncode})"
     )
     lines = [header]
+    if outcome.blocked:
+        # No evidence either way: say so instead of listing expectations as unmet.
+        lines.append(f"  the run did not complete, so nothing was measured: {outcome.blocked}")
+        return "\n".join(lines)
     for judgement in outcome.judgements:
         marker = "met" if judgement.met else "MISSED"
         evidence = f" -- {judgement.evidence}" if judgement.evidence else ""
         lines.append(f"  [{marker}] {judgement.expectation}{evidence}")
+    if outcome.outside_catalogue:
+        # A pass that leans on a skill the pack does not ship is not a pass for the pack.
+        lines.append(
+            "  invoked from the host machine, not from this catalogue: "
+            + ", ".join(outcome.outside_catalogue)
+        )
     lines.append(f"  transcript: {outcome.transcript_path.relative_to(root).as_posix()}")
     lines.append(f"  verdict:    {outcome.verdict_path.relative_to(root).as_posix()}")
     return "\n".join(lines)
@@ -261,9 +271,21 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--judge-model", help="model for the judge (default: --model)")
     parser.add_argument("--timeout", type=int, default=900, help="seconds per headless run")
     parser.add_argument(
+        "--with-catalog",
+        action="store_true",
+        help="install every skill, not only the one under test; required for a skill that "
+        "routes to other skills, whose names cannot resolve when it is installed alone",
+    )
+    parser.add_argument(
         "--with-references",
         action="store_true",
         help="also stage references/ (default simulates a per-skill install without them)",
+    )
+    parser.add_argument(
+        "--allow-execution",
+        action="store_true",
+        help="let the agent under test run commands; without it every command that starts a "
+        "program is denied, so a skill that asks for machine-checked evidence cannot comply",
     )
     parser.add_argument("--claude-command", default="claude", help="headless agent executable")
     return parser
@@ -271,6 +293,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     """CLI entry point."""
+    configure_output()
     args = build_parser().parse_args(argv)
     layout = Layout(args.root.resolve())
     report = Report("run-evals")
@@ -322,12 +345,22 @@ def _run_tier3(
         judge_model=args.judge_model,
         timeout_seconds=args.timeout,
         with_references=args.with_references,
+        with_catalog=args.with_catalog,
+        allow_execution=args.allow_execution,
     )
     outcomes = run_case(layout, matching[0], settings)
     for outcome in outcomes:
         print(format_outcome(outcome, layout.root))
     passed = sum(1 for o in outcomes if o.passed)
-    print(f"tier3: {passed}/{len(outcomes)} behavioral eval(s) passed for {args.behavioral}")
+    blocked = sum(1 for o in outcomes if o.blocked)
+    measured = len(outcomes) - blocked
+    capability = "commands allowed" if args.allow_execution else "no command execution"
+    summary = (
+        f"tier3: {passed}/{measured} behavioral eval(s) passed for {args.behavioral} ({capability})"
+    )
+    if blocked:
+        summary += f"; {blocked} did not run and measured nothing"
+    print(summary)
     if args.json is not None:
         write_json(
             args.json,
@@ -336,10 +369,13 @@ def _run_tier3(
                 "skill": args.behavioral,
                 "passed": passed,
                 "total": len(outcomes),
+                "blocked": blocked,
+                "execution_allowed": args.allow_execution,
                 "outcomes": [
                     {
                         "eval_id": o.eval_id,
                         "passed": o.passed,
+                        "blocked": o.blocked,
                         "verdict": o.verdict_path.relative_to(layout.root).as_posix(),
                     }
                     for o in outcomes

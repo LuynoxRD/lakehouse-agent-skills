@@ -2,17 +2,47 @@
 
 from __future__ import annotations
 
+import re
 import shutil
 
 import pytest
 
 import validate_fixtures
 from conftest import FIXTURE_NOTE, SKILL_A, SKILL_B, write
-from lib.repo import Layout
+from lib.repo import REPO_ROOT, Layout
 
 
 def findings(layout: Layout) -> dict[str, str]:
     return {f.rule: f.severity.value for f in validate_fixtures.validate(layout).findings}
+
+
+def test_fixtures_are_excluded_from_line_ending_normalization() -> None:
+    """A fixture's bytes are the fixture.
+
+    `.gitattributes` sets `text=auto eol=lf` repository-wide, which rewrites a CRLF export to
+    LF on commit and deletes the very defect a fixture was built to carry. The exclusion is an
+    invariant of the repository, so it is asserted rather than trusted.
+    """
+    attributes = (REPO_ROOT / ".gitattributes").read_text(encoding="utf-8")
+    assert "evals/fixtures/** -text" in attributes
+
+
+def test_the_secret_scan_only_excludes_paths_git_ignores() -> None:
+    """The allowlist exists to stop the gate depending on installed dependencies.
+
+    `gitleaks dir` does not read `.gitignore`, so it scanned the virtual environment and a
+    passing run turned into a failing one simply by syncing an optional extra. The allowlist
+    must never reach tracked content, so every entry has to name a path git already ignores.
+    """
+    config = (REPO_ROOT / ".gitleaks.toml").read_text(encoding="utf-8")
+    ignored = (REPO_ROOT / ".gitignore").read_text(encoding="utf-8")
+    entries = re.findall(r"'''\(\^\|/\)\\?\.?([A-Za-z_/]+)/'''", config)
+    assert entries, "no allowlisted paths found; the pattern shape changed"
+    tracked = {p.parts[0] for p in REPO_ROOT.glob("*") if p.is_dir() and not p.name.startswith(".")}
+    for entry in entries:
+        top = entry.split("/")[0]
+        covered = top in ignored or f".{top}" in ignored or entry in ignored
+        assert covered or top not in tracked, f"{entry} is neither git-ignored nor untracked"
 
 
 def test_valid_fixtures_are_clean(repo: Layout) -> None:

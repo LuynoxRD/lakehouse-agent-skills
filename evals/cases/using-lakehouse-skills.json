@@ -1,0 +1,44 @@
+{
+  "skill_name": "using-lakehouse-skills",
+  "trigger": {
+    "positive": [
+      {
+        "prompt": "I have a data file and a vague request. Which skill applies and where do I start?",
+        "top_k": 3
+      },
+      {
+        "prompt": "What is the right order of stages for turning this raw extract into an answer?",
+        "top_k": 3
+      },
+      {
+        "prompt": "This request touches cleaning, coverage and wording at once. How do these skills compose?",
+        "top_k": 3
+      }
+    ],
+    "negative": [
+      {
+        "prompt": "The dates in this CSV are parsing as month-first and the store codes lost their leading zeros.",
+        "owner": "etl-before-dashboard"
+      },
+      {
+        "prompt": "The export is 6 GB, my machine has 8 GB of RAM, and I only read part of it.",
+        "owner": "honest-data-limits-disclosure"
+      }
+    ]
+  },
+  "evals": [
+    {
+      "id": "1",
+      "kind": "execution",
+      "prompt": "Build me a dashboard from signups.csv.",
+      "expected_output": "A routing decision that names the lifecycle stages this file needs and their order, rather than jumping to a chart.",
+      "files": ["using-lakehouse-skills/signups.csv"],
+      "expectations": [
+        "The response names the profile or clean stage as the starting point rather than producing a chart first",
+        "It identifies at least two of the three signals in the file: the ambiguous day-first dates or comma decimals, the oversized Other bucket in the plan column, and the note that the export covers 3 of 8 source files",
+        "It names more than one skill and states the order they apply in, rather than picking a single skill and proceeding",
+        "It does not invent a skill name that does not exist in the catalog"
+      ]
+    }
+  ]
+}

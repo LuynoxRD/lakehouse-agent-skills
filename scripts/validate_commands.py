@@ -15,7 +15,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from lib import frontmatter
-from lib.repo import Layout, add_root_argument, read_checked, read_text
+from lib.repo import Layout, add_root_argument, configure_output, read_checked, read_text
 from lib.report import Report
 from lib.skill_lint import NAME_RE
 
@@ -142,6 +142,7 @@ def validate(layout: Layout) -> Report:
 
 def main(argv: Sequence[str] | None = None) -> int:
     """CLI entry point."""
+    configure_output()
     parser = argparse.ArgumentParser(description=__doc__)
     add_root_argument(parser)
     args = parser.parse_args(argv)

@@ -57,10 +57,18 @@ One file per skill at `cases/<skill>.json`; the file name must equal `skill_name
 ```
 
 Minimums enforced by the schema: 3 positive triggers, 2 negative triggers with an `owner`
-different from the skill, and 1 **execution** eval. `top_k` defaults to 3. `kind` is `execution`
-(needs at least one fixture in `files`) or `dialogue` (no fixture; the transcript is reviewed by
-a human, so use it sparingly and say why) — a dialogue eval never satisfies the minimum on its
-own. Skills about discipline also carry **pressure cases**:
+different from the skill, and 1 **execution** eval. `top_k` defaults to 3.
+
+`kind` says how the data reaches the agent, not whether the eval runs. Both run.
+
+- **`execution`** stages fixture files into the workspace: the data arrives as a file, the way it
+  does when someone points at a path.
+- **`dialogue`** stages nothing and carries its data inside the prompt, the way a connector or a
+  pasted extract hands rows to an agent that never touches a file. The discipline is meant to be
+  agnostic to where data came from, so that claim is tested rather than asserted.
+
+A dialogue eval never satisfies the execution minimum on its own, because a skill also has to
+work against a real file. Skills about discipline additionally carry **pressure cases**:
 prompts that push the agent to skip the step through time pressure, sunk cost or appeals to
 authority, with expectations that the agent still follows the skill and says so.
 
@@ -87,15 +95,51 @@ uv run scripts/run_evals.py                          # tier 2, floor from config
 uv run scripts/run_evals.py --min-rank1 80           # override the floor for a local experiment
 uv run scripts/run_evals.py --json out/tier2.json    # machine-readable results
 uv run scripts/run_evals.py --behavioral etl-before-dashboard            # tier 3, one skill
-uv run scripts/run_evals.py --behavioral etl-before-dashboard --model <model> --timeout 600
+uv run scripts/run_evals.py --behavioral etl-before-dashboard --model <model> --timeout 900
+uv run scripts/run_evals.py --behavioral using-lakehouse-skills --with-catalog   # a router
+uv run scripts/run_evals.py --behavioral etl-before-dashboard --allow-execution  # agent may run commands
 ```
 
 Tier 3 stages a temporary workspace with the skill installed at `.claude/skills/<name>/` (the
 shape of a per-skill install, without shared references unless `--with-references`) and the
-fixture files, runs `claude -p` with `--permission-mode acceptEdits`, then asks a second headless
-session to grade the transcript and the files the agent produced, answering with JSON only.
-Transcripts and verdicts land in `results/<skill>/` (gitignored). An eval passes when the agent
-exits cleanly and every expectation is met. Read the transcript before trusting a pass.
+fixture files, runs `claude -p` there, then asks a second headless session to grade the
+transcript and the files the agent produced, answering with JSON only. Transcripts and verdicts
+land in `results/<skill>/` (gitignored). An eval passes when the agent exits cleanly and every
+expectation is met. Read the transcript before trusting a pass.
+
+**What the agent is allowed to do is part of the result.** By default the run uses
+`--permission-mode acceptEdits`: the agent reads and writes files and may run a read-only shell
+command such as listing a directory, but anything that starts a program — `python`, `duckdb`,
+`tar`, a copy — is held for an approval a headless session cannot give and comes back denied. A
+skill whose Verification section asks for machine-checked evidence cannot comply in that mode,
+and the run still produces a verdict, so a pass there says the agent reasoned correctly from
+what it could read, not that it verified anything. `--allow-execution` lifts the restriction
+(`bypassPermissions`) and is what a skill about profiling, querying or persisting data has to be
+measured under. It is off by default because the commands the agent writes then run with the
+rights of whoever started the eval, on the host, not inside a sandbox. Every verdict records
+`execution_allowed`, and the summary line names the mode; comparing two runs across modes without
+reading it is comparing two different questions.
+
+**A skill that routes to other skills needs `--with-catalog`.** Installed alone, the names it
+points at do not resolve, an agent correctly reports them as missing, and the verdict reads that
+as an invented skill name. The flag installs the whole catalog, which is also how the pack is
+actually installed.
+
+**A run is not isolated from the machine it runs on.** Authentication lives in the agent's own
+configuration directory, so pointing the headless session at an empty one leaves it unable to
+reach the API; the skills, plugins and settings installed on that machine come along with the
+credentials. An agent can therefore invoke a skill that this pack does not ship, and a judge,
+which never sees the workspace, will read it as part of the catalogue. The runner closes that
+gap by stating in the judge prompt exactly which skills it installed, naming any others the
+agent invoked as coming from the host, and recording both in the verdict as `invoked_skills` and
+`skills_outside_catalogue`. A verdict listing a skill under the second key was not earned by the
+pack alone.
+
+Two things about a run are worth knowing before reading a verdict. A timeout is reported as a
+failed eval with the agent's exit code set, even when the transcript shows the work was done, so
+check the duration against the timeout before concluding the skill failed. And the headless
+session inherits the machine's own agent configuration, including its language, so a verdict may
+quote an agent that answered in a language other than English.
 
 ## Ledger
 

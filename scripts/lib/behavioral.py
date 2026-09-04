@@ -37,7 +37,7 @@ class CommandResult:
     stderr: str
 
 
-Runner = Callable[[Sequence[str], Path, int], CommandResult]
+Runner = Callable[..., CommandResult]
 
 
 @dataclass(frozen=True, slots=True)
@@ -49,6 +49,8 @@ class BehavioralSettings:
     judge_model: str | None = None
     timeout_seconds: int = 900
     with_references: bool = False
+    with_catalog: bool = False
+    allow_execution: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,7 +64,13 @@ class Judgement:
 
 @dataclass(frozen=True, slots=True)
 class EvalOutcome:
-    """Result of one behavioral eval."""
+    """Result of one behavioral eval.
+
+    ``blocked`` separates a run that never happened from a skill that fell short. A quota
+    limit, a network failure or a missing binary produces no evidence either way, and
+    reporting it as unmet expectations is how an infrastructure failure gets mistaken for a
+    result.
+    """
 
     skill: str
     eval_id: str
@@ -72,14 +80,25 @@ class EvalOutcome:
     verdict_path: Path
     duration_seconds: float
     agent_returncode: int
+    blocked: str | None = None
+    invoked_skills: tuple[str, ...] = ()
+    outside_catalogue: tuple[str, ...] = ()
 
 
-def run_command(args: Sequence[str], cwd: Path, timeout: int) -> CommandResult:
-    """Run a command with a timeout, never through a shell."""
+def run_command(
+    args: Sequence[str], cwd: Path, timeout: int, stdin_text: str | None = None
+) -> CommandResult:
+    """Run a command with a timeout, never through a shell.
+
+    A long prompt is passed on stdin rather than in argv: Windows caps a whole command line at
+    about 32,767 characters, and a judge prompt carrying a transcript is comfortably past that,
+    which makes the process fail to start at all.
+    """
     try:
         completed = subprocess.run(  # noqa: S603 - fixed argv built by this module, no shell
             list(args),
             cwd=cwd,
+            input=stdin_text,
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -96,27 +115,41 @@ def run_command(args: Sequence[str], cwd: Path, timeout: int) -> CommandResult:
         return CommandResult(returncode=-1, stdout=stdout, stderr=f"timed out after {timeout}s")
     except FileNotFoundError:
         return CommandResult(returncode=127, stdout="", stderr=f"command not found: {args[0]}")
+    except OSError as error:
+        return CommandResult(
+            returncode=126, stdout="", stderr=f"could not start {args[0]}: {error}"
+        )
     return CommandResult(completed.returncode, completed.stdout, completed.stderr)
 
 
-def stage_workspace(
+def stage_workspace(  # noqa: PLR0913 - one argument per thing staged, all named at the call site
     layout: Layout,
     case: EvalCase,
     behavioral: BehavioralEval,
     workspace: Path,
     *,
     with_references: bool,
+    with_catalog: bool = False,
 ) -> None:
     """Copy the skill and the fixture files into an empty workspace.
 
     Fixture paths come from a JSON file a contributor writes, so they are confined to the
     fixture tree here as well as in the validator: an absolute path would otherwise replace
     the base and copy anything on the machine into the agent's workspace.
+
+    ``with_catalog`` installs every skill instead of only the one under test. A skill that
+    routes to other skills cannot be judged alone: on its own, the names it points at do not
+    resolve, and an agent correctly reports them as missing.
     """
     skill_source = layout.skills / case.skill_name
     if not skill_source.is_dir():
         raise FileNotFoundError(f"skill directory not found: {skill_source}")
-    shutil.copytree(skill_source, workspace / ".claude" / "skills" / case.skill_name)
+    installed = workspace / ".claude" / "skills"
+    if with_catalog:
+        for directory in layout.skill_dirs():
+            shutil.copytree(directory, installed / directory.name)
+    else:
+        shutil.copytree(skill_source, installed / case.skill_name)
     if with_references and layout.references.is_dir():
         shutil.copytree(layout.references, workspace / "references")
     for fixture in behavioral.files:
@@ -132,7 +165,16 @@ def stage_workspace(
 
 
 def build_agent_args(prompt: str, settings: BehavioralSettings) -> list[str]:
-    """Command line for the agent under test."""
+    """Command line for the agent under test.
+
+    The permission mode decides what the eval can measure at all. Under ``acceptEdits`` the
+    agent reads and writes files but every command that starts a program is held for an
+    approval no headless session can give, so it cannot run a profile, a query or a checksum.
+    A skill whose Verification section asks for machine evidence is unfalsifiable in that mode:
+    the agent has no way to comply, and the run still returns a verdict. ``allow_execution``
+    lifts that, and it stays off by default because the commands an agent writes then run with
+    the invoking user's rights, outside the workspace's reach to contain them.
+    """
     args = [
         settings.claude_command,
         "-p",
@@ -141,20 +183,44 @@ def build_agent_args(prompt: str, settings: BehavioralSettings) -> list[str]:
         "stream-json",
         "--verbose",
         "--permission-mode",
-        "acceptEdits",
+        "bypassPermissions" if settings.allow_execution else "acceptEdits",
     ]
     if settings.model:
         args.extend(["--model", settings.model])
     return args
 
 
-def build_judge_args(prompt: str, settings: BehavioralSettings) -> list[str]:
-    """Command line for the judge session."""
-    args = [settings.claude_command, "-p", prompt, "--output-format", "json"]
+def build_judge_args(settings: BehavioralSettings) -> list[str]:
+    """Command line for the judge session; the prompt itself arrives on stdin."""
+    args = [settings.claude_command, "-p", "--output-format", "json"]
     model = settings.judge_model or settings.model
     if model:
         args.extend(["--model", model])
     return args
+
+
+def detect_run_failure(stream_json: str) -> str | None:
+    """Return why the run could not produce evidence, or None when it ran.
+
+    The agent reports an API failure inside its own result event, so a quota limit arrives as a
+    successful process with an error payload. Reading it here keeps a blocked run from being
+    scored as a skill that did nothing.
+    """
+    for raw_line in stream_json.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(event, dict) or event.get("type") != "result":
+            continue
+        if event.get("is_error") or event.get("terminal_reason") == "api_error":
+            status = event.get("api_error_status")
+            detail = str(event.get("result", "")).strip() or event.get("terminal_reason", "error")
+            return f"HTTP {status}: {detail}" if status else str(detail)
+    return None
 
 
 def extract_transcript(stream_json: str) -> str:
@@ -208,12 +274,64 @@ def list_workspace_changes(workspace: Path, staged: set[Path]) -> list[str]:
     return changed
 
 
-def build_judge_prompt(behavioral: BehavioralEval, transcript: str, changes: Sequence[str]) -> str:
+def skills_invoked(stream_json: str) -> tuple[str, ...]:
+    """Names the agent passed to the Skill tool, in order of first use.
+
+    A headless run resolves skills from the machine's own configuration as well as from the
+    staged workspace, and authentication is tied to that configuration, so the two cannot be
+    pulled apart. What can be pulled apart is fact from impression: comparing this list against
+    what the runner installed separates a router that stayed inside the pack from one that
+    reached for a skill the pack does not ship.
+    """
+    seen: dict[str, None] = {}
+    for raw_line in stream_json.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(event, dict):
+            continue
+        message = event.get("message")
+        content = message.get("content") if isinstance(message, dict) else None
+        for block in content if isinstance(content, list) else []:
+            if not isinstance(block, dict) or block.get("type") != "tool_use":
+                continue
+            if block.get("name") != "Skill":
+                continue
+            payload = block.get("input")
+            name = payload.get("skill") if isinstance(payload, dict) else None
+            if isinstance(name, str) and name:
+                seen.setdefault(name, None)
+    return tuple(seen)
+
+
+def build_judge_prompt(
+    behavioral: BehavioralEval,
+    transcript: str,
+    changes: Sequence[str],
+    installed: Sequence[str] = (),
+    outside: Sequence[str] = (),
+) -> str:
     """Instruct the judge to return JSON only."""
     expectations = "\n".join(
         f"{index}. {text}" for index, text in enumerate(behavioral.expectations, 1)
     )
     changed = "\n".join(f"- {name}" for name in changes) or "- (none)"
+    # The judge cannot see the workspace, so left to itself it reads any skill the agent
+    # invoked as part of the catalogue. Stating what was installed removes the assumption.
+    catalogue = ""
+    if installed:
+        catalogue = "Skills installed in the workspace: " + ", ".join(installed) + ".\n"
+        if outside:
+            catalogue += (
+                "The agent also invoked, from the host machine and not from this catalogue: "
+                + ", ".join(outside)
+                + ". Those are not part of the catalogue.\n"
+            )
+        catalogue += "\n"
     return (
         "You are grading a transcript of an AI coding agent working on a data task.\n"
         "Judge each expectation strictly against the transcript and the files it produced. "
@@ -223,6 +341,7 @@ def build_judge_prompt(behavioral: BehavioralEval, transcript: str, changes: Seq
         f"Expected output (guidance, not a literal match):\n{behavioral.expected_output}\n\n"
         f"Expectations:\n{expectations}\n\n"
         f"Files the agent created or modified:\n{changed}\n\n"
+        f"{catalogue}"
         f"Transcript:\n<transcript>\n{transcript}\n</transcript>\n\n"
         "Answer with JSON only, no prose, in exactly this shape:\n"
         '{"results": [{"expectation": "<text>", "met": true, '
@@ -300,9 +419,18 @@ def run_eval(
     verdict_path = results_dir / f"{safe_id}-{stamp}.verdict.json"
 
     with tempfile.TemporaryDirectory(prefix="lakehouse-eval-") as temporary:
-        workspace = Path(temporary)
+        # The temporary directory can come back in Windows 8.3 short form, such as
+        # C:\Users\LUISCA~1\..., which an agent treats as a suspicious path and refuses to read
+        # or write without manual approval. Every tool call is then blocked and the eval
+        # measures nothing while still producing a verdict. Resolving expands it.
+        workspace = Path(temporary).resolve()
         stage_workspace(
-            layout, case, behavioral, workspace, with_references=settings.with_references
+            layout,
+            case,
+            behavioral,
+            workspace,
+            with_references=settings.with_references,
+            with_catalog=settings.with_catalog,
         )
         staged = {path for path in workspace.rglob("*") if path.is_file()}
         agent = runner(
@@ -315,13 +443,32 @@ def run_eval(
                 f"{transcript}\n[agent exited with {agent.returncode}: {agent.stderr.strip()}]"
             )
         changes = list_workspace_changes(workspace, staged)
+        installed = sorted(path.name for path in (workspace / ".claude" / "skills").iterdir())
+        invoked = skills_invoked(agent.stdout)
+        outside = tuple(name for name in invoked if name not in set(installed))
+        judge_prompt = build_judge_prompt(behavioral, transcript, changes, installed, outside)
         judge = runner(
-            build_judge_args(build_judge_prompt(behavioral, transcript, changes), settings),
-            workspace,
-            settings.timeout_seconds,
+            build_judge_args(settings), workspace, settings.timeout_seconds, judge_prompt
         )
-    judgements = parse_judgement(judge.stdout, behavioral.expectations)
-    passed = agent.returncode == 0 and all(j.met for j in judgements)
+    blocked = detect_run_failure(agent.stdout)
+    if blocked is not None:
+        judgements = tuple(
+            Judgement(text, met=False, evidence=f"the run did not complete: {blocked}")
+            for text in behavioral.expectations
+        )
+    elif judge.returncode != 0:
+        reason = f"the judge did not run (exit {judge.returncode}): {judge.stderr.strip()[:200]}"
+        judgements = tuple(
+            Judgement(text, met=False, evidence=reason) for text in behavioral.expectations
+        )
+    else:
+        judgements = parse_judgement(judge.stdout, behavioral.expectations)
+    passed = (
+        blocked is None
+        and agent.returncode == 0
+        and judge.returncode == 0
+        and all(j.met for j in judgements)
+    )
     duration = time.monotonic() - started
     verdict_path.write_text(
         json.dumps(
@@ -331,8 +478,14 @@ def run_eval(
                 "passed": passed,
                 "agent_returncode": agent.returncode,
                 "judge_returncode": judge.returncode,
+                "blocked": blocked,
+                # A verdict is only readable next to the capability that produced it: the same
+                # skill scores differently when the agent can run a command and when it cannot.
+                "execution_allowed": settings.allow_execution,
                 "duration_seconds": round(duration, 1),
                 "changed_files": changes,
+                "invoked_skills": list(invoked),
+                "skills_outside_catalogue": list(outside),
                 "judgements": [asdict(j) for j in judgements],
             },
             indent=2,
@@ -349,6 +502,9 @@ def run_eval(
         verdict_path=verdict_path,
         duration_seconds=duration,
         agent_returncode=agent.returncode,
+        blocked=blocked,
+        invoked_skills=invoked,
+        outside_catalogue=outside,
     )
 
 
@@ -358,9 +514,10 @@ def run_case(
     settings: BehavioralSettings,
     runner: Runner = run_command,
 ) -> list[EvalOutcome]:
-    """Run every execution eval of a case; dialogue evals are reviewed by humans and skipped."""
-    return [
-        run_eval(layout, case, behavioral, settings, runner)
-        for behavioral in case.evals
-        if behavioral.kind == "execution"
-    ]
+    """Run every eval of a case.
+
+    ``kind`` says whether an eval needs fixture files staged, not whether it runs. A dialogue
+    eval carries its data in the prompt, the way a connector hands rows to an agent that never
+    touches a file, and that path deserves the same automatic check as the file path.
+    """
+    return [run_eval(layout, case, behavioral, settings, runner) for behavioral in case.evals]

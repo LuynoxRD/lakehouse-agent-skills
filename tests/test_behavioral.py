@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -41,18 +42,31 @@ STREAM = "\n".join(
 class FakeRunner:
     """Records calls and answers as the agent, then as the judge."""
 
-    def __init__(self, judge_output: str, *, agent_returncode: int = 0) -> None:
+    def __init__(
+        self, judge_output: str, *, agent_returncode: int = 0, judge_returncode: int = 0
+    ) -> None:
         self.calls: list[list[str]] = []
+        self.stdin: list[str | None] = []
+        self.workspaces: list[Path] = []
         self.judge_output = judge_output
         self.agent_returncode = agent_returncode
+        self.judge_returncode = judge_returncode
 
-    def __call__(self, args: Sequence[str], cwd: Path, _timeout: int) -> behavioral.CommandResult:
+    def __call__(
+        self,
+        args: Sequence[str],
+        cwd: Path,
+        _timeout: int,
+        stdin_text: str | None = None,
+    ) -> behavioral.CommandResult:
         self.calls.append(list(args))
+        self.stdin.append(stdin_text)
+        self.workspaces.append(cwd)
         if "stream-json" in args:
             (cwd / "docs" / "data").mkdir(parents=True, exist_ok=True)
             (cwd / "docs" / "data" / "profile.md").write_text("# Profile\n", encoding="utf-8")
             return behavioral.CommandResult(self.agent_returncode, STREAM, "")
-        return behavioral.CommandResult(0, self.judge_output, "")
+        return behavioral.CommandResult(self.judge_returncode, self.judge_output, "judge stderr")
 
 
 def judge_envelope(met: Sequence[bool]) -> str:
@@ -112,9 +126,11 @@ def test_build_args_and_prompt() -> None:
     assert "--permission-mode" in agent
     assert "acceptEdits" in agent
     assert agent[-1] == "m1"
-    judge = behavioral.build_judge_args("judge it", settings)
+    judge = behavioral.build_judge_args(settings)
     assert judge[-1] == "m2"
     assert "json" in judge
+    # The judge prompt carries a transcript, so it travels on stdin, never in argv.
+    assert not any(len(part) > 200 for part in judge)
     prompt = behavioral.build_judge_prompt(
         BehavioralEval("1", "execution", "task", "expected", ("f",), ("exp one",)),
         "transcript text",
@@ -140,7 +156,8 @@ def test_run_case_stages_runs_and_persists(repo: Layout) -> None:
     assert verdict["changed_files"] == ["docs/data/profile.md"]
     assert len(runner.calls) == 2
     assert runner.calls[0][2] == case.evals[0].prompt
-    judge_prompt = runner.calls[1][2]
+    judge_prompt = runner.stdin[1]
+    assert judge_prompt is not None
     assert "I will profile first." in judge_prompt
     assert "- docs/data/profile.md" in judge_prompt
 
@@ -174,6 +191,57 @@ def test_stage_workspace_copies_skill_and_fixtures(repo: Layout, tmp_path: Path)
     missing = BehavioralEval("9", "execution", "p", "e", ("nowhere/x.csv",), ("x",))
     with pytest.raises(FileNotFoundError):
         behavioral.stage_workspace(repo, case, missing, tmp_path / "ws2", with_references=False)
+
+
+def test_a_dialogue_eval_runs_and_stages_no_fixture(repo: Layout) -> None:
+    """Data that arrives in the prompt gets the same automatic check as data in a file.
+
+    A connector hands an agent rows it never reads from disk. The discipline claims to be
+    agnostic to where data came from, so that path is executed rather than skipped.
+    """
+    case_path = repo.eval_cases / f"{SKILL_A}.json"
+    document = json.loads(case_path.read_text(encoding="utf-8"))
+    document["evals"].append(
+        {
+            "id": "from-a-connector",
+            "kind": "dialogue",
+            "prompt": 'Rows already in hand: [{"d": "03/04/2025", "amount": "1,5"}]. Chart them.',
+            "expected_output": "The same discipline, applied to rows that are not a file.",
+            "files": [],
+            "expectations": ["Profiles the rows before charting"],
+        }
+    )
+    case_path.write_text(json.dumps(document, indent=2), encoding="utf-8")
+
+    cases, _ = load_cases(repo)
+    case = next(c for c in cases if c.skill_name == SKILL_A)
+    runner = FakeRunner(judge_envelope([True, True]))
+    outcomes = behavioral.run_case(repo, case, behavioral.BehavioralSettings(), runner)
+    assert len(outcomes) == 2, "the dialogue eval was skipped"
+    assert {o.eval_id for o in outcomes} == {"1", "from-a-connector"}
+
+
+def test_with_catalog_installs_every_skill(repo: Layout, tmp_path: Path) -> None:
+    """A skill that routes to other skills cannot be judged alone.
+
+    Installed on its own, the names it points at do not resolve, and an agent correctly
+    reports them as missing, which reads as an invented name in the verdict.
+    """
+    cases, _ = load_cases(repo)
+    case = next(c for c in cases if c.skill_name == SKILL_A)
+    alone = tmp_path / "alone"
+    alone.mkdir()
+    behavioral.stage_workspace(
+        repo, case, case.evals[0], alone, with_references=False, with_catalog=False
+    )
+    assert sorted(p.name for p in (alone / ".claude" / "skills").iterdir()) == [SKILL_A]
+
+    whole = tmp_path / "whole"
+    whole.mkdir()
+    behavioral.stage_workspace(
+        repo, case, case.evals[0], whole, with_references=False, with_catalog=True
+    )
+    assert sorted(p.name for p in (whole / ".claude" / "skills").iterdir()) == repo.skill_names()
 
 
 @pytest.mark.parametrize("escape", ["../../pyproject.toml", "C:/Windows/win.ini", "/etc/passwd"])
@@ -213,6 +281,110 @@ def test_the_eval_id_cannot_walk_out_of_the_results_directory(repo: Layout) -> N
     assert "\\" not in outcome.transcript_path.name
 
 
+def test_the_workspace_path_is_resolved_before_the_agent_sees_it(repo: Layout) -> None:
+    """A short Windows path makes an agent refuse every tool call.
+
+    The temporary directory can come back as C:\\Users\\LUISCA~1\\..., which is treated as a
+    suspicious path needing manual approval. Reads and writes are then blocked, and the eval
+    still produces a verdict, so it looks like a skill that did nothing rather than a runner
+    that fenced the agent out of its own workspace.
+    """
+    cases, _ = load_cases(repo)
+    case = next(c for c in cases if c.skill_name == SKILL_A)
+    runner = FakeRunner(judge_envelope([True, True]))
+    behavioral.run_case(repo, case, behavioral.BehavioralSettings(), runner)
+    assert runner.workspaces, "the runner never staged a workspace"
+    for workspace in runner.workspaces:
+        assert "~" not in str(workspace), workspace
+        assert workspace == workspace.resolve()
+
+
+def test_a_run_stopped_by_the_api_is_reported_as_blocked_not_failed(repo: Layout) -> None:
+    """A quota limit produces no evidence either way.
+
+    The agent reports an API failure inside its own result event, so the process exits and the
+    stream carries the error. Scoring that as unmet expectations is how an infrastructure
+    failure gets mistaken for a skill that did nothing.
+    """
+    limited = json.dumps(
+        {
+            "type": "result",
+            "is_error": True,
+            "terminal_reason": "api_error",
+            "api_error_status": 429,
+            "result": "You've hit your session limit",
+        }
+    )
+    assert behavioral.detect_run_failure(limited) == "HTTP 429: You've hit your session limit"
+    assert behavioral.detect_run_failure(STREAM) is None
+
+    class LimitedRunner(FakeRunner):
+        def __call__(
+            self, args: Sequence[str], cwd: Path, _timeout: int, stdin_text: str | None = None
+        ) -> behavioral.CommandResult:
+            super().__call__(args, cwd, _timeout, stdin_text)
+            if "stream-json" in args:
+                return behavioral.CommandResult(1, limited, "")
+            return behavioral.CommandResult(0, self.judge_output, "")
+
+    cases, _ = load_cases(repo)
+    case = next(c for c in cases if c.skill_name == SKILL_A)
+    outcome = behavioral.run_case(
+        repo, case, behavioral.BehavioralSettings(), LimitedRunner(judge_envelope([True, True]))
+    )[0]
+    assert not outcome.passed
+    assert outcome.blocked == "HTTP 429: You've hit your session limit"
+    assert all("the run did not complete" in j.evidence for j in outcome.judgements)
+    rendered = run_evals.format_outcome(outcome, repo.root)
+    assert "BLOCKED" in rendered
+    assert "nothing was measured" in rendered
+
+
+def test_a_judge_that_never_ran_is_reported_as_such(repo: Layout) -> None:
+    """A launch failure must not read as an agent that fell short.
+
+    The judge prompt carries a transcript. When it travelled in argv it exceeded the Windows
+    command-line limit, the process never started, and every expectation was reported as
+    unmet with no hint that the judge was the thing that failed.
+    """
+    cases, _ = load_cases(repo)
+    case = next(c for c in cases if c.skill_name == SKILL_A)
+    runner = FakeRunner("", judge_returncode=126)
+    outcome = behavioral.run_case(repo, case, behavioral.BehavioralSettings(), runner)[0]
+    assert not outcome.passed
+    assert all("the judge did not run (exit 126)" in j.evidence for j in outcome.judgements)
+
+
+def test_run_command_carries_a_large_prompt_and_unicode_through_a_real_process(
+    tmp_path: Path,
+) -> None:
+    """Exercise the real subprocess path, not a stand-in.
+
+    Every runner defect found so far lived here rather than in the logic: a prompt too long for
+    a Windows command line, output the console encoding could not carry, a workspace path the
+    agent refused. A fake runner validates the logic and cannot see any of them, so this test
+    spawns a real process, feeds it a prompt far past the 32,767-character command-line limit,
+    and has it echo a character outside the legacy code page.
+    """
+    script = tmp_path / "echo_prompt.py"
+    script.write_text(
+        "import sys\n"
+        "sys.stdout.reconfigure(encoding='utf-8')\n"
+        "text = sys.stdin.read()\n"
+        "print(len(text), '\\u2192', sys.argv[1:], sep='|')\n",
+        encoding="utf-8",
+    )
+    prompt = "x" * 100_000
+    result = behavioral.run_command(
+        [sys.executable, str(script), "-p"], tmp_path, 60, stdin_text=prompt
+    )
+    assert result.returncode == 0, result.stderr
+    length, arrow, argv = result.stdout.strip().split("|")
+    assert int(length) == len(prompt)
+    assert arrow == "→"
+    assert "-p" in argv
+
+
 def test_run_command_handles_missing_executable(tmp_path: Path) -> None:
     result = behavioral.run_command(["definitely-not-a-real-binary-xyz"], tmp_path, 5)
     assert result.returncode == 127
@@ -234,3 +406,125 @@ def test_cli_behavioral_uses_runner(
     assert f"{SKILL_A} eval 1: PASS" in out
     assert "tier3: 1/1" in out
     assert run_evals.main(["--root", str(repo.root), "--behavioral", "ghost"]) == 1
+
+
+def test_execution_is_denied_by_default_and_recorded_in_the_verdict(repo: Layout) -> None:
+    """A verdict is only readable next to what the agent was allowed to do.
+
+    Under the default mode every command that starts a program is held for an approval a
+    headless session cannot give, so a skill asking for machine-checked evidence has no way to
+    comply. The mode is therefore part of the result, not a detail of how it was produced.
+    """
+    cases, _ = load_cases(repo)
+    case = next(c for c in cases if c.skill_name == SKILL_A)
+
+    restricted = behavioral.build_agent_args("do it", behavioral.BehavioralSettings())
+    executing = behavioral.build_agent_args(
+        "do it", behavioral.BehavioralSettings(allow_execution=True)
+    )
+    assert restricted[restricted.index("--permission-mode") + 1] == "acceptEdits"
+    assert executing[executing.index("--permission-mode") + 1] == "bypassPermissions"
+
+    for allow in (False, True):
+        runner = FakeRunner(judge_envelope([True, True]))
+        settings = behavioral.BehavioralSettings(allow_execution=allow)
+        outcome = behavioral.run_case(repo, case, settings, runner)[0]
+        verdict = json.loads(outcome.verdict_path.read_text(encoding="utf-8"))
+        assert verdict["execution_allowed"] is allow
+        agent_args = runner.calls[0]
+        expected = "bypassPermissions" if allow else "acceptEdits"
+        assert agent_args[agent_args.index("--permission-mode") + 1] == expected
+
+
+def test_cli_reports_which_capability_produced_the_numbers(
+    repo: Layout, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    seen: list[bool] = []
+
+    def fake_run_case(
+        layout: Layout, case: object, settings: behavioral.BehavioralSettings
+    ) -> list[behavioral.EvalOutcome]:
+        seen.append(settings.allow_execution)
+        runner = FakeRunner(judge_envelope([True, True]))
+        return behavioral.run_case(layout, case, settings, runner)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(run_evals, "run_case", fake_run_case)
+    assert run_evals.main(["--root", str(repo.root), "--behavioral", SKILL_A]) == 0
+    assert "(no command execution)" in capsys.readouterr().out
+    assert (
+        run_evals.main(["--root", str(repo.root), "--behavioral", SKILL_A, "--allow-execution"])
+        == 0
+    )
+    assert "(commands allowed)" in capsys.readouterr().out
+    assert seen == [False, True]
+
+
+def test_a_skill_the_pack_does_not_ship_is_named_as_such(repo: Layout) -> None:
+    """The router eval passed while the agent used a skill from the host machine.
+
+    Authentication lives in the machine's own agent configuration, so a headless run cannot be
+    given a clean one; it resolves skills from there as well as from the workspace. The judge
+    sees no workspace, so left alone it reported the outside skill as part of the catalogue.
+    The runner now states what it installed and names what came from elsewhere.
+    """
+    cases, _ = load_cases(repo)
+    case = next(c for c in cases if c.skill_name == SKILL_A)
+
+    class RunnerUsingAnOutsideSkill(FakeRunner):
+        def __call__(
+            self,
+            args: Sequence[str],
+            cwd: Path,
+            _timeout: int,
+            stdin_text: str | None = None,
+        ) -> behavioral.CommandResult:
+            if "stream-json" in args:
+                stream = "\n".join(
+                    [
+                        json.dumps(
+                            {
+                                "type": "assistant",
+                                "message": {
+                                    "content": [
+                                        {
+                                            "type": "tool_use",
+                                            "name": "Skill",
+                                            "input": {"skill": name},
+                                        }
+                                    ]
+                                },
+                            }
+                        )
+                        for name in (SKILL_A, "dataviz", SKILL_A)
+                    ]
+                )
+                self.calls.append(list(args))
+                self.stdin.append(stdin_text)
+                self.workspaces.append(cwd)
+                return behavioral.CommandResult(0, stream, "")
+            return super().__call__(args, cwd, _timeout, stdin_text)
+
+    runner = RunnerUsingAnOutsideSkill(judge_envelope([True, True]))
+    outcome = behavioral.run_case(repo, case, behavioral.BehavioralSettings(), runner)[0]
+
+    assert outcome.invoked_skills == (SKILL_A, "dataviz")
+    assert outcome.outside_catalogue == ("dataviz",)
+    verdict = json.loads(outcome.verdict_path.read_text(encoding="utf-8"))
+    assert verdict["skills_outside_catalogue"] == ["dataviz"]
+
+    judge_prompt = runner.stdin[1]
+    assert judge_prompt is not None
+    assert f"Skills installed in the workspace: {SKILL_A}." in judge_prompt
+    assert "dataviz" in judge_prompt
+    assert "not part of the catalogue" in judge_prompt
+
+    assert "not from this catalogue: dataviz" in run_evals.format_outcome(outcome, repo.root)
+
+
+def test_a_run_that_stays_inside_the_catalogue_says_nothing_extra(repo: Layout) -> None:
+    cases, _ = load_cases(repo)
+    case = next(c for c in cases if c.skill_name == SKILL_A)
+    runner = FakeRunner(judge_envelope([True, True]))
+    outcome = behavioral.run_case(repo, case, behavioral.BehavioralSettings(), runner)[0]
+    assert outcome.outside_catalogue == ()
+    assert "not from this catalogue" not in run_evals.format_outcome(outcome, repo.root)

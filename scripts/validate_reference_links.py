@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from lib.markdown import markdown_links
-from lib.repo import Layout, add_root_argument, iter_files, read_checked
+from lib.repo import Layout, add_root_argument, configure_output, iter_files, read_checked
 from lib.report import Report
 
 ROOT_DOCUMENTS = ("README.md", "CONTRIBUTING.md", "SECURITY.md", "AGENTS.md", "CLAUDE.md")
@@ -138,6 +138,7 @@ def _check_mentions(text: str, path: Path, skill: str | None, scan: _Scan) -> No
 
 def main(argv: Sequence[str] | None = None) -> int:
     """CLI entry point."""
+    configure_output()
     parser = argparse.ArgumentParser(description=__doc__)
     add_root_argument(parser)
     args = parser.parse_args(argv)
