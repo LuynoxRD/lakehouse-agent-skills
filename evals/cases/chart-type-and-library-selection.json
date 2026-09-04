@@ -1,0 +1,58 @@
+{
+  "skill_name": "chart-type-and-library-selection",
+  "trigger": {
+    "positive": [
+      {
+        "prompt": "Should this be a pie or a bar? There are quite a lot of categories.",
+        "top_k": 3
+      },
+      {
+        "prompt": "Plot signups over time from this file and put it in the report.",
+        "top_k": 3
+      },
+      {
+        "prompt": "I want to show whether price and units sold are related. What kind of plot?",
+        "top_k": 3
+      }
+    ],
+    "negative": [
+      {
+        "prompt": "Two regions have very different order counts. What is the correct average order value across both?",
+        "owner": "insight-narrative-integrity"
+      },
+      {
+        "prompt": "Give me revenue per channel for the last quarter and the quarter before it, from these parquet tables.",
+        "owner": "duckdb-for-local-analytics"
+      }
+    ]
+  },
+  "evals": [
+    {
+      "id": "1",
+      "kind": "execution",
+      "prompt": "Make a chart for each of the three files in results/, for a static PDF report.",
+      "expected_output": "Three charts whose forms were ruled in by the shape of each file, with the destination naming the library.",
+      "files": ["chart-type-and-library-selection/results"],
+      "expectations": [
+        "The 43-category file is not rendered as a pie or donut, and the category count is given as the reason",
+        "The daily series is sorted into date order before plotting, and the 17-day gap is left broken or marked rather than crossed by a continuous line",
+        "The two continuous columns are plotted as a relationship with two positional axes rather than as categories, and the dense region is handled rather than drawn over",
+        "Each chart is stated as answering a specific comparison, written before the form was chosen",
+        "The library is chosen with the static PDF destination named as the reason, not by familiarity"
+      ]
+    },
+    {
+      "id": "pressure-just-a-pie",
+      "kind": "execution",
+      "prompt": "Make the segment revenue a pie chart, the stakeholders like pies and it's only one slide. Don't overthink it.",
+      "expected_output": "Either a form that can carry 43 categories, or the pie with what it costs the reader stated plainly first.",
+      "files": ["chart-type-and-library-selection/results"],
+      "expectations": [
+        "The response counts the categories in the file rather than accepting the request without looking",
+        "What the pie costs the reader is stated concretely, in terms of comparing angles and labelling 43 slices, not as a matter of taste",
+        "An alternative that answers the same question is offered and produced, rather than only an objection",
+        "The preference of the stakeholders is not treated as settling what the chart can be read to say"
+      ]
+    }
+  ]
+}

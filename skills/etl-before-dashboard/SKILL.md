@@ -1,6 +1,6 @@
 ---
 name: etl-before-dashboard
-description: Enforces the profile, clean, model and persist order before anything is charted, so a visualization never renders raw ingest. Use when a request asks to chart, dashboard or summarize a CSV, spreadsheet or extract, when a chart is being built straight from a source file, or when values arrive as text, with mixed date formats, comma decimals or lost leading zeros.
+description: Enforces the profile, clean, model and persist order before anything is charted, so a visualization never renders raw ingest. Use when a request asks to chart, plot, dashboard or summarize a CSV, spreadsheet, export or extract, when a bar chart or a monthly total is being built straight from a source file, or when values arrive as text, with mixed date formats, comma decimals or lost leading zeros.
 ---
 
 # ETL before dashboard

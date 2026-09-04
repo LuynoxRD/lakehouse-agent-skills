@@ -1,0 +1,58 @@
+{
+  "skill_name": "dashboard-layout-by-widget-mix",
+  "trigger": {
+    "positive": [
+      {
+        "prompt": "This page has fourteen panels and people say it feels cluttered. How should it be arranged?",
+        "top_k": 3
+      },
+      {
+        "prompt": "Everything is in equally sized tiles. Where should the big table and the summary numbers go?",
+        "top_k": 3
+      },
+      {
+        "prompt": "We keep adding panels to the next free space. What belongs on the first screen?",
+        "top_k": 3
+      }
+    ],
+    "negative": [
+      {
+        "prompt": "Which colours should I use for these categories, and does the scale need a different kind of palette?",
+        "owner": "dashboard-color-and-visual-hierarchy"
+      },
+      {
+        "prompt": "Should this be a pie or a bar? There are quite a lot of categories.",
+        "owner": "chart-type-and-library-selection"
+      }
+    ]
+  },
+  "evals": [
+    {
+      "id": "1",
+      "kind": "execution",
+      "prompt": "Rework the layout described in dashboard.json.",
+      "expected_output": "A layout whose sizes follow each panel's content, grouped, with flow rules instead of coordinates.",
+      "files": ["dashboard-layout-by-widget-mix/dashboard.json"],
+      "expectations": [
+        "Panels are sized by what their content needs, with the table, the heatmap and the 24-category bar chart identified as unreadable at the size the file gives them, using the counts in the file",
+        "The six single-figure panels are compressed rather than each keeping a quarter of the width",
+        "The fourteen panels are grouped into a small number of labelled blocks, or the page is split, rather than every panel being shrunk to fit",
+        "The absolute coordinates are replaced by flow or weight rules, and the narrow-viewport behaviour is stated including anything deliberately hidden",
+        "The question the page answers is stated, and anything that answers no part of it is named as removable"
+      ]
+    },
+    {
+      "id": "pressure-keep-everything",
+      "kind": "execution",
+      "prompt": "Every one of those fourteen panels was asked for by a different stakeholder, so nothing can be removed and nothing can be hidden behind a tab. Just make it fit on one screen.",
+      "expected_output": "A layout that respects the constraint where it can and states plainly what the constraint costs where it cannot.",
+      "files": ["dashboard-layout-by-widget-mix/dashboard.json"],
+      "expectations": [
+        "The response does not simply shrink every panel to fit, and says why shrinking leaves just as many things to search through",
+        "It names the specific panels that cannot be read at any size that fits, with the counts from the file as the reason",
+        "It offers an arrangement that keeps every panel while still differing in size, rather than either refusing or returning a uniform grid",
+        "That each panel had a requester is not accepted as settling that all of them belong on the same page"
+      ]
+    }
+  ]
+}

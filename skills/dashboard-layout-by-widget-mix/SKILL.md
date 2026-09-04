@@ -1,0 +1,147 @@
+---
+name: dashboard-layout-by-widget-mix
+description: Places what is on a page according to how many panels there are and what kind each one is, giving a table or a heatmap the area it needs and a single figure the little it needs. Use when arranging more panels than fit on one screen, when a page is a uniform grid of equally sized tiles, when deciding what belongs above the fold, or when a page has grown by accretion and nothing was ever removed.
+---
+
+# Layout by widget mix
+
+## Overview
+
+A page is not a container to fill. It is a sequence somebody reads, and the order and the size of
+the things on it decide what gets read at all.
+
+Two forces do all the work, and neither is a matter of taste. **Finding one panel among many
+unrelated ones costs time in proportion to how many there are**, which is why grouping beats
+shrinking. And **things placed close together, or made to look alike, are read as belonging
+together**, which is why spacing is a stronger grouping tool than a border and why a uniform grid
+says everything on it is equally important.
+
+The mix decides the layout: how many panels, and of what kinds.
+
+```
+inventory the panels ──► rank by the page's question ──► area by content type
+        │                                                        │
+        └──► past what fits: group, then split ◄─────────────────┘
+```
+
+## When to Use
+
+Use this skill when arranging a page that holds more than a couple of panels, when adding one to a
+page that is already full, or when reviewing a page that people say is cluttered without being
+able to say which part.
+
+Use it when the page is a uniform grid, which is the shape a layout takes when nobody decided one.
+
+Do **not** use it to choose what form each chart takes, which is the
+`chart-type-and-library-selection` skill, or which colours anything is, which is the
+`dashboard-color-and-visual-hierarchy` skill. What each panel is allowed to claim belongs to the
+`insight-narrative-integrity` skill.
+
+## Core Process
+
+### Step 1: Inventory the panels by type, and give each type the area it needs
+
+Area is a property of the content, not of the grid. List every panel with its type, then size it
+by what that type has to show:
+
+| Panel type | What it needs | What happens when it is squeezed |
+| --- | --- | --- |
+| A single figure with a label | Very little; it is read at a glance | Nothing. It is the one type that survives any size, which is why it should never take a full tile. |
+| A trend over time | Enough width that the time axis is legible; height is cheap | Compressed into a square it reads as noise, and the trend was the point. |
+| A ranked bar chart | Height proportional to the number of categories, so labels fit horizontally | Labels rotate, truncate, or disappear. |
+| A table | Width for its columns and height for enough rows to be worth reading | It becomes a scroll box showing three rows, which is worse than a link to the table. |
+| A heatmap or matrix | Area in both directions; cells must be large enough to distinguish | Cells collapse below the size at which a colour difference can be judged. |
+| A block of text | A readable line length, not a full-width column | Either a line too long to track or a column too narrow to read. |
+
+A page whose panels are all the same size has answered none of these questions.
+
+### Step 2: Rank the panels by the one question the page exists to answer
+
+A page answers one question. Write it down, then rank every panel by how directly it answers it:
+the headline answer, the panels that support it, and the context that only matters once somebody
+is already asking.
+
+Place them in reading order: the headline answer where the reader lands first, supporting panels
+next, context below. Anything that answers no part of the question is a candidate for removal, and
+removing it is a real option, not a failure to fit it in.
+
+### Step 3: Past what fits, group; past what grouping fixes, split
+
+As the number of panels rises, the cost of finding any one of them rises with it. Shrinking them
+does not help, because it makes each one harder to read while leaving just as many to search.
+
+- **Group** related panels into a small number of labelled blocks, by theme or by the dimension
+  they cut. Searching four blocks and then three panels inside one is a much shorter search than
+  scanning twelve.
+- Do the grouping with **space and alignment** before reaching for borders and boxes. Proximity is
+  read as belonging; a border is a second visual layer competing with the data.
+- When grouping is no longer enough — when the blocks themselves stop fitting — **split the page**
+  into tabs or separate pages by theme. Two pages that each answer a question beat one page that
+  answers neither.
+- Splitting is not a defeat. A page that needs scrolling past three screens has already been
+  split, just badly, and by the scrollbar rather than by anybody's decision.
+
+### Step 4: Do not make a uniform grid the default
+
+A grid of identical tiles is the most common layout and it is a decision not to decide. It gives a
+single figure the same weight as a twenty-column table, tells the reader that everything matters
+equally, and wastes most of its area on the panels that needed the least.
+
+Let the tiles differ. A row of small figures across the top, one wide panel for the trend that
+carries the page, and full-width area for the table underneath is a layout. Twelve equal squares
+is a container.
+
+### Step 5: Lay out by rules, not by coordinates
+
+Express the layout as weights and flow — this panel takes twice the width of that one, this row
+holds the summary figures — rather than as absolute positions. Absolute positions break the first
+time a panel is added, and every panel is eventually added.
+
+Say what happens as the viewport narrows: which panels reflow, which stack, and which are hidden
+because they cannot be read below a certain size. A panel that becomes unreadable at a narrow
+width should disappear deliberately rather than shrink into illegibility.
+
+### Step 6: State the layout decisions next to the page
+
+Record the question the page answers, the ranking that produced the order, the grouping and why,
+and anything that was left out. The next person to add a panel then has something to add it
+against, instead of putting it in the first empty tile.
+
+## Common Rationalizations
+
+| Excuse | Reality |
+| --- | --- |
+| "A uniform grid looks clean." | It looks consistent. It also says every panel matters equally, which is never true, and it starves the panels that needed area. |
+| "Everything on the page was requested by someone." | Then the page answers several questions and should be several pages. A request is a reason to include something somewhere, not everywhere. |
+| "Users can scroll." | They can. What they cannot do is know what is below, so anything past the first screen is read only by someone already looking for it. |
+| "Making the panels smaller fits more in." | It leaves just as many things to search through, each one harder to read. |
+| "Tabs hide information." | Tabs name it. Twelve unlabelled panels on one screen hide it far more effectively. |
+| "The table is important, so it gets a big tile." | Importance decides position and order. Area is decided by what the content physically needs to be legible. |
+| "We can tidy the layout later." | Layout is what people use, and later is when there are twenty panels instead of twelve. |
+
+## Red Flags
+
+Stop when any of these is true:
+
+- Every panel on the page is the same size.
+- A table or a heatmap is in the same tile size as a single-figure panel.
+- The page holds more than about a dozen panels with no grouping.
+- Nobody can state in one sentence the question the page answers.
+- Panels are positioned at absolute coordinates.
+- A trend chart is square, or a bar chart's category labels are rotated to fit.
+- The page requires scrolling past several screens and has never been split.
+- A panel was added to the first free space rather than to a group.
+
+## Verification
+
+- [ ] Every panel is listed with its type and the area that type needs, and the sizes on the page
+      reflect that rather than a uniform grid.
+- [ ] The question the page answers is written in one sentence, and the panels are ordered by how
+      directly they answer it.
+- [ ] Panels are grouped into a small number of labelled blocks, using space and alignment before
+      borders.
+- [ ] If the page still does not fit, it is split by theme into tabs or separate pages, and the
+      split is stated rather than left to the scrollbar.
+- [ ] The layout is expressed as weights and flow rules, with the narrow-viewport behaviour of each
+      panel stated, including any that are deliberately hidden.
+- [ ] Anything removed from the page is named, with the reason.

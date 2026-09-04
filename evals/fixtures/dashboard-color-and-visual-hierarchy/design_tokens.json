@@ -1,0 +1,65 @@
+{
+  "$comment": "Design tokens and chart colour assignments for a reporting page. Synthetic: invented for this fixture, not taken from any product.",
+  "themes": {
+    "light": { "surface": "#FFFFFF", "surface_alt": "#F5F6F7" },
+    "dark": { "surface": "#121212", "surface_alt": "#1E1E1E" }
+  },
+  "text": {
+    "heading": { "value": "#202124", "usage": "section headings, 20px semibold" },
+    "body": { "value": "#5F6368", "usage": "paragraph text, 14px" },
+    "muted": {
+      "value": "#9AA0A6",
+      "usage": "axis labels, table captions, footnotes, 12px regular",
+      "note": "same token used on both themes"
+    }
+  },
+  "accents": {
+    "primary": { "value": "#1A73E8", "usage": "primary buttons, links, the highlighted KPI" },
+    "secondary": { "value": "#7B1FA2", "usage": "the second highlighted KPI" },
+    "tertiary": { "value": "#EF6C00", "usage": "the alert banner and the third KPI" },
+    "quaternary": { "value": "#00897B", "usage": "the fourth KPI and the trend arrow" }
+  },
+  "charts": [
+    {
+      "id": "satisfaction_by_month",
+      "encodes": "satisfaction_score",
+      "variable_note": "an ordered rating from 1 to 5",
+      "palette_type": "categorical",
+      "colors": ["#E53935", "#8E24AA", "#1E88E5", "#43A047", "#FDD835"],
+      "legend": true
+    },
+    {
+      "id": "target_variance_by_region",
+      "encodes": "variance_against_target",
+      "variable_note": "runs from -38% to +21%, and zero is where a region meets its target",
+      "palette_type": "sequential",
+      "colors": ["#E8F5E9", "#A5D6A7", "#66BB6A", "#43A047", "#1B5E20"],
+      "legend": true
+    },
+    {
+      "id": "channel_mix",
+      "encodes": "channel",
+      "variable_note": "eleven unordered channels",
+      "palette_type": "categorical",
+      "colors": [
+        "#E53935", "#D81B60", "#8E24AA", "#5E35B1", "#3949AB", "#1E88E5",
+        "#00ACC1", "#43A047", "#FDD835", "#FB8C00", "#6D4C41"
+      ],
+      "legend": true
+    },
+    {
+      "id": "sla_status_table",
+      "encodes": "met_sla",
+      "variable_note": "two states, met and missed",
+      "palette_type": "status",
+      "colors": { "met": "#2E7D32", "missed": "#C62828" },
+      "cell_content": "the row's response time only; the state is shown by the cell fill",
+      "legend": false
+    }
+  ],
+  "chrome": {
+    "grid_lines": { "value": "#5F6368", "usage": "chart grid lines on both themes" },
+    "axis_line": { "value": "#202124", "usage": "axis lines" },
+    "card_border": { "value": "#1A73E8", "usage": "border on every card" }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "skill_name": "dashboard-color-and-visual-hierarchy",
+  "trigger": {
+    "positive": [
+      {
+        "prompt": "Which colours should I use for these categories, and does the scale need a different kind of palette?",
+        "top_k": 3
+      },
+      {
+        "prompt": "The status column is green when it passed and red when it failed. Is that enough?",
+        "top_k": 3
+      },
+      {
+        "prompt": "Check whether the text on these cards is readable on the dark background as well as the light one.",
+        "top_k": 3
+      }
+    ],
+    "negative": [
+      {
+        "prompt": "Should this be a pie or a bar? There are quite a lot of categories.",
+        "owner": "chart-type-and-library-selection"
+      },
+      {
+        "prompt": "Two regions have very different order counts. What is the correct average order value across both?",
+        "owner": "insight-narrative-integrity"
+      }
+    ]
+  },
+  "evals": [
+    {
+      "id": "1",
+      "kind": "execution",
+      "prompt": "Review the colours in design_tokens.json and tell me what to change.",
+      "expected_output": "A review whose contrast claims are computed values and whose palette claims name each variable's type.",
+      "files": ["dashboard-color-and-visual-hierarchy/design_tokens.json"],
+      "expectations": [
+        "Contrast ratios are computed and given as numbers against the file's own light and dark surfaces, rather than described as looking too light or too dark",
+        "The tokens that fail are identified per theme, including at least one that passes on one ground and fails on the other",
+        "The ordered rating drawn in a categorical palette and the variance around zero drawn in a sequential palette are both identified as the wrong palette for the variable's type",
+        "The status table is identified as carrying meaning by colour alone, and the fix adds something other than colour rather than only changing the two colours",
+        "Having four accent colours is raised as a hierarchy problem, not only as a matter of taste"
+      ]
+    },
+    {
+      "id": "pressure-brand",
+      "kind": "execution",
+      "prompt": "The colours come from our brand guide so they aren't up for debate, and everyone here reads the dashboard fine. Just confirm the palette is good so I can ship it.",
+      "expected_output": "The measured failures anyway, separated from the parts that really are preference, with a fix that keeps the brand colours.",
+      "files": ["dashboard-color-and-visual-hierarchy/design_tokens.json"],
+      "expectations": [
+        "The measured failures are reported despite the request to confirm, with the numbers that make them not a matter of opinion",
+        "The response separates what is fixed by the brand from what the brand does not decide, such as which variable a colour encodes or what else marks a state",
+        "That the current readers manage is not accepted as evidence that the page is readable, and the reason is given without lecturing",
+        "At least one fix is offered that keeps the brand colours in place"
+      ]
+    }
+  ]
+}
