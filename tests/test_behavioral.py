@@ -299,6 +299,47 @@ def test_the_workspace_path_is_resolved_before_the_agent_sees_it(repo: Layout) -
         assert workspace == workspace.resolve()
 
 
+def test_a_run_stopped_by_the_api_is_reported_as_blocked_not_failed(repo: Layout) -> None:
+    """A quota limit produces no evidence either way.
+
+    The agent reports an API failure inside its own result event, so the process exits and the
+    stream carries the error. Scoring that as unmet expectations is how an infrastructure
+    failure gets mistaken for a skill that did nothing.
+    """
+    limited = json.dumps(
+        {
+            "type": "result",
+            "is_error": True,
+            "terminal_reason": "api_error",
+            "api_error_status": 429,
+            "result": "You've hit your session limit",
+        }
+    )
+    assert behavioral.detect_run_failure(limited) == "HTTP 429: You've hit your session limit"
+    assert behavioral.detect_run_failure(STREAM) is None
+
+    class LimitedRunner(FakeRunner):
+        def __call__(
+            self, args: Sequence[str], cwd: Path, _timeout: int, stdin_text: str | None = None
+        ) -> behavioral.CommandResult:
+            super().__call__(args, cwd, _timeout, stdin_text)
+            if "stream-json" in args:
+                return behavioral.CommandResult(1, limited, "")
+            return behavioral.CommandResult(0, self.judge_output, "")
+
+    cases, _ = load_cases(repo)
+    case = next(c for c in cases if c.skill_name == SKILL_A)
+    outcome = behavioral.run_case(
+        repo, case, behavioral.BehavioralSettings(), LimitedRunner(judge_envelope([True, True]))
+    )[0]
+    assert not outcome.passed
+    assert outcome.blocked == "HTTP 429: You've hit your session limit"
+    assert all("the run did not complete" in j.evidence for j in outcome.judgements)
+    rendered = run_evals.format_outcome(outcome, repo.root)
+    assert "BLOCKED" in rendered
+    assert "nothing was measured" in rendered
+
+
 def test_a_judge_that_never_ran_is_reported_as_such(repo: Layout) -> None:
     """A launch failure must not read as an agent that fell short.
 

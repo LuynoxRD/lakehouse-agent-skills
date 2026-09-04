@@ -63,7 +63,13 @@ class Judgement:
 
 @dataclass(frozen=True, slots=True)
 class EvalOutcome:
-    """Result of one behavioral eval."""
+    """Result of one behavioral eval.
+
+    ``blocked`` separates a run that never happened from a skill that fell short. A quota
+    limit, a network failure or a missing binary produces no evidence either way, and
+    reporting it as unmet expectations is how an infrastructure failure gets mistaken for a
+    result.
+    """
 
     skill: str
     eval_id: str
@@ -73,6 +79,7 @@ class EvalOutcome:
     verdict_path: Path
     duration_seconds: float
     agent_returncode: int
+    blocked: str | None = None
 
 
 def run_command(
@@ -178,6 +185,30 @@ def build_judge_args(settings: BehavioralSettings) -> list[str]:
     if model:
         args.extend(["--model", model])
     return args
+
+
+def detect_run_failure(stream_json: str) -> str | None:
+    """Return why the run could not produce evidence, or None when it ran.
+
+    The agent reports an API failure inside its own result event, so a quota limit arrives as a
+    successful process with an error payload. Reading it here keeps a blocked run from being
+    scored as a skill that did nothing.
+    """
+    for raw_line in stream_json.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(event, dict) or event.get("type") != "result":
+            continue
+        if event.get("is_error") or event.get("terminal_reason") == "api_error":
+            status = event.get("api_error_status")
+            detail = str(event.get("result", "")).strip() or event.get("terminal_reason", "error")
+            return f"HTTP {status}: {detail}" if status else str(detail)
+    return None
 
 
 def extract_transcript(stream_json: str) -> str:
@@ -351,14 +382,25 @@ def run_eval(
         judge = runner(
             build_judge_args(settings), workspace, settings.timeout_seconds, judge_prompt
         )
-    if judge.returncode != 0:
+    blocked = detect_run_failure(agent.stdout)
+    if blocked is not None:
+        judgements = tuple(
+            Judgement(text, met=False, evidence=f"the run did not complete: {blocked}")
+            for text in behavioral.expectations
+        )
+    elif judge.returncode != 0:
         reason = f"the judge did not run (exit {judge.returncode}): {judge.stderr.strip()[:200]}"
         judgements = tuple(
             Judgement(text, met=False, evidence=reason) for text in behavioral.expectations
         )
     else:
         judgements = parse_judgement(judge.stdout, behavioral.expectations)
-    passed = agent.returncode == 0 and judge.returncode == 0 and all(j.met for j in judgements)
+    passed = (
+        blocked is None
+        and agent.returncode == 0
+        and judge.returncode == 0
+        and all(j.met for j in judgements)
+    )
     duration = time.monotonic() - started
     verdict_path.write_text(
         json.dumps(
@@ -368,6 +410,7 @@ def run_eval(
                 "passed": passed,
                 "agent_returncode": agent.returncode,
                 "judge_returncode": judge.returncode,
+                "blocked": blocked,
                 "duration_seconds": round(duration, 1),
                 "changed_files": changes,
                 "judgements": [asdict(j) for j in judgements],
@@ -386,6 +429,7 @@ def run_eval(
         verdict_path=verdict_path,
         duration_seconds=duration,
         agent_returncode=agent.returncode,
+        blocked=blocked,
     )
 
 

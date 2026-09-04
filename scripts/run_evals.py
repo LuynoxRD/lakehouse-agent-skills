@@ -228,12 +228,16 @@ def write_json(path: Path, payload: dict[str, object]) -> None:
 
 def format_outcome(outcome: EvalOutcome, root: Path) -> str:
     """Human-readable Tier 3 outcome."""
-    verdict = "PASS" if outcome.passed else "FAIL"
+    verdict = "PASS" if outcome.passed else ("BLOCKED" if outcome.blocked else "FAIL")
     header = (
         f"{outcome.skill} eval {outcome.eval_id}: {verdict} "
         f"({outcome.duration_seconds:.0f}s, agent exit {outcome.agent_returncode})"
     )
     lines = [header]
+    if outcome.blocked:
+        # No evidence either way: say so instead of listing expectations as unmet.
+        lines.append(f"  the run did not complete, so nothing was measured: {outcome.blocked}")
+        return "\n".join(lines)
     for judgement in outcome.judgements:
         marker = "met" if judgement.met else "MISSED"
         evidence = f" -- {judgement.evidence}" if judgement.evidence else ""
@@ -335,7 +339,12 @@ def _run_tier3(
     for outcome in outcomes:
         print(format_outcome(outcome, layout.root))
     passed = sum(1 for o in outcomes if o.passed)
-    print(f"tier3: {passed}/{len(outcomes)} behavioral eval(s) passed for {args.behavioral}")
+    blocked = sum(1 for o in outcomes if o.blocked)
+    measured = len(outcomes) - blocked
+    summary = f"tier3: {passed}/{measured} behavioral eval(s) passed for {args.behavioral}"
+    if blocked:
+        summary += f"; {blocked} did not run and measured nothing"
+    print(summary)
     if args.json is not None:
         write_json(
             args.json,
@@ -344,10 +353,12 @@ def _run_tier3(
                 "skill": args.behavioral,
                 "passed": passed,
                 "total": len(outcomes),
+                "blocked": blocked,
                 "outcomes": [
                     {
                         "eval_id": o.eval_id,
                         "passed": o.passed,
+                        "blocked": o.blocked,
                         "verdict": o.verdict_path.relative_to(layout.root).as_posix(),
                     }
                     for o in outcomes
