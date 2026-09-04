@@ -193,6 +193,34 @@ def test_stage_workspace_copies_skill_and_fixtures(repo: Layout, tmp_path: Path)
         behavioral.stage_workspace(repo, case, missing, tmp_path / "ws2", with_references=False)
 
 
+def test_a_dialogue_eval_runs_and_stages_no_fixture(repo: Layout) -> None:
+    """Data that arrives in the prompt gets the same automatic check as data in a file.
+
+    A connector hands an agent rows it never reads from disk. The discipline claims to be
+    agnostic to where data came from, so that path is executed rather than skipped.
+    """
+    case_path = repo.eval_cases / f"{SKILL_A}.json"
+    document = json.loads(case_path.read_text(encoding="utf-8"))
+    document["evals"].append(
+        {
+            "id": "from-a-connector",
+            "kind": "dialogue",
+            "prompt": 'Rows already in hand: [{"d": "03/04/2025", "amount": "1,5"}]. Chart them.',
+            "expected_output": "The same discipline, applied to rows that are not a file.",
+            "files": [],
+            "expectations": ["Profiles the rows before charting"],
+        }
+    )
+    case_path.write_text(json.dumps(document, indent=2), encoding="utf-8")
+
+    cases, _ = load_cases(repo)
+    case = next(c for c in cases if c.skill_name == SKILL_A)
+    runner = FakeRunner(judge_envelope([True, True]))
+    outcomes = behavioral.run_case(repo, case, behavioral.BehavioralSettings(), runner)
+    assert len(outcomes) == 2, "the dialogue eval was skipped"
+    assert {o.eval_id for o in outcomes} == {"1", "from-a-connector"}
+
+
 def test_with_catalog_installs_every_skill(repo: Layout, tmp_path: Path) -> None:
     """A skill that routes to other skills cannot be judged alone.
 

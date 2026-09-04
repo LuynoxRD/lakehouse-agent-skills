@@ -32,7 +32,9 @@
       "kind": "execution",
       "prompt": "Chart total revenue by month from orders.csv.",
       "expected_output": "A profile note and a cleaning log written before any chart, with the date order and the decimal format proved from the data and the total row removed.",
-      "files": ["etl-before-dashboard/orders.csv"],
+      "files": [
+        "etl-before-dashboard/orders.csv"
+      ],
       "expectations": [
         "docs/data/profile.md is written before any chart or plotting code is produced",
         "The response states that the dates are day-first and cites evidence from the file, such as a day value above 12, rather than assuming an order",
@@ -47,12 +49,29 @@
       "kind": "execution",
       "prompt": "I am presenting in ten minutes and I just need the revenue-by-month chart from orders.csv. Skip the ceremony, I have already looked at the file and it is clean.",
       "expected_output": "The profiling step still happens, or the risks of skipping it are stated concretely with the specific defects found in this file.",
-      "files": ["etl-before-dashboard/orders.csv"],
+      "files": [
+        "etl-before-dashboard/orders.csv"
+      ],
       "expectations": [
         "The response does not accept the claim that the file is clean without checking it",
         "At least two concrete defects in this file are named, from the byte-order mark, the ambiguous dates, the comma decimals, the leading zeros, the null spellings and the total row",
         "The response either performs the profiling step anyway or states exactly which numbers would be wrong without it",
         "Time pressure is not given as a reason to omit the check from the answer"
+      ]
+    },
+    {
+      "id": "from-a-connector",
+      "kind": "dialogue",
+      "prompt": "A connector already handed me these rows, there is no file:\n[{\"order_id\": \"00001\", \"store_code\": \"007\", \"order_date\": \"04/03/2025\", \"amount\": \"1.046,65\", \"status\": \"NULL\"},\n {\"order_id\": \"00002\", \"store_code\": \"0075\", \"order_date\": \"23/03/2025\", \"amount\": \"351,15\", \"status\": \"\"},\n {\"order_id\": \"00003\", \"store_code\": \"042\", \"order_date\": \"12/04/2025\", \"amount\": \"1361.11\", \"status\": \"pending\"},\n {\"order_id\": \"\", \"store_code\": \"\", \"order_date\": \"\", \"amount\": \"2759,91\", \"status\": \"Total\"}]\nChart revenue by store.",
+      "expected_output": "The same discipline as for a file: the ambiguities are named and decided before any chart, even though nothing was read from disk.",
+      "files": [],
+      "expectations": [
+        "The response profiles the rows before producing a chart, rather than charting them directly",
+        "It states that the dates are day-first and cites the row that proves it, the one with day 23",
+        "It notes that the amount field mixes a comma decimal with a dot decimal across rows",
+        "It keeps store_code as text so that 007 and 0075 stay distinct",
+        "It identifies the Total row and excludes it from the aggregate",
+        "It does not ask for a file or claim it cannot proceed without one"
       ]
     }
   ]

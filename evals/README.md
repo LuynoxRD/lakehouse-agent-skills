@@ -57,10 +57,18 @@ One file per skill at `cases/<skill>.json`; the file name must equal `skill_name
 ```
 
 Minimums enforced by the schema: 3 positive triggers, 2 negative triggers with an `owner`
-different from the skill, and 1 **execution** eval. `top_k` defaults to 3. `kind` is `execution`
-(needs at least one fixture in `files`) or `dialogue` (no fixture; the transcript is reviewed by
-a human, so use it sparingly and say why) — a dialogue eval never satisfies the minimum on its
-own. Skills about discipline also carry **pressure cases**:
+different from the skill, and 1 **execution** eval. `top_k` defaults to 3.
+
+`kind` says how the data reaches the agent, not whether the eval runs. Both run.
+
+- **`execution`** stages fixture files into the workspace: the data arrives as a file, the way it
+  does when someone points at a path.
+- **`dialogue`** stages nothing and carries its data inside the prompt, the way a connector or a
+  pasted extract hands rows to an agent that never touches a file. The discipline is meant to be
+  agnostic to where data came from, so that claim is tested rather than asserted.
+
+A dialogue eval never satisfies the execution minimum on its own, because a skill also has to
+work against a real file. Skills about discipline additionally carry **pressure cases**:
 prompts that push the agent to skip the step through time pressure, sunk cost or appeals to
 authority, with expectations that the agent still follows the skill and says so.
 

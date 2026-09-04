@@ -395,9 +395,10 @@ def run_case(
     settings: BehavioralSettings,
     runner: Runner = run_command,
 ) -> list[EvalOutcome]:
-    """Run every execution eval of a case; dialogue evals are reviewed by humans and skipped."""
-    return [
-        run_eval(layout, case, behavioral, settings, runner)
-        for behavioral in case.evals
-        if behavioral.kind == "execution"
-    ]
+    """Run every eval of a case.
+
+    ``kind`` says whether an eval needs fixture files staged, not whether it runs. A dialogue
+    eval carries its data in the prompt, the way a connector hands rows to an agent that never
+    touches a file, and that path deserves the same automatic check as the file path.
+    """
+    return [run_eval(layout, case, behavioral, settings, runner) for behavioral in case.evals]
