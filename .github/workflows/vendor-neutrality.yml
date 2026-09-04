@@ -35,6 +35,13 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # nosemgrep: yaml.github-actions.security.pull-request-target-code-checkout.pull-request-target-code-checkout
+      # Semgrep raises the same objection as zizmor and states the condition itself: checking out
+      # the pull request is safe as long as no code from it is executed. That condition is met and
+      # is the reason this step is called "as data". Nothing below runs, builds, installs or
+      # sources anything from pr/; the only thing that executes is the base branch's own script,
+      # reading pr/ as text. Adding a step that runs something out of pr/ invalidates both this
+      # suppression and the one on the trigger.
       - name: Check out the pull request as data
         if: github.event_name == 'pull_request_target'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
