@@ -16,7 +16,9 @@ from lib.report import Finding, Report
 
 MIN_POSITIVE_TRIGGERS = 3
 MIN_NEGATIVE_TRIGGERS = 2
-MIN_BEHAVIORAL_EVALS = 1
+# Every skill owes one eval that actually runs against a fixture. A `dialogue` eval is reviewed
+# by a human and carries no fixture, so it never satisfies this minimum on its own.
+MIN_EXECUTION_EVALS = 1
 DEFAULT_TOP_K = 3
 KINDS = frozenset({"execution", "dialogue"})
 TOP_LEVEL_KEYS = frozenset({"skill_name", "trigger", "evals"})
@@ -216,10 +218,14 @@ def _load_evals(raw: object, report: Report, path: Path) -> list[BehavioralEval]
         behavioral = _load_eval_item(item, where, seen_ids, report, path)
         if behavioral is not None:
             evals.append(behavioral)
-    if len(raw) < MIN_BEHAVIORAL_EVALS:
+    executions = sum(
+        1 for item in raw if isinstance(item, dict) and item.get("kind", "execution") == "execution"
+    )
+    if executions < MIN_EXECUTION_EVALS:
         report.error(
             "case/minimums",
-            f"at least {MIN_BEHAVIORAL_EVALS} behavioral eval is required (found {len(raw)})",
+            f"at least {MIN_EXECUTION_EVALS} execution eval backed by a fixture is required "
+            f"(found {executions} among {len(raw)} eval(s)); a dialogue eval does not count",
             path,
         )
     return evals

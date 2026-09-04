@@ -187,10 +187,12 @@ def build_repo(root: Path, *, version: str = "0.1.0") -> Layout:
         layout.eval_cases / f"{SKILL_A}.json", case_json(SKILL_A, SKILL_B, f"{SKILL_A}/sales.csv")
     )
     write(
-        layout.eval_cases / f"{SKILL_B}.json", case_json(SKILL_B, SKILL_A, f"{SKILL_A}/sales.csv")
+        layout.eval_cases / f"{SKILL_B}.json", case_json(SKILL_B, SKILL_A, f"{SKILL_B}/limits.csv")
     )
     write(layout.eval_fixtures / SKILL_A / "FIXTURE.md", FIXTURE_NOTE)
     write(layout.eval_fixtures / SKILL_A / "sales.csv", 'order_date,amount\n03/04/2025,"1,5"\n')
+    write(layout.eval_fixtures / SKILL_B / "FIXTURE.md", FIXTURE_NOTE)
+    write(layout.eval_fixtures / SKILL_B / "limits.csv", "sheet,rows\nq1,1048576\n")
     write(
         layout.eval_config,
         json.dumps({"min_rank1_percent": 0, "collision_error": 0.75, "collision_warning": 0.5}),

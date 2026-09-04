@@ -87,11 +87,26 @@ def test_dialogue_evals_need_no_files(tmp_path: Path) -> None:
     document = base_case()
     evals = document["evals"]
     assert isinstance(evals, list)
-    evals[0]["kind"] = "dialogue"
-    evals[0]["files"] = []
+    dialogue = dict(evals[0])
+    dialogue.update(id="talk", kind="dialogue", files=[])
+    document["evals"] = [evals[0], dialogue]
     case, findings = load(tmp_path, document)
     assert findings == []
     assert case is not None
+
+
+def test_a_dialogue_eval_alone_does_not_satisfy_the_minimum(tmp_path: Path) -> None:
+    # A dialogue eval carries no fixture and is graded by a human, so a skill whose only eval
+    # is a dialogue has nothing that actually runs against data.
+    document = base_case()
+    evals = document["evals"]
+    assert isinstance(evals, list)
+    only = dict(evals[0])
+    only.update(kind="dialogue", files=[])
+    document["evals"] = [only]
+    case, findings = load(tmp_path, document)
+    assert case is None
+    assert any("execution eval backed by a fixture" in f for f in findings)
 
 
 def test_unknown_keys_warn_and_bad_json_errors(tmp_path: Path) -> None:

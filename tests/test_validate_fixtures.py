@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import shutil
+
 import pytest
 
 import validate_fixtures
-from conftest import FIXTURE_NOTE, SKILL_A, write
+from conftest import FIXTURE_NOTE, SKILL_A, SKILL_B, write
 from lib.repo import Layout
 
 
@@ -16,12 +18,25 @@ def findings(layout: Layout) -> dict[str, str]:
 def test_valid_fixtures_are_clean(repo: Layout) -> None:
     report = validate_fixtures.validate(repo)
     assert report.findings == []
-    assert report.checked == 1
+    assert report.checked == 2
 
 
 def test_cli(repo: Layout, capsys: pytest.CaptureFixture[str]) -> None:
     assert validate_fixtures.main(["--root", str(repo.root)]) == 0
-    assert "validate-fixtures: 1 checked" in capsys.readouterr().out
+    assert "validate-fixtures: 2 checked" in capsys.readouterr().out
+
+
+def test_every_skill_needs_its_own_fixture_folder(repo: Layout) -> None:
+    shutil.rmtree(repo.eval_fixtures / SKILL_B)
+    assert findings(repo)["fixture/missing-folder"] == "error"
+
+
+def test_fixture_paths_may_not_escape_the_fixture_tree(repo: Layout) -> None:
+    # The behavioral runner copies these files into the agent's workspace, so a path that
+    # walks out of evals/fixtures/ would smuggle repository files into an eval.
+    case = repo.eval_cases / f"{SKILL_A}.json"
+    write(case, case.read_text().replace(f"{SKILL_A}/sales.csv", "../../pyproject.toml"))
+    assert findings(repo)["fixture/outside-tree"] == "error"
 
 
 def test_note_rules(repo: Layout) -> None:

@@ -13,9 +13,9 @@ import argparse
 from collections.abc import Sequence
 from pathlib import Path
 
-from lib.evals_schema import load_cases
+from lib.evals_schema import EvalCase, load_cases
 from lib.markdown import normalize_heading, sections
-from lib.repo import Layout, add_root_argument, iter_files, read_text
+from lib.repo import Layout, add_root_argument, iter_files, read_checked
 from lib.report import Report
 
 FIXTURE_NOTE = "FIXTURE.md"
@@ -60,10 +60,8 @@ def check_note(folder: Path, report: Report) -> None:
     if not note.is_file():
         report.error("fixture/missing-note", f"fixture folder has no {FIXTURE_NOTE}", folder)
         return
-    try:
-        text = read_text(note)
-    except UnicodeDecodeError as error:
-        report.error("fixture/encoding", f"{FIXTURE_NOTE} is not valid UTF-8: {error.reason}", note)
+    text = read_checked(note, report, "fixture/encoding")
+    if text is None:
         return
     if "synthetic" not in text.lower():
         report.error(
@@ -130,26 +128,63 @@ def validate(layout: Layout) -> Report:
                 "fixture/stray-file", "fixtures live in per-skill folders, not at the top", stray
             )
 
+    for name in sorted(known):
+        if not (layout.eval_fixtures / name).is_dir():
+            report.error(
+                "fixture/missing-folder",
+                f"skill '{name}' has no fixture folder at evals/fixtures/{name}/",
+                layout.skills / name,
+            )
+
     cases, schema_report = load_cases(layout)
     report.extend(schema_report.findings)
+    referenced = _check_case_fixtures(cases, layout, report)
+    for folder in folders:
+        if folder.name not in referenced:
+            report.warning("fixture/unreferenced", "no eval case uses this fixture folder", folder)
+    return report
+
+
+def _check_case_fixtures(cases: Sequence[EvalCase], layout: Layout, report: Report) -> set[str]:
+    """Check every fixture an eval references and return the folders that are actually used."""
     referenced: set[str] = set()
     for case in cases:
         for behavioral in case.evals:
             for fixture in behavioral.files:
-                target = layout.eval_fixtures / fixture
-                if not target.exists():
+                if not _is_confined(fixture, layout):
+                    report.error(
+                        "fixture/outside-tree",
+                        f"eval '{behavioral.id}' references '{fixture}', which escapes "
+                        "evals/fixtures/; the runner copies these files into the agent's "
+                        "workspace, so they must stay inside the fixture tree",
+                        case.path,
+                    )
+                elif not (layout.eval_fixtures / fixture).exists():
                     report.error(
                         "fixture/missing",
                         f"eval '{behavioral.id}' references fixture '{fixture}', "
                         "which does not exist",
                         case.path,
                     )
-                    continue
-                referenced.add(Path(fixture).parts[0])
-    for folder in folders:
-        if folder.name not in referenced:
-            report.warning("fixture/unreferenced", "no eval case uses this fixture folder", folder)
-    return report
+                else:
+                    referenced.add(Path(fixture).parts[0])
+    return referenced
+
+
+def _is_confined(fixture: str, layout: Layout) -> bool:
+    """Whether a fixture path stays inside ``evals/fixtures/``.
+
+    The behavioral runner copies these files into the agent's workspace, so a path such as
+    ``../../pyproject.toml`` would smuggle repository files into an eval.
+    """
+    candidate = Path(fixture)
+    if candidate.is_absolute() or ".." in candidate.parts:
+        return False
+    root = layout.eval_fixtures.resolve()
+    try:
+        return (root / candidate).resolve().is_relative_to(root)
+    except OSError:
+        return False
 
 
 def main(argv: Sequence[str] | None = None) -> int:
