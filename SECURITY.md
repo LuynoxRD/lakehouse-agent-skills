@@ -34,6 +34,17 @@ not security issues; open a regular issue for those.
 Security fixes land on `main` and in the latest tagged release. Older tags are not patched; update to
 the latest release.
 
+Nothing an installed copy does is automatic: a fix on `main` reaches no one until they run
+`npx skills update` or `claude plugin update`. A vulnerability therefore gets a GitHub security
+advisory as well as a release, because the advisory is the part that reaches people who are not
+watching this repository. `docs/installing.md` has the update commands and one thing that surprises
+people, which is that an install made from a local checkout is never updated.
+
+Dependabot is not part of this. It watches this repository's own toolchain, the pinned Actions and
+the locked Python packages, and it opens pull requests here. It does not read skill content and it
+cannot notify anyone who installed the pack. Skill content is guarded by
+`scripts/validate_skill_safety.py` on every pull request.
+
 ## Safe harbor
 
 Good-faith research that respects this policy, avoids privacy violations and service disruption, and
