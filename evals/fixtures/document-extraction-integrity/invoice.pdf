@@ -1,0 +1,68 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 7 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 1230 >>
+stream
+BT /F1 16 Tf 1 0 0 1 72 720 Tm (NORTHWIND SUPPLY CO) Tj ET
+BT /F1 11 Tf 1 0 0 1 72 700 Tm (Invoice INV-2025-0417   Issued 2025-11-18   Due 2025-12-18) Tj ET
+BT /F1 11 Tf 1 0 0 1 72 684 Tm (Description) Tj ET
+BT /F1 11 Tf 1 0 0 1 430 684 Tm (Amount EUR) Tj ET
+BT /F1 11 Tf 1 0 0 1 430 660 Tm (1,240.00) Tj ET
+BT /F1 11 Tf 1 0 0 1 430 638 Tm (3,480.00) Tj ET
+BT /F1 11 Tf 1 0 0 1 430 594 Tm (950.00) Tj ET
+BT /F1 11 Tf 1 0 0 1 430 572 Tm (2,115.00) Tj ET
+BT /F1 11 Tf 1 0 0 1 430 550 Tm (388.50) Tj ET
+BT /F1 11 Tf 1 0 0 1 430 506 Tm (8,173.50) Tj ET
+BT /F1 11 Tf 1 0 0 1 430 484 Tm (0.00) Tj ET
+BT /F1 12 Tf 1 0 0 1 430 462 Tm (8,173.50) Tj ET
+BT /F1 11 Tf 1 0 0 1 72 660 Tm (Consulting, September) Tj ET
+BT /F1 11 Tf 1 0 0 1 72 638 Tm (Data platform support and out-of-hours) Tj ET
+BT /F1 11 Tf 1 0 0 1 72 616 Tm (incident response) Tj ET
+BT /F1 11 Tf 1 0 0 1 72 594 Tm (Training workshop) Tj ET
+BT /F1 11 Tf 1 0 0 1 72 572 Tm (Licence renewal) Tj ET
+BT /F1 11 Tf 1 0 0 1 72 550 Tm (Travel) Tj ET
+BT /F1 11 Tf 1 0 0 1 72 506 Tm (Subtotal) Tj ET
+BT /F1 11 Tf 1 0 0 1 72 484 Tm (VAT at 0%) Tj ET
+BT /F1 12 Tf 1 0 0 1 72 462 Tm (TOTAL DUE) Tj ET
+BT /F1 11 Tf 1 0 0 1 72 418 Tm (Paid by bank transfer. Reference INV-2025-0417.) Tj ET
+
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 6 0 R /Resources << >> >>
+endobj
+6 0 obj
+<< /Length 38 >>
+stream
+0.85 0.85 0.85 rg
+72 200 468 520 re
+f
+
+endstream
+endobj
+7 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000121 00000 n 
+0000000247 00000 n 
+0000001529 00000 n 
+0000001633 00000 n 
+0000001721 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R >>
+startxref
+1791
+%%EOF

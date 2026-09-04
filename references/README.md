@@ -7,6 +7,7 @@ a single skill needs lives next to that skill instead.
 | File | Used by |
 | --- | --- |
 | `capacity-thresholds.md` | honest-data-limits-disclosure, spreadsheet-integrity, parquet-to-open-table-format |
+| `format-strategy.md` | etl-before-dashboard, duckdb-for-local-analytics, structured-vs-unstructured-routing, spreadsheet-integrity, document-extraction-integrity |
 
 Four more files were planned and deliberately not written once the skills existed, because the
 material they would have held turned out not to meet the bar for this directory:

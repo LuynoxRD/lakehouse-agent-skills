@@ -50,6 +50,7 @@ whatever the parser guessed.
 | "Clean this up", "the dates look wrong", "the numbers came in as text" | `etl-before-dashboard` skill |
 | "This file is huge", "it won't fit in memory", "just read the first few rows" | `honest-data-limits-disclosure` skill |
 | "Process all of these files", "read the workbook" | `honest-data-limits-disclosure` skill |
+| "Get the numbers out of this PDF", "here are photos of the receipts", "the columns came out mixed together" | `document-extraction-integrity` skill |
 | "Is this even a table?", "the records don't all have the same fields", "find the themes in this text" | `structured-vs-unstructured-routing` skill |
 | "Edit this workbook", "write the results back into the spreadsheet" | `spreadsheet-integrity` skill |
 | "Connect to the database", "delete the test rows", "run this against production" | `safe-live-database-access` skill |
@@ -77,6 +78,9 @@ These boundaries are what keep the skills from overlapping. Read them before dec
 - **`insight-narrative-integrity` skill** owns *the arithmetic of a claim* and the words built
   on it. It assumes the data is already clean and its coverage already disclosed; it checks
   that the sentence follows from the numbers.
+- **`document-extraction-integrity` skill** owns *getting data off a page*, which happens before
+  the shape question can even be asked. A PDF, a scan or a photograph of a receipt is not text
+  until something extracts it, and that extraction is lossy in ways only it counts.
 - **`structured-vs-unstructured-routing` skill** owns the question of *what shape the source is*,
   and it runs before profiling. Once the answer is "a table", it hands over and stops.
 - **`spreadsheet-integrity` skill** owns *what happens to a document* when a workbook is written.
@@ -93,7 +97,7 @@ These boundaries are what keep the skills from overlapping. Read them before dec
   can be read*; **`dashboard-layout-by-widget-mix` skill** owns *where the panels sit on a page*.
   Three separate decisions that are usually made as one, badly.
 
-The seam is easy to state: shape comes before values, cleaning is about values, disclosure is
+The seam is easy to state: extraction comes before shape, shape comes before values, cleaning is about values, disclosure is
 about coverage, narrative is about claims, and privacy cuts across all of them.
 
 ## When none of them applies

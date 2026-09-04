@@ -116,6 +116,8 @@ the failure this skill exists to prevent.
 
 > The shared reference `references/capacity-thresholds.md` collects every hard limit in this pack side by side, with the tool each one was verified against. It is useful when choosing between approaches rather than following one. A per-skill install does not carry it; without it you lose the comparison, not any limit this skill needs, because each one is stated above.
 
+> The shared reference `references/format-strategy.md` puts every format this pack meets side by side, with what reads it and what bites. It is the view to take when a source arrives in a format you have not handled before. A per-skill install does not carry it; without it you lose the comparison, not the formats this skill needs, which are above.
+
 ## Common Rationalizations
 
 | Excuse | Reality |

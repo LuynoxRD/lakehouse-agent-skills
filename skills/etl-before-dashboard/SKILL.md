@@ -143,6 +143,8 @@ curated table, the answer is to go back to Step 3, not to patch the value into t
 State, next to the chart, which curated table it came from and the date it was built. A chart
 whose provenance is unstated becomes a screenshot with no way back to the data.
 
+> The shared reference `references/format-strategy.md` puts every format this pack meets side by side, with what reads it and what bites. It is the view to take when a source arrives in a format you have not handled before. A per-skill install does not carry it; without it you lose the comparison, not the formats this skill needs, which are above.
+
 ## Common Rationalizations
 
 | Excuse | Reality |
