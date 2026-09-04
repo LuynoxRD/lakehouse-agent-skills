@@ -1,6 +1,6 @@
 ---
 name: parquet-to-open-table-format
-description: Decides when a directory of Parquet files has stopped being enough to hold a dataset, by naming what that layer cannot do: correct a row, survive two writers, keep a column somebody added, or give a reader the same answer twice. Use when files are being rewritten to fix rows, when more than one process writes the same dataset, when a column was added and the older files do not have it, or when a reader needs the data as it stood at a point in time.
+description: Decides when a directory of Parquet files has stopped being enough to hold a dataset, by naming what that layer cannot do, from correcting a row to surviving two writers, keeping a column somebody added, or giving a reader the same answer twice. Use when files are being rewritten to fix rows, when more than one process writes the same dataset, when a column was added and the older files do not have it, or when a reader needs the data as it stood at a point in time.
 ---
 
 # Parquet to an open table format

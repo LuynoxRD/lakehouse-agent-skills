@@ -1,0 +1,15 @@
+description = "State what the run did not cover, in numbers, before the result is used."
+
+prompt = """
+Write the disclosure.
+
+Invoke the `honest-data-limits-disclosure` skill. Say how many inputs were processed out of how
+many, how many rows, what failed and why, and what each failure means for the numbers being
+reported. Counts are numbers, not adjectives.
+
+Write it to `docs/data/disclosure.md` and put the coverage statement in the answer itself, not
+only in the file, because the answer is what gets read.
+
+If anything left the project during this work, invoke the `data-privacy-before-llm` skill and
+record that transfer here too: which columns, how many rows, in what form and to where.
+"""

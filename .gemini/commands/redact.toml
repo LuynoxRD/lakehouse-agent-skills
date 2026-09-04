@@ -1,0 +1,16 @@
+description = "Decide what may leave the project before any rows are sent anywhere."
+
+prompt = """
+Decide what may leave, before anything is sent.
+
+Invoke the `data-privacy-before-llm` skill and follow it in order. Inspect the file without
+printing it whole, because reading it into the context is itself a send. Classify every column as
+a direct identifier, a quasi-identifier, free text or neither, and read the free-text columns for
+what people typed into them rather than trusting the column names.
+
+Send a profile, an aggregate or a masked form, and say which. Removing the identifier columns is
+not sufficient on its own while the quasi-identifiers remain.
+
+Record what left in `docs/data/disclosure.md`: which columns, how many rows, in what form, to
+which service, and what for. Write that record as part of sending, not afterwards.
+"""

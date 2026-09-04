@@ -1,0 +1,17 @@
+description = "Choose the chart form the data shape allows, then the library the destination needs."
+
+prompt = """
+Produce the chart the user asked for.
+
+Invoke the `chart-type-and-library-selection` skill. Write down what the chart is comparing before
+choosing a form, let the shape of the data rule forms out, and name the destination before naming
+the library. If the requested form is one the shape rules out, build the form that works rather
+than only recommending it.
+
+Then invoke the `dashboard-color-and-visual-hierarchy` skill for anything the chart encodes in
+colour: the palette matches the variable's type, colour never carries meaning alone, and contrast
+is computed against the ground the chart will actually be shown on.
+
+The chart carries its units, its period, the filter behind it and the curated table it came from,
+because it will be seen without whatever was said next to it.
+"""

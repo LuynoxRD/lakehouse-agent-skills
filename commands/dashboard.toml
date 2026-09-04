@@ -1,0 +1,17 @@
+description = "Lay out a page by what its panels are and how many of them there are."
+
+prompt = """
+Lay out the page.
+
+Invoke the `dashboard-layout-by-widget-mix` skill. Inventory the panels by type, size each one by
+what its content needs rather than by the grid, state in one sentence the question the page
+answers, and order the panels by how directly they answer it. Past what fits, group before
+shrinking and split before scrolling.
+
+Invoke the `dashboard-color-and-visual-hierarchy` skill for the page's colours: one accent carries
+the emphasis and everything else is quiet, and every token is measured against both the light and
+the dark ground.
+
+Express the layout as weights and flow rules rather than absolute positions, say what happens on a
+narrow viewport, and name anything you would remove.
+"""

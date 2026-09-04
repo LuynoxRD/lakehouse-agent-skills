@@ -1,6 +1,6 @@
 ---
 name: safe-live-database-access
-description: Treats a live database as a system other people depend on rather than a file that was handed over: read-only unless a write was asked for, the cost of a query known before it runs, credentials never copied into code or output, and every write confirmed as its own decision. Use when connecting to a shared or production database, when a query will run against a system that is serving other users, when a task needs credentials to reach data, or when a request asks to insert, update or delete rows.
+description: Treats a live database as a system other people depend on rather than a file that was handed over, so it stays read-only unless a write was asked for, the cost of a query is known before it runs, credentials are never copied into code or output, and every write is confirmed as its own decision. Use when connecting to a shared or production database, when a query will run against a system that is serving other users, when a task needs credentials to reach data, or when a request asks to insert, update or delete rows.
 ---
 
 # Safe live database access

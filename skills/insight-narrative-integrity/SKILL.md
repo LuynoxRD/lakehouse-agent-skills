@@ -1,6 +1,6 @@
 ---
 name: insight-narrative-integrity
-description: Checks that a finding survives its own arithmetic before it becomes a sentence: weighted averages instead of averages of averages, comparisons that reverse when groups are pooled, unlabelled buckets kept out of rankings, and a stated base behind every percentage. Use when writing takeaways or a summary, when naming the top or best performing segment, channel or period, when reporting growth or a decline as a percentage, or when saying that something drove or caused a change.
+description: Checks that a finding survives its own arithmetic before it becomes a sentence, using weighted averages instead of averages of averages, catching comparisons that reverse when groups are pooled, keeping unlabelled buckets out of rankings, and requiring a stated base behind every percentage. Use when writing takeaways or a summary, when naming the top or best performing segment, channel or period, when reporting growth or a decline as a percentage, or when saying that something drove or caused a change.
 ---
 
 # Insight narrative integrity

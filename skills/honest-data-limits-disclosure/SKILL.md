@@ -1,6 +1,6 @@
 ---
 name: honest-data-limits-disclosure
-description: Declares what a data run did not cover before and after the work: memory ceilings, sampled rows, unread sheets, skipped files and hard format limits. Use when a file may be too large to read whole, when only part of a batch or a workbook was processed, when a row cap or a sample was applied, or when reporting results that came from less data than the request implied.
+description: Declares what a data run did not cover before and after the work, including memory ceilings, sampled rows, unread sheets, skipped files and hard format limits. Use when a file may be too large to read whole, when only part of a batch or a workbook was processed, when a row cap or a sample was applied, or when reporting results that came from less data than the request implied.
 ---
 
 # Honest data limits disclosure
