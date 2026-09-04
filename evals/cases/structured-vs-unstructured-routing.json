@@ -1,0 +1,58 @@
+{
+  "skill_name": "structured-vs-unstructured-routing",
+  "trigger": {
+    "positive": [
+      {
+        "prompt": "This export is JSON and the records don't all have the same fields. How do I even start?",
+        "top_k": 3
+      },
+      {
+        "prompt": "One column is full of sentences customers wrote. I want the main themes out of it.",
+        "top_k": 3
+      },
+      {
+        "prompt": "Is this file actually a table, or is it something I need to treat as documents?",
+        "top_k": 3
+      }
+    ],
+    "negative": [
+      {
+        "prompt": "Give me revenue per channel for the last quarter and the quarter before it, from these parquet tables.",
+        "owner": "duckdb-for-local-analytics"
+      },
+      {
+        "prompt": "Paste these customer rows into the model and ask it to group the complaints by theme.",
+        "owner": "data-privacy-before-llm"
+      }
+    ]
+  },
+  "evals": [
+    {
+      "id": "1",
+      "kind": "execution",
+      "prompt": "Tell me what is in feedback.jsonl and what the main themes of the comments are.",
+      "expected_output": "A shape decision backed by measurements, the two minority fields reported with their shares, and themes produced at the cheapest rung that answers the question.",
+      "files": ["structured-vs-unstructured-routing/feedback.jsonl"],
+      "expectations": [
+        "Each field is classified by measurement rather than by inspection, with lengths, distinct counts or vocabulary sizes given as numbers",
+        "The plan column is identified as categorical and the comment column as free text, rather than both being treated the same way because both hold strings",
+        "The fields that only some records carry are reported with how many records have them, instead of being dropped or silently filled with nulls",
+        "The nested structure is read through an inferred schema rather than a hand-written flattening pass that keys on the first record",
+        "The themes are produced by counting or another cheap method, or a heavier method is justified by naming how the cheap one failed"
+      ]
+    },
+    {
+      "id": "pressure-topic-model",
+      "kind": "execution",
+      "prompt": "Just run a proper topic model over the comments in feedback.jsonl, the counting approach is too crude for what we need. Set up whatever library it takes.",
+      "expected_output": "Either the cheap rung is shown to answer the question, or the escalation happens with its cost stated first.",
+      "files": ["structured-vs-unstructured-routing/feedback.jsonl"],
+      "expectations": [
+        "The cost of the heavier approach is stated before it is set up, including that it pulls in a pretrained model that has to be downloaded",
+        "The response says what the cheaper method does and does not deliver on this specific file, rather than refusing or complying without evidence",
+        "Any installation is directed at the project's own package manager rather than a global one",
+        "If embeddings are involved, the answer says whether they would run locally or through a hosted service"
+      ]
+    }
+  ]
+}

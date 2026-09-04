@@ -1,0 +1,58 @@
+{
+  "skill_name": "duckdb-for-local-analytics",
+  "trigger": {
+    "positive": [
+      {
+        "prompt": "Give me revenue per channel for the last quarter and the quarter before it, from these parquet tables.",
+        "top_k": 3
+      },
+      {
+        "prompt": "I wrote a loop that goes through every row and adds up totals per customer. It takes forever.",
+        "top_k": 3
+      },
+      {
+        "prompt": "The file is far bigger than my memory. How do I group and rank it without loading the whole thing?",
+        "top_k": 3
+      }
+    ],
+    "negative": [
+      {
+        "prompt": "Here are the credentials for the production replica. Delete the rows the load test left behind.",
+        "owner": "safe-live-database-access"
+      },
+      {
+        "prompt": "The dates are ambiguous and the decimal separator is a comma. Clean the file before charting.",
+        "owner": "etl-before-dashboard"
+      }
+    ]
+  },
+  "evals": [
+    {
+      "id": "1",
+      "kind": "execution",
+      "prompt": "Using the tables in warehouse/, give me revenue by channel for the last full quarter, with the channel names, ranked.",
+      "expected_output": "A ranking whose join was checked for fan-out and whose status filter was decided, with the grain stated.",
+      "files": ["duckdb-for-local-analytics/warehouse"],
+      "expectations": [
+        "The answer is produced with SQL over the parquet tables rather than by iterating over rows to accumulate totals",
+        "The duplicate channel code in the dimension table is found, and marketplace revenue is not doubled by the join",
+        "Cancelled and refunded orders are excluded, or their inclusion is stated as a decision rather than left unmentioned",
+        "The grain of the result is stated, and the row count across the join is compared rather than assumed",
+        "If the query engine was not already installed, the response says so and says how it obtained it, instead of switching to another tool without mentioning the substitution"
+      ]
+    },
+    {
+      "id": "pressure-just-sum-it",
+      "kind": "execution",
+      "prompt": "Don't set up a query engine for this, it's only 48k rows. Just load the parquet files and sum the amounts per channel, I need the number in two minutes.",
+      "expected_output": "The number, produced fast, with the duplicate channel row and the status column still accounted for.",
+      "files": ["duckdb-for-local-analytics/warehouse"],
+      "expectations": [
+        "The duplicate channel row is still caught, whichever tool is used, so the total for marketplace is not double counted",
+        "The status column is still taken into account rather than every row being summed because the request asked for speed",
+        "The response says which checks it kept and why they cost almost nothing, without refusing the request",
+        "Any number given is tied to a stated definition of revenue, so it can be compared with a later one"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "skill_name": "parquet-to-open-table-format",
+  "trigger": {
+    "positive": [
+      {
+        "prompt": "We added a field to the new files last month, but it isn't showing up when I read the folder.",
+        "top_k": 3
+      },
+      {
+        "prompt": "Finance needs a few rows corrected, and rewriting the file each time is getting dangerous. What should the storage be?",
+        "top_k": 3
+      },
+      {
+        "prompt": "Two jobs are going to write into the same dataset folder from now on. Is that going to hold?",
+        "top_k": 3
+      }
+    ],
+    "negative": [
+      {
+        "prompt": "Give me revenue per channel for the last quarter and the quarter before it, from these parquet tables.",
+        "owner": "duckdb-for-local-analytics"
+      },
+      {
+        "prompt": "Chart the monthly revenue from this CSV; the amounts came in as text with comma decimals.",
+        "owner": "etl-before-dashboard"
+      }
+    ]
+  },
+  "evals": [
+    {
+      "id": "1",
+      "kind": "execution",
+      "prompt": "We started recording a refund reason on the events a month ago. Give me refunds by reason across everything in events/.",
+      "expected_output": "The refunds by reason, plus the fact that a plain read of the directory does not return the column at all and why.",
+      "files": ["parquet-to-open-table-format/events"],
+      "expectations": [
+        "The response establishes that the refund_reason column exists in one file and not the others, by inspecting the files rather than trusting a single read of the directory",
+        "It states that a plain read of the directory drops the column silently, with no error, and explains that the schema comes from the first file in name order",
+        "The answer it gives for refunds by reason is scoped to the rows that actually carry the column, rather than presented as covering all three months",
+        "It does not report that the column is missing from the data, which would be a claim about the files that the files contradict"
+      ]
+    },
+    {
+      "id": "storage-decision",
+      "kind": "execution",
+      "prompt": "From next month two jobs will write into events/ at the same time, and finance wants order 1 corrected rather than duplicated. Should we move this to a table format?",
+      "expected_output": "A recommendation grounded in the needs that a directory cannot meet, with the cost of the move named.",
+      "files": ["parquet-to-open-table-format/events"],
+      "expectations": [
+        "The recommendation is justified by what the directory cannot do, naming the concurrent writers, the row-level correction and the schema change, rather than by the size of the data",
+        "The duplicate of order 1 is found in the files and used as the concrete example of a correction the layer cannot express",
+        "The cost is named, including that reader support for the format is fetched over the network on first use and is not installed by default",
+        "Compaction or partitioning is addressed as work somebody has to own, rather than presented as coming for free with the format"
+      ]
+    }
+  ]
+}
