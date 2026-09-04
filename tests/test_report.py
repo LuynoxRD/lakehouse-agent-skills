@@ -52,6 +52,21 @@ def test_render_adds_annotations_when_requested(tmp_path: Path) -> None:
     assert not any(line.startswith("::notice") for line in lines)
 
 
+def test_paths_outside_the_root_stay_whole(tmp_path: Path) -> None:
+    outside = tmp_path.parent / "elsewhere" / "notes.md"
+    finding = Finding(Severity.ERROR, "rule/x", "outside", outside, 12)
+    assert finding.relative_path(tmp_path) == outside.as_posix()
+    assert finding.location(tmp_path) == f"{outside.as_posix()}:12"
+    report = Report("demo")
+    report.findings.append(finding)
+    payload = report.to_dict(tmp_path)
+    findings = payload["findings"]
+    assert isinstance(findings, list)
+    # A Windows path such as C:/dev/x.md must survive intact, drive letter included.
+    assert findings[0]["path"] == outside.as_posix()
+    assert findings[0]["line"] == 12
+
+
 def test_to_dict(tmp_path: Path) -> None:
     report = Report("demo", checked=1)
     report.error("rule/e", "bad", tmp_path / "x.md", 7)

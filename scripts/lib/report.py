@@ -33,17 +33,22 @@ class Finding:
     path: Path | None = None
     line: int | None = None
 
-    def location(self, root: Path | None = None) -> str:
-        """Return ``path:line`` relative to *root* when possible, or an empty string."""
+    def relative_path(self, root: Path | None = None) -> str | None:
+        """POSIX path relative to *root* when possible, the absolute path otherwise."""
         if self.path is None:
-            return ""
-        shown = self.path
+            return None
         if root is not None:
             try:
-                shown = self.path.relative_to(root)
+                return self.path.relative_to(root).as_posix()
             except ValueError:
-                shown = self.path
-        text = shown.as_posix()
+                pass
+        return self.path.as_posix()
+
+    def location(self, root: Path | None = None) -> str:
+        """Return ``path:line`` relative to *root* when possible, or an empty string."""
+        text = self.relative_path(root)
+        if text is None:
+            return ""
         if self.line is not None:
             text = f"{text}:{self.line}"
         return text
@@ -57,14 +62,9 @@ class Finding:
     def render_annotation(self, root: Path | None = None) -> str:
         """Render a GitHub Actions workflow command so the finding shows up inline."""
         properties: list[str] = []
-        if self.path is not None:
-            shown = self.path
-            if root is not None:
-                try:
-                    shown = self.path.relative_to(root)
-                except ValueError:
-                    shown = self.path
-            properties.append(f"file={shown.as_posix()}")
+        shown = self.relative_path(root)
+        if shown is not None:
+            properties.append(f"file={shown}")
         if self.line is not None:
             properties.append(f"line={self.line}")
         kind = _ANNOTATION_KIND[self.severity]
@@ -168,7 +168,7 @@ class Report:
         for finding in sorted(self.findings, key=_sort_key):
             item = asdict(finding)
             item["severity"] = finding.severity.value
-            item["path"] = finding.location(root).split(":")[0] if finding.path else None
+            item["path"] = finding.relative_path(root)
             findings.append(item)
         return {
             "tool": self.tool,
