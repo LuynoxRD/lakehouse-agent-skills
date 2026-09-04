@@ -8,11 +8,22 @@ import pytest
 
 import validate_fixtures
 from conftest import FIXTURE_NOTE, SKILL_A, SKILL_B, write
-from lib.repo import Layout
+from lib.repo import REPO_ROOT, Layout
 
 
 def findings(layout: Layout) -> dict[str, str]:
     return {f.rule: f.severity.value for f in validate_fixtures.validate(layout).findings}
+
+
+def test_fixtures_are_excluded_from_line_ending_normalization() -> None:
+    """A fixture's bytes are the fixture.
+
+    `.gitattributes` sets `text=auto eol=lf` repository-wide, which rewrites a CRLF export to
+    LF on commit and deletes the very defect a fixture was built to carry. The exclusion is an
+    invariant of the repository, so it is asserted rather than trusted.
+    """
+    attributes = (REPO_ROOT / ".gitattributes").read_text(encoding="utf-8")
+    assert "evals/fixtures/** -text" in attributes
 
 
 def test_valid_fixtures_are_clean(repo: Layout) -> None:

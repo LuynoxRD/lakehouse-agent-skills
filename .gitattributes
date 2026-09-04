@@ -1,6 +1,11 @@
 # Every text file is normalized to LF. Bash scripts with CRLF fail in CI.
 * text=auto eol=lf
 
+# A fixture's bytes are the fixture. Line endings and byte-order marks are the traps the evals
+# exercise, so nothing under evals/fixtures/ is normalized: `text=auto` would rewrite a CRLF
+# export to LF and silently delete the defect the eval exists to catch.
+evals/fixtures/** -text
+
 # Synthetic fixtures in binary formats are never diffed or normalized.
 *.parquet binary
 *.xlsx binary
