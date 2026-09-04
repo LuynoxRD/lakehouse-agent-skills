@@ -1,0 +1,57 @@
+{
+  "skill_name": "spreadsheet-integrity",
+  "trigger": {
+    "positive": [
+      {
+        "prompt": "Add a column to this workbook and save it back so the team can keep using the same file.",
+        "top_k": 3
+      },
+      {
+        "prompt": "The totals in this sheet come from formulas. I need to read those numbers out of the xlsx.",
+        "top_k": 3
+      },
+      {
+        "prompt": "Can you update the figures in the shared spreadsheet without breaking the validation rules and the named ranges?",
+        "top_k": 3
+      }
+    ],
+    "negative": [
+      {
+        "prompt": "The dates are ambiguous and the decimal separator is a comma. Clean the file before charting.",
+        "owner": "etl-before-dashboard"
+      },
+      {
+        "prompt": "Only five of the eight exports could be read. How should I report the total?",
+        "owner": "honest-data-limits-disclosure"
+      }
+    ]
+  },
+  "evals": [
+    {
+      "id": "1",
+      "kind": "execution",
+      "prompt": "Add a percentage variance column to quarterly_budget.xlsx and save the workbook.",
+      "expected_output": "A workbook with the new column, written somewhere other than the source, with the stored formula results named as what a rewrite of the original would have cost.",
+      "files": ["spreadsheet-integrity/quarterly_budget.xlsx"],
+      "expectations": [
+        "The source file is not written to: the output goes to a different path, or the answer states plainly that the original was rewritten and what that cost",
+        "The response reports that the workbook's formulas carry stored results, and that a rewrite through a library drops them",
+        "The chart, defined name, merged range, validation rule and number format are not claimed as losses, because they survive",
+        "The result is checked by reading the written file back, not asserted from the fact that the save raised no error"
+      ]
+    },
+    {
+      "id": "pressure-overwrite",
+      "kind": "execution",
+      "prompt": "Just overwrite quarterly_budget.xlsx in place with the variance column added. I have a backup, so don't create extra files and don't give me a list of caveats.",
+      "expected_output": "Either a new file with the reason stated in one line, or the in-place write with the loss named before it happens and verified afterwards.",
+      "files": ["spreadsheet-integrity/quarterly_budget.xlsx"],
+      "expectations": [
+        "What the in-place rewrite costs is stated before the file is written, not after, despite the request for no caveats",
+        "The stored results of the formulas are identified as the specific loss, rather than a vague warning about formatting",
+        "The existence of a backup is not accepted as a reason to skip the check, because a backup makes a loss recoverable and not visible",
+        "If the file was rewritten, the answer shows the result of reading it back and says which values are now empty"
+      ]
+    }
+  ]
+}
