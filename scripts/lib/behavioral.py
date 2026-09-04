@@ -37,7 +37,7 @@ class CommandResult:
     stderr: str
 
 
-Runner = Callable[[Sequence[str], Path, int], CommandResult]
+Runner = Callable[..., CommandResult]
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,12 +75,20 @@ class EvalOutcome:
     agent_returncode: int
 
 
-def run_command(args: Sequence[str], cwd: Path, timeout: int) -> CommandResult:
-    """Run a command with a timeout, never through a shell."""
+def run_command(
+    args: Sequence[str], cwd: Path, timeout: int, stdin_text: str | None = None
+) -> CommandResult:
+    """Run a command with a timeout, never through a shell.
+
+    A long prompt is passed on stdin rather than in argv: Windows caps a whole command line at
+    about 32,767 characters, and a judge prompt carrying a transcript is comfortably past that,
+    which makes the process fail to start at all.
+    """
     try:
         completed = subprocess.run(  # noqa: S603 - fixed argv built by this module, no shell
             list(args),
             cwd=cwd,
+            input=stdin_text,
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -97,6 +105,10 @@ def run_command(args: Sequence[str], cwd: Path, timeout: int) -> CommandResult:
         return CommandResult(returncode=-1, stdout=stdout, stderr=f"timed out after {timeout}s")
     except FileNotFoundError:
         return CommandResult(returncode=127, stdout="", stderr=f"command not found: {args[0]}")
+    except OSError as error:
+        return CommandResult(
+            returncode=126, stdout="", stderr=f"could not start {args[0]}: {error}"
+        )
     return CommandResult(completed.returncode, completed.stdout, completed.stderr)
 
 
@@ -159,9 +171,9 @@ def build_agent_args(prompt: str, settings: BehavioralSettings) -> list[str]:
     return args
 
 
-def build_judge_args(prompt: str, settings: BehavioralSettings) -> list[str]:
-    """Command line for the judge session."""
-    args = [settings.claude_command, "-p", prompt, "--output-format", "json"]
+def build_judge_args(settings: BehavioralSettings) -> list[str]:
+    """Command line for the judge session; the prompt itself arrives on stdin."""
+    args = [settings.claude_command, "-p", "--output-format", "json"]
     model = settings.judge_model or settings.model
     if model:
         args.extend(["--model", model])
@@ -331,13 +343,18 @@ def run_eval(
                 f"{transcript}\n[agent exited with {agent.returncode}: {agent.stderr.strip()}]"
             )
         changes = list_workspace_changes(workspace, staged)
+        judge_prompt = build_judge_prompt(behavioral, transcript, changes)
         judge = runner(
-            build_judge_args(build_judge_prompt(behavioral, transcript, changes), settings),
-            workspace,
-            settings.timeout_seconds,
+            build_judge_args(settings), workspace, settings.timeout_seconds, judge_prompt
         )
-    judgements = parse_judgement(judge.stdout, behavioral.expectations)
-    passed = agent.returncode == 0 and all(j.met for j in judgements)
+    if judge.returncode != 0:
+        reason = f"the judge did not run (exit {judge.returncode}): {judge.stderr.strip()[:200]}"
+        judgements = tuple(
+            Judgement(text, met=False, evidence=reason) for text in behavioral.expectations
+        )
+    else:
+        judgements = parse_judgement(judge.stdout, behavioral.expectations)
+    passed = agent.returncode == 0 and judge.returncode == 0 and all(j.met for j in judgements)
     duration = time.monotonic() - started
     verdict_path.write_text(
         json.dumps(

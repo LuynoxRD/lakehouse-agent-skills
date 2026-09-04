@@ -41,18 +41,29 @@ STREAM = "\n".join(
 class FakeRunner:
     """Records calls and answers as the agent, then as the judge."""
 
-    def __init__(self, judge_output: str, *, agent_returncode: int = 0) -> None:
+    def __init__(
+        self, judge_output: str, *, agent_returncode: int = 0, judge_returncode: int = 0
+    ) -> None:
         self.calls: list[list[str]] = []
+        self.stdin: list[str | None] = []
         self.judge_output = judge_output
         self.agent_returncode = agent_returncode
+        self.judge_returncode = judge_returncode
 
-    def __call__(self, args: Sequence[str], cwd: Path, _timeout: int) -> behavioral.CommandResult:
+    def __call__(
+        self,
+        args: Sequence[str],
+        cwd: Path,
+        _timeout: int,
+        stdin_text: str | None = None,
+    ) -> behavioral.CommandResult:
         self.calls.append(list(args))
+        self.stdin.append(stdin_text)
         if "stream-json" in args:
             (cwd / "docs" / "data").mkdir(parents=True, exist_ok=True)
             (cwd / "docs" / "data" / "profile.md").write_text("# Profile\n", encoding="utf-8")
             return behavioral.CommandResult(self.agent_returncode, STREAM, "")
-        return behavioral.CommandResult(0, self.judge_output, "")
+        return behavioral.CommandResult(self.judge_returncode, self.judge_output, "judge stderr")
 
 
 def judge_envelope(met: Sequence[bool]) -> str:
@@ -112,9 +123,11 @@ def test_build_args_and_prompt() -> None:
     assert "--permission-mode" in agent
     assert "acceptEdits" in agent
     assert agent[-1] == "m1"
-    judge = behavioral.build_judge_args("judge it", settings)
+    judge = behavioral.build_judge_args(settings)
     assert judge[-1] == "m2"
     assert "json" in judge
+    # The judge prompt carries a transcript, so it travels on stdin, never in argv.
+    assert not any(len(part) > 200 for part in judge)
     prompt = behavioral.build_judge_prompt(
         BehavioralEval("1", "execution", "task", "expected", ("f",), ("exp one",)),
         "transcript text",
@@ -140,7 +153,8 @@ def test_run_case_stages_runs_and_persists(repo: Layout) -> None:
     assert verdict["changed_files"] == ["docs/data/profile.md"]
     assert len(runner.calls) == 2
     assert runner.calls[0][2] == case.evals[0].prompt
-    judge_prompt = runner.calls[1][2]
+    judge_prompt = runner.stdin[1]
+    assert judge_prompt is not None
     assert "I will profile first." in judge_prompt
     assert "- docs/data/profile.md" in judge_prompt
 
@@ -234,6 +248,21 @@ def test_the_eval_id_cannot_walk_out_of_the_results_directory(repo: Layout) -> N
     # The separators are what would walk out; the remaining dots are just characters in a name.
     assert "/" not in outcome.transcript_path.name
     assert "\\" not in outcome.transcript_path.name
+
+
+def test_a_judge_that_never_ran_is_reported_as_such(repo: Layout) -> None:
+    """A launch failure must not read as an agent that fell short.
+
+    The judge prompt carries a transcript. When it travelled in argv it exceeded the Windows
+    command-line limit, the process never started, and every expectation was reported as
+    unmet with no hint that the judge was the thing that failed.
+    """
+    cases, _ = load_cases(repo)
+    case = next(c for c in cases if c.skill_name == SKILL_A)
+    runner = FakeRunner("", judge_returncode=126)
+    outcome = behavioral.run_case(repo, case, behavioral.BehavioralSettings(), runner)[0]
+    assert not outcome.passed
+    assert all("the judge did not run (exit 126)" in j.evidence for j in outcome.judgements)
 
 
 def test_run_command_handles_missing_executable(tmp_path: Path) -> None:
