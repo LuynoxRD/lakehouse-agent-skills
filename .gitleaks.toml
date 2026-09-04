@@ -1,0 +1,24 @@
+# Secret-scanning configuration.
+#
+# `gitleaks dir` walks the filesystem and does not read `.gitignore`, so it also scans the
+# virtual environment and the tool caches. Findings there are third-party source that is never
+# committed, and they made the local gate depend on which optional dependencies happened to be
+# installed: syncing the `fixtures` extra was enough to turn a passing run into a failing one.
+#
+# The history and staged-changes scans are unaffected; they only ever see tracked content.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Paths git ignores are not part of the repository and are never committed"
+paths = [
+  '''(^|/)\.venv/''',
+  '''(^|/)\.git/''',
+  '''(^|/)__pycache__/''',
+  '''(^|/)\.mypy_cache/''',
+  '''(^|/)\.ruff_cache/''',
+  '''(^|/)\.pytest_cache/''',
+  '''(^|/)evals/results/''',
+  '''(^|/)node_modules/''',
+]
