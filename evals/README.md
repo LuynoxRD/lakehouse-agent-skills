@@ -97,14 +97,28 @@ uv run scripts/run_evals.py --json out/tier2.json    # machine-readable results
 uv run scripts/run_evals.py --behavioral etl-before-dashboard            # tier 3, one skill
 uv run scripts/run_evals.py --behavioral etl-before-dashboard --model <model> --timeout 900
 uv run scripts/run_evals.py --behavioral using-lakehouse-skills --with-catalog   # a router
+uv run scripts/run_evals.py --behavioral etl-before-dashboard --allow-execution  # agent may run commands
 ```
 
 Tier 3 stages a temporary workspace with the skill installed at `.claude/skills/<name>/` (the
 shape of a per-skill install, without shared references unless `--with-references`) and the
-fixture files, runs `claude -p` with `--permission-mode acceptEdits`, then asks a second headless
-session to grade the transcript and the files the agent produced, answering with JSON only.
-Transcripts and verdicts land in `results/<skill>/` (gitignored). An eval passes when the agent
-exits cleanly and every expectation is met. Read the transcript before trusting a pass.
+fixture files, runs `claude -p` there, then asks a second headless session to grade the
+transcript and the files the agent produced, answering with JSON only. Transcripts and verdicts
+land in `results/<skill>/` (gitignored). An eval passes when the agent exits cleanly and every
+expectation is met. Read the transcript before trusting a pass.
+
+**What the agent is allowed to do is part of the result.** By default the run uses
+`--permission-mode acceptEdits`: the agent reads and writes files and may run a read-only shell
+command such as listing a directory, but anything that starts a program — `python`, `duckdb`,
+`tar`, a copy — is held for an approval a headless session cannot give and comes back denied. A
+skill whose Verification section asks for machine-checked evidence cannot comply in that mode,
+and the run still produces a verdict, so a pass there says the agent reasoned correctly from
+what it could read, not that it verified anything. `--allow-execution` lifts the restriction
+(`bypassPermissions`) and is what a skill about profiling, querying or persisting data has to be
+measured under. It is off by default because the commands the agent writes then run with the
+rights of whoever started the eval, on the host, not inside a sandbox. Every verdict records
+`execution_allowed`, and the summary line names the mode; comparing two runs across modes without
+reading it is comparing two different questions.
 
 **A skill that routes to other skills needs `--with-catalog`.** Installed alone, the names it
 points at do not resolve, an agent correctly reports them as missing, and the verdict reads that

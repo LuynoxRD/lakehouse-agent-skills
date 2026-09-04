@@ -50,6 +50,7 @@ class BehavioralSettings:
     timeout_seconds: int = 900
     with_references: bool = False
     with_catalog: bool = False
+    allow_execution: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -162,7 +163,16 @@ def stage_workspace(  # noqa: PLR0913 - one argument per thing staged, all named
 
 
 def build_agent_args(prompt: str, settings: BehavioralSettings) -> list[str]:
-    """Command line for the agent under test."""
+    """Command line for the agent under test.
+
+    The permission mode decides what the eval can measure at all. Under ``acceptEdits`` the
+    agent reads and writes files but every command that starts a program is held for an
+    approval no headless session can give, so it cannot run a profile, a query or a checksum.
+    A skill whose Verification section asks for machine evidence is unfalsifiable in that mode:
+    the agent has no way to comply, and the run still returns a verdict. ``allow_execution``
+    lifts that, and it stays off by default because the commands an agent writes then run with
+    the invoking user's rights, outside the workspace's reach to contain them.
+    """
     args = [
         settings.claude_command,
         "-p",
@@ -171,7 +181,7 @@ def build_agent_args(prompt: str, settings: BehavioralSettings) -> list[str]:
         "stream-json",
         "--verbose",
         "--permission-mode",
-        "acceptEdits",
+        "bypassPermissions" if settings.allow_execution else "acceptEdits",
     ]
     if settings.model:
         args.extend(["--model", settings.model])
@@ -411,6 +421,9 @@ def run_eval(
                 "agent_returncode": agent.returncode,
                 "judge_returncode": judge.returncode,
                 "blocked": blocked,
+                # A verdict is only readable next to the capability that produced it: the same
+                # skill scores differently when the agent can run a command and when it cannot.
+                "execution_allowed": settings.allow_execution,
                 "duration_seconds": round(duration, 1),
                 "changed_files": changes,
                 "judgements": [asdict(j) for j in judgements],

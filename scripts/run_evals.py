@@ -275,6 +275,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="also stage references/ (default simulates a per-skill install without them)",
     )
+    parser.add_argument(
+        "--allow-execution",
+        action="store_true",
+        help="let the agent under test run commands; without it every command that starts a "
+        "program is denied, so a skill that asks for machine-checked evidence cannot comply",
+    )
     parser.add_argument("--claude-command", default="claude", help="headless agent executable")
     return parser
 
@@ -334,6 +340,7 @@ def _run_tier3(
         timeout_seconds=args.timeout,
         with_references=args.with_references,
         with_catalog=args.with_catalog,
+        allow_execution=args.allow_execution,
     )
     outcomes = run_case(layout, matching[0], settings)
     for outcome in outcomes:
@@ -341,7 +348,10 @@ def _run_tier3(
     passed = sum(1 for o in outcomes if o.passed)
     blocked = sum(1 for o in outcomes if o.blocked)
     measured = len(outcomes) - blocked
-    summary = f"tier3: {passed}/{measured} behavioral eval(s) passed for {args.behavioral}"
+    capability = "commands allowed" if args.allow_execution else "no command execution"
+    summary = (
+        f"tier3: {passed}/{measured} behavioral eval(s) passed for {args.behavioral} ({capability})"
+    )
     if blocked:
         summary += f"; {blocked} did not run and measured nothing"
     print(summary)
@@ -354,6 +364,7 @@ def _run_tier3(
                 "passed": passed,
                 "total": len(outcomes),
                 "blocked": blocked,
+                "execution_allowed": args.allow_execution,
                 "outcomes": [
                     {
                         "eval_id": o.eval_id,

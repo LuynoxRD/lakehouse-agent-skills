@@ -406,3 +406,54 @@ def test_cli_behavioral_uses_runner(
     assert f"{SKILL_A} eval 1: PASS" in out
     assert "tier3: 1/1" in out
     assert run_evals.main(["--root", str(repo.root), "--behavioral", "ghost"]) == 1
+
+
+def test_execution_is_denied_by_default_and_recorded_in_the_verdict(repo: Layout) -> None:
+    """A verdict is only readable next to what the agent was allowed to do.
+
+    Under the default mode every command that starts a program is held for an approval a
+    headless session cannot give, so a skill asking for machine-checked evidence has no way to
+    comply. The mode is therefore part of the result, not a detail of how it was produced.
+    """
+    cases, _ = load_cases(repo)
+    case = next(c for c in cases if c.skill_name == SKILL_A)
+
+    restricted = behavioral.build_agent_args("do it", behavioral.BehavioralSettings())
+    executing = behavioral.build_agent_args(
+        "do it", behavioral.BehavioralSettings(allow_execution=True)
+    )
+    assert restricted[restricted.index("--permission-mode") + 1] == "acceptEdits"
+    assert executing[executing.index("--permission-mode") + 1] == "bypassPermissions"
+
+    for allow in (False, True):
+        runner = FakeRunner(judge_envelope([True, True]))
+        settings = behavioral.BehavioralSettings(allow_execution=allow)
+        outcome = behavioral.run_case(repo, case, settings, runner)[0]
+        verdict = json.loads(outcome.verdict_path.read_text(encoding="utf-8"))
+        assert verdict["execution_allowed"] is allow
+        agent_args = runner.calls[0]
+        expected = "bypassPermissions" if allow else "acceptEdits"
+        assert agent_args[agent_args.index("--permission-mode") + 1] == expected
+
+
+def test_cli_reports_which_capability_produced_the_numbers(
+    repo: Layout, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    seen: list[bool] = []
+
+    def fake_run_case(
+        layout: Layout, case: object, settings: behavioral.BehavioralSettings
+    ) -> list[behavioral.EvalOutcome]:
+        seen.append(settings.allow_execution)
+        runner = FakeRunner(judge_envelope([True, True]))
+        return behavioral.run_case(layout, case, settings, runner)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(run_evals, "run_case", fake_run_case)
+    assert run_evals.main(["--root", str(repo.root), "--behavioral", SKILL_A]) == 0
+    assert "(no command execution)" in capsys.readouterr().out
+    assert (
+        run_evals.main(["--root", str(repo.root), "--behavioral", SKILL_A, "--allow-execution"])
+        == 0
+    )
+    assert "(commands allowed)" in capsys.readouterr().out
+    assert seen == [False, True]
