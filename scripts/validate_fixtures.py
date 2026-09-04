@@ -15,7 +15,14 @@ from pathlib import Path
 
 from lib.evals_schema import EvalCase, load_cases
 from lib.markdown import normalize_heading, sections
-from lib.repo import Layout, add_root_argument, confined_path, iter_files, read_checked
+from lib.repo import (
+    Layout,
+    add_root_argument,
+    configure_output,
+    confined_path,
+    iter_files,
+    read_checked,
+)
 from lib.report import Report
 
 FIXTURE_NOTE = "FIXTURE.md"
@@ -183,6 +190,7 @@ def _is_confined(fixture: str, layout: Layout) -> bool:
 
 def main(argv: Sequence[str] | None = None) -> int:
     """CLI entry point."""
+    configure_output()
     parser = argparse.ArgumentParser(description=__doc__)
     add_root_argument(parser)
     args = parser.parse_args(argv)

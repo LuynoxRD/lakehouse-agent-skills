@@ -22,7 +22,7 @@ from pathlib import Path
 from lib import frontmatter
 from lib.behavioral import BehavioralSettings, EvalOutcome, run_case
 from lib.evals_schema import EvalCase, load_cases
-from lib.repo import Layout, add_root_argument, read_text
+from lib.repo import Layout, add_root_argument, configure_output, read_text
 from lib.report import Report
 from lib.tfidf import Index, build_index
 
@@ -261,6 +261,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--judge-model", help="model for the judge (default: --model)")
     parser.add_argument("--timeout", type=int, default=900, help="seconds per headless run")
     parser.add_argument(
+        "--with-catalog",
+        action="store_true",
+        help="install every skill, not only the one under test; required for a skill that "
+        "routes to other skills, whose names cannot resolve when it is installed alone",
+    )
+    parser.add_argument(
         "--with-references",
         action="store_true",
         help="also stage references/ (default simulates a per-skill install without them)",
@@ -271,6 +277,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     """CLI entry point."""
+    configure_output()
     args = build_parser().parse_args(argv)
     layout = Layout(args.root.resolve())
     report = Report("run-evals")
@@ -322,6 +329,7 @@ def _run_tier3(
         judge_model=args.judge_model,
         timeout_seconds=args.timeout,
         with_references=args.with_references,
+        with_catalog=args.with_catalog,
     )
     outcomes = run_case(layout, matching[0], settings)
     for outcome in outcomes:

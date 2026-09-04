@@ -176,6 +176,29 @@ def test_stage_workspace_copies_skill_and_fixtures(repo: Layout, tmp_path: Path)
         behavioral.stage_workspace(repo, case, missing, tmp_path / "ws2", with_references=False)
 
 
+def test_with_catalog_installs_every_skill(repo: Layout, tmp_path: Path) -> None:
+    """A skill that routes to other skills cannot be judged alone.
+
+    Installed on its own, the names it points at do not resolve, and an agent correctly
+    reports them as missing, which reads as an invented name in the verdict.
+    """
+    cases, _ = load_cases(repo)
+    case = next(c for c in cases if c.skill_name == SKILL_A)
+    alone = tmp_path / "alone"
+    alone.mkdir()
+    behavioral.stage_workspace(
+        repo, case, case.evals[0], alone, with_references=False, with_catalog=False
+    )
+    assert sorted(p.name for p in (alone / ".claude" / "skills").iterdir()) == [SKILL_A]
+
+    whole = tmp_path / "whole"
+    whole.mkdir()
+    behavioral.stage_workspace(
+        repo, case, case.evals[0], whole, with_references=False, with_catalog=True
+    )
+    assert sorted(p.name for p in (whole / ".claude" / "skills").iterdir()) == repo.skill_names()
+
+
 @pytest.mark.parametrize("escape", ["../../pyproject.toml", "C:/Windows/win.ini", "/etc/passwd"])
 def test_stage_workspace_refuses_paths_outside_the_fixture_tree(
     repo: Layout, tmp_path: Path, escape: str

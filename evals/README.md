@@ -87,7 +87,8 @@ uv run scripts/run_evals.py                          # tier 2, floor from config
 uv run scripts/run_evals.py --min-rank1 80           # override the floor for a local experiment
 uv run scripts/run_evals.py --json out/tier2.json    # machine-readable results
 uv run scripts/run_evals.py --behavioral etl-before-dashboard            # tier 3, one skill
-uv run scripts/run_evals.py --behavioral etl-before-dashboard --model <model> --timeout 600
+uv run scripts/run_evals.py --behavioral etl-before-dashboard --model <model> --timeout 900
+uv run scripts/run_evals.py --behavioral using-lakehouse-skills --with-catalog   # a router
 ```
 
 Tier 3 stages a temporary workspace with the skill installed at `.claude/skills/<name>/` (the
@@ -96,6 +97,17 @@ fixture files, runs `claude -p` with `--permission-mode acceptEdits`, then asks 
 session to grade the transcript and the files the agent produced, answering with JSON only.
 Transcripts and verdicts land in `results/<skill>/` (gitignored). An eval passes when the agent
 exits cleanly and every expectation is met. Read the transcript before trusting a pass.
+
+**A skill that routes to other skills needs `--with-catalog`.** Installed alone, the names it
+points at do not resolve, an agent correctly reports them as missing, and the verdict reads that
+as an invented skill name. The flag installs the whole catalog, which is also how the pack is
+actually installed.
+
+Two things about a run are worth knowing before reading a verdict. A timeout is reported as a
+failed eval with the agent's exit code set, even when the transcript shows the work was done, so
+check the duration against the timeout before concluding the skill failed. And the headless
+session inherits the machine's own agent configuration, including its language, so a verdict may
+quote an agent that answered in a language other than English.
 
 ## Ledger
 

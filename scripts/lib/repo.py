@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import sys
+from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -112,6 +114,21 @@ def add_root_argument(parser: argparse.ArgumentParser) -> None:
 def read_text(path: Path) -> str:
     """Read a UTF-8 text file strictly; invalid bytes raise instead of being replaced."""
     return path.read_text(encoding="utf-8")
+
+
+def configure_output() -> None:
+    """Make stdout and stderr able to carry any text these tools print.
+
+    Findings quote file content, and a behavioral verdict quotes an agent's own words, so the
+    output can contain any character. On Windows the console defaults to a legacy code page and
+    printing an arrow or an accented word raises UnicodeEncodeError, which turns a passing run
+    into a traceback after the work is already done.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            with suppress(ValueError, OSError):  # a detached stream cannot be reconfigured
+                reconfigure(encoding="utf-8", errors="replace")
 
 
 def confined_path(root: Path, relative: str) -> Path | None:

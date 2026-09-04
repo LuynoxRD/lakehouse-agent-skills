@@ -49,6 +49,7 @@ class BehavioralSettings:
     judge_model: str | None = None
     timeout_seconds: int = 900
     with_references: bool = False
+    with_catalog: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -99,24 +100,34 @@ def run_command(args: Sequence[str], cwd: Path, timeout: int) -> CommandResult:
     return CommandResult(completed.returncode, completed.stdout, completed.stderr)
 
 
-def stage_workspace(
+def stage_workspace(  # noqa: PLR0913 - one argument per thing staged, all named at the call site
     layout: Layout,
     case: EvalCase,
     behavioral: BehavioralEval,
     workspace: Path,
     *,
     with_references: bool,
+    with_catalog: bool = False,
 ) -> None:
     """Copy the skill and the fixture files into an empty workspace.
 
     Fixture paths come from a JSON file a contributor writes, so they are confined to the
     fixture tree here as well as in the validator: an absolute path would otherwise replace
     the base and copy anything on the machine into the agent's workspace.
+
+    ``with_catalog`` installs every skill instead of only the one under test. A skill that
+    routes to other skills cannot be judged alone: on its own, the names it points at do not
+    resolve, and an agent correctly reports them as missing.
     """
     skill_source = layout.skills / case.skill_name
     if not skill_source.is_dir():
         raise FileNotFoundError(f"skill directory not found: {skill_source}")
-    shutil.copytree(skill_source, workspace / ".claude" / "skills" / case.skill_name)
+    installed = workspace / ".claude" / "skills"
+    if with_catalog:
+        for directory in layout.skill_dirs():
+            shutil.copytree(directory, installed / directory.name)
+    else:
+        shutil.copytree(skill_source, installed / case.skill_name)
     if with_references and layout.references.is_dir():
         shutil.copytree(layout.references, workspace / "references")
     for fixture in behavioral.files:
@@ -302,7 +313,12 @@ def run_eval(
     with tempfile.TemporaryDirectory(prefix="lakehouse-eval-") as temporary:
         workspace = Path(temporary)
         stage_workspace(
-            layout, case, behavioral, workspace, with_references=settings.with_references
+            layout,
+            case,
+            behavioral,
+            workspace,
+            with_references=settings.with_references,
+            with_catalog=settings.with_catalog,
         )
         staged = {path for path in workspace.rglob("*") if path.is_file()}
         agent = runner(

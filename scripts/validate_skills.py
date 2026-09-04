@@ -10,12 +10,13 @@ from __future__ import annotations
 import argparse
 from collections.abc import Sequence
 
-from lib.repo import Layout, add_root_argument
+from lib.repo import Layout, add_root_argument, configure_output
 from lib.skill_lint import lint_catalog
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     """CLI entry point."""
+    configure_output()
     parser = argparse.ArgumentParser(description=__doc__)
     add_root_argument(parser)
     args = parser.parse_args(argv)
