@@ -50,6 +50,15 @@ whatever the parser guessed.
 | "Clean this up", "the dates look wrong", "the numbers came in as text" | `etl-before-dashboard` skill |
 | "This file is huge", "it won't fit in memory", "just read the first few rows" | `honest-data-limits-disclosure` skill |
 | "Process all of these files", "read the workbook" | `honest-data-limits-disclosure` skill |
+| "Is this even a table?", "the records don't all have the same fields", "find the themes in this text" | `structured-vs-unstructured-routing` skill |
+| "Edit this workbook", "write the results back into the spreadsheet" | `spreadsheet-integrity` skill |
+| "Connect to the database", "delete the test rows", "run this against production" | `safe-live-database-access` skill |
+| "Paste these rows into the model", "send this to the API", "is there anything identifying in here?" | `data-privacy-before-llm` skill |
+| "Revenue per channel", "the loop is too slow", "group and rank this" | `duckdb-for-local-analytics` skill |
+| "The new column isn't showing up", "two jobs write to the same folder", "we need to correct rows" | `parquet-to-open-table-format` skill |
+| "Pie or bar?", "plot this over time", "what kind of chart?" | `chart-type-and-library-selection` skill |
+| "Which colours?", "is red and green enough?", "does it work in dark mode?" | `dashboard-color-and-visual-hierarchy` skill |
+| "This page is cluttered", "where does the big table go?", "what belongs on the first screen?" | `dashboard-layout-by-widget-mix` skill |
 | "What are the key takeaways?", "which segment is winning?", "did it improve?" | `insight-narrative-integrity` skill |
 | "Why did it go up?", "what caused this?" | `insight-narrative-integrity` skill |
 
@@ -68,9 +77,24 @@ These boundaries are what keep the skills from overlapping. Read them before dec
 - **`insight-narrative-integrity` skill** owns *the arithmetic of a claim* and the words built
   on it. It assumes the data is already clean and its coverage already disclosed; it checks
   that the sentence follows from the numbers.
+- **`structured-vs-unstructured-routing` skill** owns the question of *what shape the source is*,
+  and it runs before profiling. Once the answer is "a table", it hands over and stops.
+- **`spreadsheet-integrity` skill** owns *what happens to a document* when a workbook is written.
+  It does not own the values inside it.
+- **`safe-live-database-access` skill** owns *the connection and the writes* to a system other
+  people use. Once rows are in hand, it is finished.
+- **`data-privacy-before-llm` skill** owns *what may leave the project*. It applies at any stage,
+  because any stage can be the one that sends something.
+- **`duckdb-for-local-analytics` skill** owns *asking a persisted table a question*.
+- **`parquet-to-open-table-format` skill** owns *whether the storage layer still holds*, which is
+  a question about change, never about size.
+- **`chart-type-and-library-selection` skill** owns *the form a chart takes*;
+  **`dashboard-color-and-visual-hierarchy` skill** owns *what its colours encode and whether they
+  can be read*; **`dashboard-layout-by-widget-mix` skill** owns *where the panels sit on a page*.
+  Three separate decisions that are usually made as one, badly.
 
-The seam is easy to state: cleaning is about values, disclosure is about coverage, narrative is
-about claims.
+The seam is easy to state: shape comes before values, cleaning is about values, disclosure is
+about coverage, narrative is about claims, and privacy cuts across all of them.
 
 ## When none of them applies
 
@@ -78,14 +102,10 @@ Not every task touching a file is a data task. Reading a configuration file, edi
 or changing code that happens to mention a CSV is ordinary work. These skills apply when a
 dataset is being turned into an answer.
 
-## Still being built
-
-The catalog covers the profile, clean and narrate stages today. Query, visualize, assemble and
-redact are being added; until they land, apply the general rule from the lifecycle above and say
-plainly which stage has no skill behind it yet. Do not invent a skill name.
-
 ## Verification
 
 - [ ] The stage this request belongs to is named before any work starts.
 - [ ] Every applicable skill was invoked in full, not summarized.
 - [ ] No stage was skipped, or the skip is stated in the answer with its reason.
+- [ ] Every skill named in the answer exists in this catalog. If a request needs something the
+      catalog does not cover, say so plainly rather than naming a skill that is not here.

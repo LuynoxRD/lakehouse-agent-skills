@@ -46,7 +46,10 @@ Before choosing anything: what does the reader need to compare, and how precisel
 channels rank by revenue" and "whether revenue and units move together" are different questions
 and no single form answers both.
 
-Write the sentence down. A chart chosen without it is a chart chosen by habit.
+Write the sentence down, one per chart, and keep it next to the chart in whatever you hand back.
+A chart chosen without it is a chart chosen by habit, and a list of the forms you picked is not
+the same thing: the forms say what you did, the sentences say what each chart is for, and the
+second is what somebody checks the chart against later.
 
 ### Step 2: Let the data's shape rule out forms before preference chooses one
 
@@ -81,6 +84,13 @@ then length, and only then anything else.
   accuracy order, so the cells carry their values as text when they must be read exactly.
 
 State which comparison you optimised for, because that is the decision.
+
+**When the requested form is one the shape rules out, build the one that works, not just a
+recommendation of it.** An alternative that is described and not produced leaves the person
+holding only the version that misleads, and an artefact beats a suggestion every time. If the
+requested form is produced as well, it carries on its face what it costs the reader. Collapsing
+the data until it fits the requested form is not a compromise either: it answers a different
+question than the one that was asked.
 
 ### Step 4: Choose the library by destination and volume, not by familiarity
 
