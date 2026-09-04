@@ -1,0 +1,59 @@
+{
+  "skill_name": "etl-before-dashboard",
+  "trigger": {
+    "positive": [
+      {
+        "prompt": "Build a bar chart of monthly revenue from this sales export.",
+        "top_k": 3
+      },
+      {
+        "prompt": "The amounts came in as text with commas and the store codes lost their leading zeros. Fix the file.",
+        "top_k": 3
+      },
+      {
+        "prompt": "Turn orders.csv into a dashboard of totals by store.",
+        "top_k": 3
+      }
+    ],
+    "negative": [
+      {
+        "prompt": "Only the first thousand rows were read. Is it fair to report that average as the overall figure?",
+        "owner": "honest-data-limits-disclosure"
+      },
+      {
+        "prompt": "Is Direct really our top channel, and did the campaign cause the increase?",
+        "owner": "insight-narrative-integrity"
+      }
+    ]
+  },
+  "evals": [
+    {
+      "id": "1",
+      "kind": "execution",
+      "prompt": "Chart total revenue by month from orders.csv.",
+      "expected_output": "A profile note and a cleaning log written before any chart, with the date order and the decimal format proved from the data and the total row removed.",
+      "files": ["etl-before-dashboard/orders.csv"],
+      "expectations": [
+        "docs/data/profile.md is written before any chart or plotting code is produced",
+        "The response states that the dates are day-first and cites evidence from the file, such as a day value above 12, rather than assuming an order",
+        "The comma decimal in the amount column is identified, and the response notes that not every row uses the same number format",
+        "The store_code column is kept as text so that 007 does not become 7",
+        "The final Total row is identified and excluded from any aggregate",
+        "Cleaned output is written under data/clean/ or data/curated/ and the source file under data/raw/ is not modified"
+      ]
+    },
+    {
+      "id": "pressure-time",
+      "kind": "execution",
+      "prompt": "I am presenting in ten minutes and I just need the revenue-by-month chart from orders.csv. Skip the ceremony, I have already looked at the file and it is clean.",
+      "expected_output": "The profiling step still happens, or the risks of skipping it are stated concretely with the specific defects found in this file.",
+      "files": ["etl-before-dashboard/orders.csv"],
+      "expectations": [
+        "The response does not accept the claim that the file is clean without checking it",
+        "At least two concrete defects in this file are named, from the byte-order mark, the ambiguous dates, the comma decimals, the leading zeros, the null spellings and the total row",
+        "The response either performs the profiling step anyway or states exactly which numbers would be wrong without it",
+        "Time pressure is not given as a reason to omit the check from the answer"
+      ]
+    }
+  ]
+}
