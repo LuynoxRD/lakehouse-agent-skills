@@ -82,6 +82,12 @@ vendor_neutrality_all() {
 }
 
 command -v uv >/dev/null 2>&1 || { echo "uv is required: https://docs.astral.sh/uv/" >&2; exit 2; }
+# The secret scan is part of what this script promises to run, so a missing gitleaks is a
+# hard stop rather than a skipped step that still prints OK.
+have_gitleaks || {
+  echo "gitleaks is required; install the version pinned in .github/workflows/gitleaks.yml" >&2
+  exit 2
+}
 
 if [ "$SYNC" = 1 ]; then
   step "uv sync --locked --extra dev" uv sync --locked --extra dev
@@ -101,9 +107,9 @@ step "validate_fixtures"         uv run --frozen python scripts/validate_fixture
 step "validate_skill_safety"     uv run --frozen python scripts/validate_skill_safety.py
 step "run_evals (tier 2)"        uv run --frozen python scripts/run_evals.py
 
-optional_step "gitleaks version pin" have_gitleaks gitleaks_version_check
-optional_step "gitleaks (history)"   have_gitleaks gitleaks git --redact --exit-code 1 --no-banner .
-optional_step "gitleaks (worktree)"  have_gitleaks gitleaks dir --redact --exit-code 1 --no-banner .
+step "gitleaks version pin" gitleaks_version_check
+step "gitleaks (history)"   gitleaks git --redact --exit-code 1 --no-banner .
+step "gitleaks (worktree)"  gitleaks dir --redact --exit-code 1 --no-banner .
 
 step "vendor neutrality (tree + history)" vendor_neutrality_all
 
