@@ -104,6 +104,10 @@ jobs:
       # install went green, and three reviewer personas shipped with nothing reading them. It was
       # found by a person reading this output by hand. This step is what replaces that habit.
       - name: Count what the install actually loaded
+        # shell: bash for pipefail. The default is bash -e, where the pipeline reports only the
+        # last command's status, so a failing plugin details would be masked by a passing python.
+        # A check built to refuse a masked failure should not contain one.
+        shell: bash
         run: >-
           claude plugin details lakehouse-agent-skills
           | python3 scripts/check_plugin_inventory.py --root .
