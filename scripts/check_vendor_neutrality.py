@@ -24,6 +24,8 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
+from lib.repo import configure_output
+
 # Defaulting to the checkout rather than the working directory matters: `git ls-files` without a
 # pathspec lists only what is below the current directory, so a cwd default would silently scan a
 # subset and still print OK. The output stays hand-rolled on purpose, so this script can never
@@ -204,6 +206,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     """CLI entry point."""
+    configure_output()
     args = build_parser().parse_args(argv)
     root = args.root.resolve()
     try:
