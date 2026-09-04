@@ -23,6 +23,11 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
+# Defaulting to the checkout rather than the working directory matters: `git ls-files` without a
+# pathspec lists only what is below the current directory, so a cwd default would silently scan a
+# subset and still print OK. The output stays hand-rolled on purpose, so this script can never
+# print the matched text.
+REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DENYLIST = Path.home() / ".config" / "lakehouse-agent-skills" / "denylist.txt"
 GIT = shutil.which("git") or "git"
 EXIT_CLEAN = 0
@@ -166,7 +171,10 @@ def build_parser() -> argparse.ArgumentParser:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument(
-        "--root", type=Path, default=Path.cwd(), help="repository root (default: cwd)"
+        "--root",
+        type=Path,
+        default=REPO_ROOT,
+        help="repository root to scan (default: the checkout this script lives in)",
     )
     parser.add_argument("--denylist", type=Path, help="path to the denylist file")
     parser.add_argument("--tree", action="store_true", help="scan tracked and untracked files")

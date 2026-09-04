@@ -140,6 +140,14 @@ def test_main_exit_codes_and_output(
     assert "cannot read" in capsys.readouterr().err
 
 
+def test_root_defaults_to_the_checkout_not_the_working_directory() -> None:
+    # `git ls-files` without a pathspec lists only what is below the current directory, so a
+    # cwd default would silently scan a subset of the repository and still print OK.
+    parser = cvn.build_parser()
+    assert parser.parse_args([]).root == cvn.REPO_ROOT
+    assert (cvn.REPO_ROOT / "scripts" / "check_vendor_neutrality.py").is_file()
+
+
 def test_main_outside_git_is_a_config_error(
     tmp_path: Path, denylist: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
