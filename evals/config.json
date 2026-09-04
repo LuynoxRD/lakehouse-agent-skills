@@ -1,6 +1,6 @@
 {
-  "min_rank1_percent": 0,
+  "min_rank1_percent": 90,
   "collision_error": 0.75,
   "collision_warning": 0.5,
-  "notes": "min_rank1_percent is set once all twelve descriptions exist: measure the baseline and fix the floor ten points below it. It is never lowered to make a regression pass; rejected changes go to skill-impact.md."
+  "notes": "min_rank1_percent was fixed at 90 once all thirteen descriptions existed: the measured baseline over the full catalogue was 100.0%, and the floor sits ten points below it. It is never lowered to make a regression pass; a change rejected on eval evidence goes to skill-impact.md instead."
 }
