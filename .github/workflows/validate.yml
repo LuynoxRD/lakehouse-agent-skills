@@ -99,6 +99,14 @@ jobs:
         run: claude plugin marketplace add ./
       - name: Install the plugin from the marketplace
         run: claude plugin install lakehouse-agent-skills@lakehouse-skills --scope user
+      # The install exits zero whether it loaded fourteen skills or none, and that is not
+      # hypothetical: an agents field that passed the manifest validator loaded zero agents, the
+      # install went green, and three reviewer personas shipped with nothing reading them. It was
+      # found by a person reading this output by hand. This step is what replaces that habit.
+      - name: Count what the install actually loaded
+        run: >-
+          claude plugin details lakehouse-agent-skills
+          | python3 scripts/check_plugin_inventory.py --root .
 
   lint-workflows:
     name: Lint workflows
