@@ -161,10 +161,41 @@ def test_encoding_rules(repo: Layout) -> None:
     assert warnings[0].severity.value == "warning"
 
 
+def test_sections_must_appear_in_the_documented_order(repo: Layout) -> None:
+    path = repo.skills / SKILL_A / "SKILL.md"
+    text = skill_markdown(SKILL_A, DESCRIPTION_A)
+    head, _, tail = text.partition("## Overview")
+    overview, _, rest = tail.partition("## When to Use")
+    # Move Overview after When to Use: every required section is still present.
+    reordered = f"{head}## When to Use{rest.split('## Core Process')[0]}## Overview{overview}"
+    reordered += "## Core Process" + text.split("## Core Process", 1)[1]
+    write(path, reordered)
+    found = rules(repo, "error")
+    assert "skill/missing-section" not in found
+    assert "skill/section-order" in found
+
+
 def test_too_long(repo: Layout) -> None:
     path = repo.skills / SKILL_A / "SKILL.md"
     write(path, skill_markdown(SKILL_A, DESCRIPTION_A) + "\n" * 600)
     assert "skill/too-long" in rules(repo, "error")
+
+
+def test_exactly_the_limit_is_not_under_the_limit(repo: Layout) -> None:
+    path = repo.skills / SKILL_A / "SKILL.md"
+    body = skill_markdown(SKILL_A, DESCRIPTION_A)
+    current = body.count("\n")
+    write(path, body + "\n" * (500 - current))
+    assert "skill/too-long" in rules(repo, "error")
+    write(path, body + "\n" * (498 - current))
+    assert "skill/too-long" not in rules(repo, "error")
+
+
+def test_a_placeholder_does_not_make_a_directory_non_empty(repo: Layout) -> None:
+    # git cannot track an empty directory, so a .gitkeep is exactly how the mistake this rule
+    # exists to catch would reach the repository.
+    write(repo.skills / SKILL_A / "scripts" / ".gitkeep", "")
+    assert "skill/empty-directory" in rules(repo, "error")
 
 
 def test_directory_hygiene_and_eval_case(repo: Layout) -> None:

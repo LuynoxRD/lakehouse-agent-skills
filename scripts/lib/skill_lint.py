@@ -13,6 +13,7 @@ from pathlib import Path
 
 from lib import frontmatter
 from lib.markdown import (
+    Section,
     checkbox_count,
     has_table,
     headings,
@@ -21,7 +22,7 @@ from lib.markdown import (
     strip_code_fences,
     table_header,
 )
-from lib.repo import Layout
+from lib.repo import Layout, read_checked
 from lib.report import Finding, Report
 
 MAX_NAME_LENGTH = 64
@@ -72,6 +73,7 @@ ALLOWED_FRONTMATTER_KEYS = frozenset(
     }
 )
 ALLOWED_SUBDIRECTORIES = frozenset({"scripts", "references", "assets", "examples"})
+PLACEHOLDER_FILES = frozenset({".gitkeep", ".keep", ".placeholder"})
 CATALOG_README = "README.md"
 
 
@@ -117,8 +119,7 @@ def lint_skill(
         report.error("skill/missing-skill-md", "directory has no SKILL.md", skill_dir)
         return report.findings
 
-    raw = skill_file.read_bytes()
-    text = _decode(raw, report, skill_file)
+    text = _decode(skill_file, report)
     if text is None:
         return report.findings
 
@@ -169,19 +170,9 @@ def lint_catalog(layout: Layout) -> Report:
     return report
 
 
-def _decode(raw: bytes, report: Report, path: Path) -> str | None:
-    if raw.startswith(b"\xef\xbb\xbf"):
-        report.error("skill/encoding", "file starts with a UTF-8 byte-order mark", path, 1)
-        raw = raw[3:]
-    try:
-        text = raw.decode("utf-8")
-    except UnicodeDecodeError as error:
-        report.error("skill/encoding", f"file is not valid UTF-8: {error.reason}", path)
-        return None
-    if "\r\n" in text:
-        report.error("skill/encoding", "file uses CRLF line endings; use LF", path)
-        text = text.replace("\r\n", "\n")
-    if text and not text.endswith("\n"):
+def _decode(path: Path, report: Report) -> str | None:
+    text = read_checked(path, report, "skill/encoding")
+    if text is not None and text and not text.endswith("\n"):
         report.warning("skill/encoding", "file does not end with a newline", path)
     return text
 
@@ -255,7 +246,7 @@ def _check_description(description: object, report: Report, path: Path) -> None:
 
 def _check_length(text: str, report: Report, path: Path) -> None:
     lines = text.count("\n") + (0 if text.endswith("\n") else 1)
-    if lines > MAX_SKILL_LINES:
+    if lines >= MAX_SKILL_LINES:
         report.error(
             "skill/too-long",
             f"SKILL.md has {lines} lines; keep it under {MAX_SKILL_LINES} and move detail to "
@@ -271,7 +262,7 @@ def _check_title(body: str, offset: int, report: Report, path: Path) -> None:
 
 
 def _check_sections(body: str, offset: int, report: Report, path: Path) -> None:
-    found = {}
+    found: dict[str, Section] = {}
     for section in sections(body):
         normalized = normalize_heading(section.heading.text)
         for spec in REQUIRED_SECTIONS:
@@ -282,6 +273,7 @@ def _check_sections(body: str, offset: int, report: Report, path: Path) -> None:
             report.error(
                 "skill/missing-section", f"required section '{spec.label}' not found", path
             )
+    _check_section_order(found, offset, report, path)
 
     rationalizations = found.get("rationalizations")
     if rationalizations is not None:
@@ -327,6 +319,29 @@ def _check_sections(body: str, offset: int, report: Report, path: Path) -> None:
             path,
             when_to_use.heading.line + offset,
         )
+
+
+def _check_section_order(
+    found: dict[str, Section], offset: int, report: Report, path: Path
+) -> None:
+    """The required sections appear in the documented order; a reader relies on it."""
+    expected = [spec.key for spec in REQUIRED_SECTIONS if spec.key in found]
+    previous_line = 0
+    previous_label = ""
+    labels = {spec.key: spec.label for spec in REQUIRED_SECTIONS}
+    for key in expected:
+        line = found[key].heading.line
+        if line < previous_line:
+            report.error(
+                "skill/section-order",
+                f"'{labels[key]}' appears before '{previous_label}'; the required sections "
+                f"follow the order {', '.join(spec.label for spec in REQUIRED_SECTIONS)}",
+                path,
+                line + offset,
+            )
+            return
+        previous_line = line
+        previous_label = labels[key]
 
 
 def _check_steps(body: str, offset: int, report: Report, path: Path) -> None:
@@ -379,7 +394,9 @@ def _check_directory(skill_dir: Path, report: Report) -> None:
                     f"unexpected directory '{entry.name}' inside the skill",
                     entry,
                 )
-            elif not any(entry.iterdir()):
+            elif not any(child.name not in PLACEHOLDER_FILES for child in entry.iterdir()):
+                # A placeholder is the only way git can track an empty directory, so a directory
+                # holding nothing else is exactly the case this rule exists to catch.
                 report.error(
                     "skill/empty-directory",
                     f"'{entry.name}/' is empty; do not create directories to mirror other skills",
