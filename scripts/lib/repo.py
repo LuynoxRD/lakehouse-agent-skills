@@ -114,6 +114,24 @@ def read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def confined_path(root: Path, relative: str) -> Path | None:
+    """Resolve *relative* under *root*, or None when it escapes.
+
+    Paths that come from a data file are attacker-controlled the moment the repository accepts
+    contributions. An absolute path silently replaces the base in ``root / relative``, and a
+    parent traversal walks out of it, so both are rejected and the result is checked again
+    after resolution to catch symlinks and drive-relative Windows paths such as ``/etc/x``.
+    """
+    candidate = Path(relative)
+    if candidate.is_absolute() or ".." in candidate.parts:
+        return None
+    try:
+        resolved = (root / candidate).resolve()
+        return resolved if resolved.is_relative_to(root.resolve()) else None
+    except OSError:
+        return None
+
+
 def read_checked(path: Path, report: Report, rule: str) -> str | None:
     """Read a text file, reporting encoding problems under *rule*.
 

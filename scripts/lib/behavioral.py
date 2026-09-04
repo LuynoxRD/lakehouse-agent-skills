@@ -20,11 +20,12 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from lib.evals_schema import BehavioralEval, EvalCase
-from lib.repo import Layout
+from lib.repo import Layout, confined_path
 
 _MAX_TOOL_INPUT_CHARS = 600
 _MAX_TRANSCRIPT_CHARS = 60_000
 _JSON_OBJECT_RE = re.compile(r"\{.*\}", re.DOTALL)
+_UNSAFE_ID_RE = re.compile(r"[^A-Za-z0-9._-]")
 
 
 @dataclass(frozen=True, slots=True)
@@ -106,7 +107,12 @@ def stage_workspace(
     *,
     with_references: bool,
 ) -> None:
-    """Copy the skill and the fixture files into an empty workspace."""
+    """Copy the skill and the fixture files into an empty workspace.
+
+    Fixture paths come from a JSON file a contributor writes, so they are confined to the
+    fixture tree here as well as in the validator: an absolute path would otherwise replace
+    the base and copy anything on the machine into the agent's workspace.
+    """
     skill_source = layout.skills / case.skill_name
     if not skill_source.is_dir():
         raise FileNotFoundError(f"skill directory not found: {skill_source}")
@@ -114,7 +120,9 @@ def stage_workspace(
     if with_references and layout.references.is_dir():
         shutil.copytree(layout.references, workspace / "references")
     for fixture in behavioral.files:
-        source = layout.eval_fixtures / fixture
+        source = confined_path(layout.eval_fixtures, fixture)
+        if source is None:
+            raise ValueError(f"fixture path escapes evals/fixtures/: {fixture}")
         if source.is_dir():
             shutil.copytree(source, workspace / source.name, dirs_exist_ok=True)
         elif source.is_file():
@@ -285,8 +293,11 @@ def run_eval(
     stamp = time.strftime("%Y%m%dT%H%M%S")
     results_dir = layout.eval_results / case.skill_name
     results_dir.mkdir(parents=True, exist_ok=True)
-    transcript_path = results_dir / f"{behavioral.id}-{stamp}.transcript.jsonl"
-    verdict_path = results_dir / f"{behavioral.id}-{stamp}.verdict.json"
+    # The eval id becomes a file name, so it is reduced to a safe token here as well as being
+    # constrained by the schema: an id of "../../x" would otherwise write outside the results.
+    safe_id = _UNSAFE_ID_RE.sub("_", behavioral.id) or "eval"
+    transcript_path = results_dir / f"{safe_id}-{stamp}.transcript.jsonl"
+    verdict_path = results_dir / f"{safe_id}-{stamp}.verdict.json"
 
     with tempfile.TemporaryDirectory(prefix="lakehouse-eval-") as temporary:
         workspace = Path(temporary)
