@@ -107,6 +107,31 @@ Record the question the page answers, the ranking that produced the order, the g
 and anything that was left out. The next person to add a panel then has something to add it
 against, instead of putting it in the first empty tile.
 
+### Step 7: Open the assembled page and check it is one document
+
+Assembly is where a layout stops being a plan and becomes a file, and the faults it introduces
+are invisible in every earlier artefact. The most common one has a single cause: a plotting
+library asked for a figure's HTML returns a **complete document** by default, headers and all,
+and embedding that inside a page nests one document inside another. A real assembled page held
+fourteen of them. It still displayed, because browsers recover from nested `<html>`; what did not
+recover was the fourteen copies of the figure writer's own `html, body { height: 100% }`, which
+applied to the real document and broke the layout this skill had just decided.
+
+So the last act of assembly is to read the file:
+
+```
+bash scripts/verify-output.sh --manifest docs/data/figures.json --html <the page that ships>
+```
+
+It fails on more than one doctype, a repeated `<html>`, `<head>` or `<body>`, a duplicated
+charset, an unclosed or stray tag, a page that does not decode as UTF-8, and on any number in the
+page's own text that no declared figure produces. That last one catches the fault assembly is
+uniquely prone to: a count typed into a header or a subtitle by hand, sitting a few centimetres
+from a computed tile that disagrees with it.
+
+When the figure writer offers it, ask for a fragment rather than a document, and check the
+resulting file rather than assuming the option took effect.
+
 ## Common Rationalizations
 
 | Excuse | Reality |
@@ -118,6 +143,8 @@ against, instead of putting it in the first empty tile.
 | "Tabs hide information." | Tabs name it. Twelve unlabelled panels on one screen hide it far more effectively. |
 | "The table is important, so it gets a big tile." | Importance decides position and order. Area is decided by what the content physically needs to be legible. |
 | "We can tidy the layout later." | Layout is what people use, and later is when there are twenty panels instead of twelve. |
+| "The page opened in the browser, so the assembly is fine." | Opening proves the browser recovered. Nested documents, duplicated stylesheets and a header that disagrees with its own tile all survive that test intact. |
+| "That figure in the header is just context, not a metric." | It is a number on the page, so it is read as one. Context that nothing computed is the easiest kind of wrong to ship. |
 
 ## Red Flags
 
@@ -131,6 +158,9 @@ Stop when any of these is true:
 - A trend chart is square, or a bar chart's category labels are rotated to fit.
 - The page requires scrolling past several screens and has never been split.
 - A panel was added to the first free space rather than to a group.
+- A figure was embedded by pasting the output of a call whose default is a whole document.
+- A count sits in a header, a subtitle or a footer without a query behind it.
+- The page was declared finished on the strength of having been opened, not read.
 
 ## Verification
 
@@ -145,3 +175,6 @@ Stop when any of these is true:
 - [ ] The layout is expressed as weights and flow rules, with the narrow-viewport behaviour of each
       panel stated, including any that are deliberately hidden.
 - [ ] Anything removed from the page is named, with the reason.
+- [ ] `scripts/verify-output.sh` was run against the assembled file and its output is quoted
+      showing zero errors. The assembled page is one document, and every number in its own text
+      is one a declared figure produces.

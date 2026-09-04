@@ -34,7 +34,9 @@ jobs:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
       - name: Sync environment
-        run: uv sync --locked --extra dev
+        # The fixtures extra carries the query engine the shipped verify-output.sh documents, so
+        # its tests run here rather than being skipped, which is the state this repository refuses.
+        run: uv sync --locked --extra dev --extra fixtures
       - name: ruff check
         run: uv run --frozen ruff check .
       - name: ruff format
@@ -73,6 +75,8 @@ jobs:
         run: uv run --frozen python scripts/validate_fixtures.py
       - name: Validate skill safety
         run: uv run --frozen python scripts/validate_skill_safety.py
+      - name: Validate shipped skill scripts
+        run: uv run --frozen python scripts/validate_skill_scripts.py
       - name: Run evals (tier 2, trigger and routing)
         run: uv run --frozen python scripts/run_evals.py
 

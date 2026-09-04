@@ -102,6 +102,7 @@ and `artifacts/layer`):
 | Cleaning log | `docs/data/cleaning-log.md` |
 | Model note | `docs/data/model.md` |
 | Disclosure note | `docs/data/disclosure.md` |
+| Figure manifest | `docs/data/figures.json` |
 | Raw inputs | `data/raw/` |
 | Cleaned data | `data/clean/` |
 | Curated parquet | `data/curated/` |

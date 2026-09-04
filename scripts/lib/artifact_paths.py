@@ -11,7 +11,16 @@ import re
 from dataclasses import dataclass
 
 NOTES_DIR = "docs/data/"
-NOTE_FILES: tuple[str, ...] = ("profile.md", "cleaning-log.md", "model.md", "disclosure.md")
+# figures.json is the manifest the artefact check reads: every published number with the
+# population it covers and the query that produces it. It is a lifecycle artefact like the
+# notes beside it, so it is spelled once here too.
+NOTE_FILES: tuple[str, ...] = (
+    "profile.md",
+    "cleaning-log.md",
+    "model.md",
+    "disclosure.md",
+    "figures.json",
+)
 CANONICAL_NOTE_PATHS: tuple[str, ...] = tuple(f"{NOTES_DIR}{name}" for name in NOTE_FILES)
 
 DATA_DIR = "data/"

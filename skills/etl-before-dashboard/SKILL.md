@@ -80,6 +80,19 @@ Every change is a rule with a reason, appended to `docs/data/cleaning-log.md`: w
 what it did, how many rows it touched. A cleaning step whose row count you cannot state is a
 step you cannot defend.
 
+- **Pick the thing that holds the table before writing a line of cleaning.** This whole skill
+  exists because types get guessed and the guess is not recorded, so the tool that holds the
+  table has to be one that declares a schema rather than inferring a fresh one per column and
+  sometimes per chunk. Anything expressible as a query belongs in SQL against the persisted
+  table, which is the `duckdb-for-local-analytics` skill. For the row work that is not a query,
+  the default is Polars, because its schema is explicit and stable rather than re-derived from
+  the data it happens to have seen.
+
+  The exception is the one that matters in practice: **if the project already uses a dataframe
+  library, use that one.** A second one is a second set of type rules over the same table, and
+  two libraries disagreeing about a column is the failure this step exists to prevent. Where the
+  existing library infers types, pin them at read time and record the pinned schema in the log,
+  which buys back the property the default would have given for free.
 - **Fix types explicitly.** Read identifier-like columns as text from the start rather than
   repairing them afterwards; a leading zero removed on read cannot be recovered, because
   nothing records how many digits were there.
@@ -145,6 +158,64 @@ whose provenance is unstated becomes a screenshot with no way back to the data.
 
 > The shared reference `references/format-strategy.md` puts every format this pack meets side by side, with what reads it and what bites. It is the view to take when a source arrives in a format you have not handled before. A per-skill install does not carry it; without it you lose the comparison, not the formats this skill needs, which are above.
 
+### Step 6: Check the delivered file, not the notes about it
+
+Every step above leaves a document behind, and a document is easy to write correctly about work
+that went wrong. This step is the only one that reads what the reader actually receives, and it
+is not optional: a run that stops at Step 5 has verified its own paperwork.
+
+First declare the numbers. Write `docs/data/figures.json` naming every figure the output
+publishes, with the value printed, the population it covers, and the query over the curated
+table that produces it:
+
+```json
+{
+  "table": "data/curated/orders.parquet",
+  "figures": [
+    {
+      "label": "Revenue",
+      "value": 7316.65,
+      "population": "delivered orders only; 37 cancelled orders excluded",
+      "sql": "SELECT SUM(total) FROM t WHERE status = 'delivered'"
+    }
+  ],
+  "constants": [
+    {"value": 5, "label": "product categories", "source": "docs/data/profile.md"}
+  ]
+}
+```
+
+`population` is the load-bearing field. A total that silently includes rows the reader would
+have excluded is not a rounding difference, it is a different number, and the place it has to be
+corrected is the page rather than the log.
+
+Then run the check and read what it says:
+
+```
+bash scripts/verify-output.sh --manifest docs/data/figures.json \
+  --html <the file that ships> --docs docs/data --project .
+```
+
+It runs the declared queries with DuckDB, which usually lives in the project's environment rather
+than on `PATH`; name that interpreter with `VERIFY_OUTPUT_PYTHON` when it does. A missing engine is
+reported as an error rather than passed over, because a check that quietly did not run is the
+thing this step exists to replace.
+
+It fails when a declared figure is not what the table answers, when a number appears in the
+page's own text that no figure and no declared constant produces, when a figure's population is
+missing or never appears on the page, when the delivered page is more than one HTML document,
+when a summary row is still being carried as data, when the project declares a second charting or
+dataframe library and nothing says what distinguishes it from the first, or when a delivered note
+does not decode as UTF-8.
+
+None of those are hypothetical. Every one was found in a delivered artefact whose run had
+recorded a complete profile, a cleaning log and a model note, and had ticked every box in this
+skill before this step existed.
+
+A failure here is never fixed by editing the delivered file. The number came from somewhere;
+go back to the step that produced it. Patching the page leaves the pipeline still producing the
+wrong value, and the next run publishes it again.
+
 ## Common Rationalizations
 
 | Excuse | Reality |
@@ -157,6 +228,11 @@ whose provenance is unstated becomes a screenshot with no way back to the data.
 | "The user just wants the chart." | They want the chart to be true. Delivering the untrue one faster is not service. |
 | "I already cleaned it in the notebook." | If the cleaning is not in `data/clean/` with a log, it exists once, in a session nobody can reproduce. |
 | "The source file is the single source of truth, so I'll read it every time." | Then every consumer repeats every guess. The curated table is the single source of truth precisely because the guessing already happened once, on the record. |
+| "I opened the output and it looked fine." | Looking fine is what a page does when its headline counts rows it should have excluded. The check compares the printed number to what the table answers; an eye compares it to nothing. |
+| "The numbers are in the chart library's own output, so they must be right." | They are right about the array they were handed. Whether that array came from the curated table, or from a value typed into the template, is the thing that goes unchecked. |
+| "It is the dataframe library I always reach for." | Then it was chosen by habit before the data was seen, which is the same move as picking a chart library by familiarity. Use the one the project already has, or the one whose schema is declared. Reaching is not deciding. |
+| "That figure came from the profile, so it is already verified." | A profile is a document this run wrote. Numbers in it have been copied from the wrong summary before; the query is what makes one verified. |
+| "Fixing it by hand is faster than re-running the pipeline." | It is, once. Then the pipeline still produces the wrong value, the hand fix is not in the log, and the next run publishes the original number with nothing to show it was ever wrong. |
 
 ## Red Flags
 
@@ -170,15 +246,33 @@ Stop and return to Step 1 when you notice any of these:
 - Two outputs from the same source disagree, which means cleaning happened twice, differently.
 - The source file's modification time changed during the work.
 - A chart is being built from a path under `data/raw/`.
+- A row was removed, a type corrected or a value patched anywhere other than inside the cleaning
+  script. A fix applied by hand is a fix the next run does not have.
+- A distinct count in the profile equals the row count exactly. That is what a non-null count
+  looks like when it has been filed under the wrong heading.
+- A number appears in the output that no query produced.
+- A dataframe library is imported that the project did not already depend on, and no line says
+  why the table needed a second set of type rules.
 
 ## Verification
 
 - [ ] `docs/data/profile.md` exists, lists every column with its inferred and intended type, and
       names a decision for each ambiguity in the Step 1 table.
+- [ ] Every count in the profile was measured, not inferred from the row count, and distinct
+      counts were computed as distinct counts.
 - [ ] `docs/data/cleaning-log.md` records every rule with the number of rows it changed.
 - [ ] `data/raw/` is byte-identical to what arrived; the source file was never written to.
 - [ ] `docs/data/model.md` states in one sentence what a single row means, and the stated key is
-      verified unique.
+      verified unique. The sentence and the key agree: a key that is unique per order contradicts
+      a sentence that says the row is a line item, and one of the two is wrong.
+- [ ] Everything under `data/clean/` and `data/curated/` was produced by re-running the recorded
+      script end to end, with no step applied by hand afterwards.
 - [ ] A Parquet table exists under `data/curated/` and reading it back yields the intended types.
 - [ ] Every chart names the curated table it was built from.
+- [ ] `docs/data/figures.json` accounts for every number the output publishes, each with the
+      population it covers and the query that produces it.
+- [ ] No library was added that does a job something already in the project does. Where two of a
+      kind exist, what distinguishes them is written down, not implied by the import list.
+- [ ] `scripts/verify-output.sh` was run against the file that ships, and its output is quoted in
+      the answer showing zero errors. Not run, or run and not read, is the same as not checked.
 - [ ] Any ambiguity that could not be resolved appears in the output, not only in the log.

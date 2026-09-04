@@ -92,12 +92,36 @@ requested form is produced as well, it carries on its face what it costs the rea
 the data until it fits the requested form is not a compromise either: it answers a different
 question than the one that was asked.
 
-### Step 4: Choose the library by destination and volume, not by familiarity
+### Step 4: Decide what the reader must be able to do, before deciding what draws it
 
-The form is decided by the data. The library is decided by where the chart has to work:
+The form is decided by the data. What the reader can do with the result is decided by who they
+are, and it eliminates more libraries than the form does, so it comes first.
+
+Answer these four, in order, and write the answers down:
+
+1. **Does the reader answer one question here, or the same question about different slices?**
+   One question needs no controls at all; controls on a page that answers one question are
+   furniture. Several slices means filtering, and filtering is a commitment, not a feature.
+2. **If there is filtering, does it apply to every panel that shares the grain?** A control that
+   filters one panel while its neighbours keep showing everything puts two different populations
+   side by side with nothing saying they differ. That is worse than no filter, because the page
+   now reports a comparison nobody made. Linked filtering is the default; a panel deliberately
+   left unlinked says so on its face.
+3. **Can the reader see what is currently applied, and clear it?** A filter with no visible state
+   is a page that answers a narrowed question in the voice of the whole dataset. The active
+   selection is displayed, and clearing it is one action.
+4. **Does a view have to survive being handed to someone else?** If two people must discuss the
+   same slice, the state belongs somewhere linkable; otherwise the only way to share it is a
+   screenshot, which carries no numbers and no filter. And if new data will arrive, the
+   deliverable is the pipeline that regenerates the page, not the page.
+
+Only then the library, decided by where the chart has to work:
 
 - **What renders it:** a notebook, a static report, a web page, a printed document. A library that
   produces an interactive widget is a broken image in a PDF.
+- **What the answers above require.** A library with no linked-view mechanism turns question 2
+  into a hand-written graph of event handlers, which is where cross-filtering quietly becomes
+  one filtered panel and five stale ones.
 - **How many points it has to draw.** Above roughly tens of thousands of marks, a library that
   emits one element per point in a document becomes unusable in the browser; that is the point
   where aggregation, binning, or a canvas-based renderer stops being optional.
@@ -106,8 +130,8 @@ The form is decided by the data. The library is decided by where the chart has t
 - **What the project already has.** A second charting library is a dependency, a second visual
   language and a second set of defaults to override. Adding one is a decision worth stating.
 
-Name the destination, then the library, then why. "It is what I know" is the answer this step
-exists to replace.
+Name what the reader must be able to do, then the destination, then the library, then why. "It
+is what I know" is the answer this step exists to replace.
 
 ### Step 5: Label so the chart survives being separated from its context
 
@@ -128,6 +152,9 @@ will not travel with it.
 | "There are only twelve categories, a pie is fine." | Twelve slices means twelve angles and twelve labels that do not fit. Sorted bars cost nothing and read exactly. |
 | "The library is the one I always use." | Then the destination never entered the decision, and the chart will be checked against it later by somebody else. |
 | "Interactivity makes it richer." | Interaction that carries values is useful. Interaction that carries motion is a delay the reader pays for every time. |
+| "The charts are interactive, so the page is." | Zooming one panel is not filtering the page. If selecting a category does not move the other panels, the reader has to hold the filter in their head while reading numbers that ignore it. |
+| "Filters can be added later; the charts are the hard part." | Filtering decides which library can do the job, so adding it later means rewriting the charts. It is the first decision, not the last. |
+| "A dashboard is a set of charts on a page." | That is a report. A dashboard is a page someone interrogates; if there is nothing to interrogate it with, build the report deliberately and say that is what it is. |
 | "It is just an exploratory chart." | Exploratory charts are the ones that get pasted into messages, where nothing says they were exploratory. |
 
 ## Red Flags
@@ -142,6 +169,11 @@ Stop when any of these is true:
 - A chart is being built and the sentence describing what is being compared was never written.
 - The library was chosen before the destination was named.
 - A chart carries no units, no period and no source table.
+- A second charting library appears in the project's declared dependencies and nothing states
+  what distinguishes it from the first. Two libraries are two visual languages, two sets of
+  defaults and two ways the same bar ends up a different colour; having two is allowed, arriving
+  at two without deciding is not. `scripts/verify-output.sh --project .` reads the dependency
+  declarations and fails on an unexplained second one.
 
 ## Verification
 
@@ -152,6 +184,10 @@ Stop when any of these is true:
 - [ ] The chosen form encodes the key comparison as position or length, or the reason for going
       lower on the accuracy order is stated.
 - [ ] Any bar chart's value axis starts at zero and any time axis is in order with gaps broken.
-- [ ] The library is named together with the destination that decided it, and any new dependency
-      is stated as one.
+- [ ] What the reader must be able to do is written down before any library was named, and any
+      filtering is stated as linked across the panels that share a grain, or the exceptions are
+      named.
+- [ ] Where filtering exists, the active selection is visible and can be cleared in one action.
+- [ ] The library is named together with the destination and the interaction it has to support,
+      and any new dependency is stated as one.
 - [ ] The chart carries its units, its period, the filter behind it and the table it came from.
