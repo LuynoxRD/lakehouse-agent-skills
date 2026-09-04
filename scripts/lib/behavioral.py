@@ -323,7 +323,11 @@ def run_eval(
     verdict_path = results_dir / f"{safe_id}-{stamp}.verdict.json"
 
     with tempfile.TemporaryDirectory(prefix="lakehouse-eval-") as temporary:
-        workspace = Path(temporary)
+        # The temporary directory can come back in Windows 8.3 short form, such as
+        # C:\Users\LUISCA~1\..., which an agent treats as a suspicious path and refuses to read
+        # or write without manual approval. Every tool call is then blocked and the eval
+        # measures nothing while still producing a verdict. Resolving expands it.
+        workspace = Path(temporary).resolve()
         stage_workspace(
             layout,
             case,

@@ -46,6 +46,7 @@ class FakeRunner:
     ) -> None:
         self.calls: list[list[str]] = []
         self.stdin: list[str | None] = []
+        self.workspaces: list[Path] = []
         self.judge_output = judge_output
         self.agent_returncode = agent_returncode
         self.judge_returncode = judge_returncode
@@ -59,6 +60,7 @@ class FakeRunner:
     ) -> behavioral.CommandResult:
         self.calls.append(list(args))
         self.stdin.append(stdin_text)
+        self.workspaces.append(cwd)
         if "stream-json" in args:
             (cwd / "docs" / "data").mkdir(parents=True, exist_ok=True)
             (cwd / "docs" / "data" / "profile.md").write_text("# Profile\n", encoding="utf-8")
@@ -248,6 +250,24 @@ def test_the_eval_id_cannot_walk_out_of_the_results_directory(repo: Layout) -> N
     # The separators are what would walk out; the remaining dots are just characters in a name.
     assert "/" not in outcome.transcript_path.name
     assert "\\" not in outcome.transcript_path.name
+
+
+def test_the_workspace_path_is_resolved_before_the_agent_sees_it(repo: Layout) -> None:
+    """A short Windows path makes an agent refuse every tool call.
+
+    The temporary directory can come back as C:\\Users\\LUISCA~1\\..., which is treated as a
+    suspicious path needing manual approval. Reads and writes are then blocked, and the eval
+    still produces a verdict, so it looks like a skill that did nothing rather than a runner
+    that fenced the agent out of its own workspace.
+    """
+    cases, _ = load_cases(repo)
+    case = next(c for c in cases if c.skill_name == SKILL_A)
+    runner = FakeRunner(judge_envelope([True, True]))
+    behavioral.run_case(repo, case, behavioral.BehavioralSettings(), runner)
+    assert runner.workspaces, "the runner never staged a workspace"
+    for workspace in runner.workspaces:
+        assert "~" not in str(workspace), workspace
+        assert workspace == workspace.resolve()
 
 
 def test_a_judge_that_never_ran_is_reported_as_such(repo: Layout) -> None:
