@@ -112,6 +112,8 @@ disagreeing.
 A result nobody will reuse does not need to be stored. Say which of the two it is rather than
 storing everything or nothing.
 
+> The shared reference `references/format-strategy.md` puts every format this pack meets side by side, with what reads it and what bites. It is the view to take when a source arrives in a format you have not handled before. A per-skill install does not carry it; without it you lose the comparison, not the formats this skill needs, which are above.
+
 ## Common Rationalizations
 
 | Excuse | Reality |

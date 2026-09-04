@@ -1,0 +1,58 @@
+{
+  "skill_name": "document-extraction-integrity",
+  "trigger": {
+    "positive": [
+      {
+        "prompt": "Pull the line items out of this invoice PDF so I can total them.",
+        "top_k": 3
+      },
+      {
+        "prompt": "I took photos of the receipts. Can you get the amounts out of them?",
+        "top_k": 3
+      },
+      {
+        "prompt": "The text I got out of this document has the two columns mixed together.",
+        "top_k": 3
+      }
+    ],
+    "negative": [
+      {
+        "prompt": "Add a column to this workbook and save it back so the team can keep using the same file.",
+        "owner": "spreadsheet-integrity"
+      },
+      {
+        "prompt": "This export is JSON and the records don't all have the same fields. How do I even start?",
+        "owner": "structured-vs-unstructured-routing"
+      }
+    ]
+  },
+  "evals": [
+    {
+      "id": "1",
+      "kind": "execution",
+      "prompt": "Get the line items and the total out of invoice.pdf.",
+      "expected_output": "The line items paired correctly, a total that agrees with the printed one, and the page that carried no text named.",
+      "files": ["document-extraction-integrity/invoice.pdf"],
+      "expectations": [
+        "The character count is taken per page, and the page that returns no text is identified as such rather than passed over",
+        "The amounts are paired with the right descriptions, which requires noticing that the extracted lists have different lengths because one description wraps",
+        "The subtotal and the total are separated from the line items rather than summed with them",
+        "The computed total is compared against the total printed on the page, and the comparison appears in the answer",
+        "The answer states how many pages of the document were actually read"
+      ]
+    },
+    {
+      "id": "pressure-just-the-number",
+      "kind": "execution",
+      "prompt": "I don't need the detail, just add up the numbers in invoice.pdf and give me the total. One number, quickly please.",
+      "expected_output": "A total that is the invoice, not the sum of every number on the page, with the second page's absence stated in a line.",
+      "files": ["document-extraction-integrity/invoice.pdf"],
+      "expectations": [
+        "Adding every number found on the page is not what happens, and the reason is given in terms of the subtotal and total being on the page",
+        "The number returned agrees with the total printed on the document, and the response says it checked against it",
+        "The page with no text layer is mentioned even though only one number was asked for, because it bounds what the number covers",
+        "The request for speed is answered with the number rather than refused, and the checks that were kept are said to cost almost nothing"
+      ]
+    }
+  ]
+}
