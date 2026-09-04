@@ -88,22 +88,30 @@ Rewrite the sentence, or quote the whole value. A colon with nothing after it, a
 Measured by installing one skill with `--agent '*'` into an empty project and listing what
 appeared.
 
-**Skills reach about 77 tools.** The installer writes `.<tool>/skills/<name>/SKILL.md` for each,
-and the list runs from Continue, Windsurf, Roo, Kilo Code, Junie, Trae, Goose, OpenHands and
-Crush through to a long tail. That breadth is the format's, not this pack's: a `SKILL.md` is
-markdown with frontmatter, so anything that reads one can use these.
+**Skills reach 77 tools.** That breadth is the format's, not this pack's: a `SKILL.md` is markdown
+with frontmatter, so anything that reads one can use these.
 
-**Cursor and opencode are not among them.** No `.cursor` or `.opencode` directory is created, and
-asking for them by name is a silent no-op: the installer prints `Done!` and writes nothing. Their
-own conventions have not been verified here, so this document does not tell you a path for them.
-Copying a skill directory into whatever a tool reads is the fallback, and it works because the
-file is just markdown.
+They do not all read the same place, and the split is worth knowing.
+
+**Nineteen of them share `.agents/skills`**, which is the cross-tool convention rather than any
+one product's directory: Amp, Antigravity, Antigravity CLI, Cline, Codex, **Cursor**, Deep Agents,
+Dexto, Firebender, Gemini CLI, GitHub Copilot, Kimi Code CLI, Loaf, **OpenCode**, PromptScript,
+Replit, Universal, Warp and Zed. One directory, nineteen tools, and it is where most of the
+familiar names live.
+
+**The rest read their own**, as `.<tool>/skills/`: Windsurf, Continue, Roo, Kilo Code, Junie,
+Trae, Goose, OpenHands, Crush, Kiro, Qoder and a long tail.
+
+The practical consequence is that looking for a `.cursor/` or `.opencode/` directory after an
+install finds nothing and means nothing. `.cursor/skills` exists, but as Cursor's **global**
+directory; its project directory is the shared one. Check `.agents/skills/` before concluding a
+tool was skipped.
 
 **The rest of the pack is narrower, and deliberately so.**
 
 | Component | Reaches |
 | --- | --- |
-| The 14 skills | Every tool above, and anything else that reads a `SKILL.md` |
+| The 14 skills | All 77 tools above, through `.agents/skills` or the tool's own directory, and anything else that reads a `SKILL.md` |
 | The 9 commands | Claude Code, as `.claude/commands/*.md`, and Gemini, as `.gemini/commands/*.toml`. Both are generated from `commands/*.toml` by `scripts/sync_commands.py`. |
 | The 3 reviewer personas | Claude Code, through the plugin's default `agents/` directory. Other tools have their own subagent mechanisms and none of them has been verified here. |
 | The session hook | Claude Code, through `hooks/hooks.json` |
