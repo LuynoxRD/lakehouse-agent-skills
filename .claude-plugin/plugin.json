@@ -21,10 +21,5 @@
   ],
   "skills": "./skills",
   "commands": "./.claude/commands",
-  "agents": [
-    "./agents/claim-auditor.md",
-    "./agents/data-work-reviewer.md",
-    "./agents/outbound-data-gate.md"
-  ],
   "hooks": "./hooks/hooks.json"
 }
