@@ -10,6 +10,12 @@ expressions; lines starting with ``#`` and blank lines are ignored.
 Output names the location, line and pattern number only, and every location is redacted before
 it is printed, because a matching path or branch name is itself the matched text. A public CI
 log therefore cannot leak what the list protects.
+
+A second, denylist-independent rule runs over the same items: nothing here credits a tool, a
+model or a vendor as the origin of the work. The denylist protects one name; the policy in
+CLAUDE.md is about a category, and a scan that only knows the name passes a commit message that
+signs the work over to a product. Attribution findings are printed in full, because unlike a
+denylisted term they are not secret.
 """
 
 from __future__ import annotations
@@ -37,6 +43,47 @@ GIT = shutil.which("git") or "git"
 EXIT_CLEAN = 0
 EXIT_FINDINGS = 1
 EXIT_CONFIG = 2
+
+# Attribution is checked without the denylist, because the denylist protects one name and this
+# policy is about a category: nothing in this repository credits a tool, a model or a vendor as
+# the origin of the work. The rule exists because the denylist scan passed on a commit message
+# and a pull request body that both did exactly that, and passing is what a check does when it
+# was never looking for the thing that was wrong.
+#
+# Naming a tool the work is about stays legal, which is why every pattern needs an attribution
+# context: a trailer, an "authored by" phrasing, or a link to a vendor session. `claude plugin
+# install` and `.claude-plugin/` are the work, not a credit, and they do not match.
+_TOOLS = r"claude|anthropic|openai|chatgpt|gpt-[0-9]|copilot|codex|gemini|cursor|devin|llm"
+# A tool name only counts as a credit when it stands alone. Followed by a dot, a hyphen or a
+# slash it is a file, a directory or a command — `CLAUDE.md`, `.claude-plugin/`, `claude/hooks` —
+# and those are the work, not a byline. Found by the rule refusing its own commit message, which
+# described the violation in a sentence that named the policy file.
+_TOOL_NAME = rf"(?:{_TOOLS})\b(?![.\-/])"
+ATTRIBUTION_RULES: tuple[tuple[re.Pattern[str], str], ...] = (
+    (
+        re.compile(
+            rf"^[ \t]*(?:co-authored-by|signed-off-by|assisted-by|generated-by|"
+            rf"[a-z-]*-session)[ \t]*:.*{_TOOL_NAME}",
+            re.IGNORECASE | re.MULTILINE,
+        ),
+        "an authorship or session trailer credits a tool or vendor",
+    ),
+    (
+        re.compile(
+            rf"\b(?:generated|authored|written|created|made|built|produced)\b"
+            rf"[ \t]+\b(?:with|by)\b[^\n]{{0,40}}{_TOOL_NAME}",
+            re.IGNORECASE,
+        ),
+        "a line credits a tool or vendor as the origin of the work",
+    ),
+    (
+        re.compile(
+            r"https?://(?:claude\.ai|chatgpt\.com|chat\.openai\.com|copilot\.microsoft\.com)\S*",
+            re.IGNORECASE,
+        ),
+        "a link to a vendor session names the tool as the origin of the work",
+    ),
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -118,6 +165,23 @@ def scan_items(items: Iterable[tuple[str, str]], patterns: Sequence[re.Pattern[s
                 if pattern.search(line)
             )
     return hits
+
+
+def scan_attribution(items: Iterable[tuple[str, str]]) -> list[tuple[str, int, str]]:
+    """Every place that credits a tool or vendor as the origin of the work.
+
+    Reported in full rather than redacted: unlike a denylisted term, the finding here is not a
+    secret, and the fix is unreadable without seeing the line.
+    """
+    found: list[tuple[str, int, str]] = []
+    for label, text in items:
+        for number, line in enumerate(text.split("\n"), start=1):
+            found.extend(
+                (label, number, reason)
+                for pattern, reason in ATTRIBUTION_RULES
+                if pattern.search(line)
+            )
+    return found
 
 
 def git(args: Sequence[str], root: Path) -> str:
@@ -260,6 +324,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     hits = scan_items(items, patterns)
     for hit in hits:
         print(f"{redact(hit.label, patterns)}:{hit.line}: matches denylist pattern #{hit.pattern}")
+    attribution = scan_attribution(items)
+    for label, number, reason in attribution:
+        print(f"{redact(label, patterns)}:{number}: {reason}")
     # The summary names what was actually read. Falling back to a fixed label was harmless until
     # a scope arrived that is neither a scope flag nor a commit message, and then it described a
     # run that never happened.
@@ -269,11 +336,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.scan_env:
         names.append("environment")
     scanned = ", ".join(names)
-    verdict = "FAIL" if hits else "OK"
+    verdict = "FAIL" if hits or attribution else "OK"
     print(
-        f"vendor-neutrality: {len(items)} items scanned ({scanned}), {len(hits)} hit(s): {verdict}"
+        f"vendor-neutrality: {len(items)} items scanned ({scanned}), {len(hits)} hit(s), "
+        f"{len(attribution)} attribution finding(s): {verdict}"
     )
-    return EXIT_FINDINGS if hits else EXIT_CLEAN
+    return EXIT_FINDINGS if hits or attribution else EXIT_CLEAN
 
 
 if __name__ == "__main__":

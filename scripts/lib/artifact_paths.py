@@ -20,6 +20,7 @@ NOTE_FILES: tuple[str, ...] = (
     "model.md",
     "disclosure.md",
     "figures.json",
+    "verification.json",
 )
 CANONICAL_NOTE_PATHS: tuple[str, ...] = tuple(f"{NOTES_DIR}{name}" for name in NOTE_FILES)
 

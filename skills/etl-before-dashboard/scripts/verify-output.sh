@@ -25,6 +25,10 @@ set -euo pipefail
 #      same kind arrive unexplained?  dataframe libraries type the same table twice by different
 #                                     rules. Either is allowed, neither is allowed silently.
 #
+# A green run writes a receipt (verification.json beside the manifest) naming what it read and the
+# digest of each one; a failing run deletes any receipt that was there. That is what lets something
+# else check that this ran at all, rather than taking a checklist box at its word.
+#
 # Usage:
 #   scripts/verify-output.sh --manifest docs/data/figures.json --html dashboard.html
 #   scripts/verify-output.sh --manifest docs/data/figures.json --html a.html --html b.html \
@@ -65,9 +69,11 @@ PYTHON="$(find_python)"
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import sys
+from datetime import datetime, timezone
 from html.parser import HTMLParser
 from pathlib import Path
 
@@ -509,6 +515,41 @@ def check_docs(directory: Path, report: Report) -> None:
             )
 
 
+def write_receipt(path: Path, inputs: list[Path], report: Report) -> None:
+    """Leave proof on disk that this ran green, or remove the proof that it did not.
+
+    A checklist box saying "run the check and paste the output" is worth exactly the honesty of
+    whoever ticks it, which is the same problem the disclosure note had before something looked
+    for the file. So a green run writes a receipt naming what it read and the digest of each one,
+    and a red run deletes any receipt that was there. What that buys is narrow and worth stating:
+    it proves a green run happened over these exact bytes. It does not defeat a forged file, and
+    nothing that runs after the fact can.
+    """
+    if report.errors:
+        try:
+            path.unlink()
+        except OSError:
+            pass
+        return
+    digests = []
+    for item in inputs:
+        try:
+            digests.append({"path": str(item), "sha256": hashlib.sha256(item.read_bytes()).hexdigest()})
+        except OSError:  # noqa: PERF203 - an unreadable input is recorded by its absence
+            continue
+    payload = {
+        "checked_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "ok": True,
+        "checked": report.checked,
+        "inputs": digests,
+    }
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8", newline="\n")
+    except OSError as error:
+        report.warn("receipt/unwritable", f"could not write {path}: {error}")
+
+
 def main() -> int:
     """CLI entry point."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -521,6 +562,11 @@ def main() -> int:
         "--project",
         type=Path,
         help="project root whose dependency declarations are read for duplicated libraries",
+    )
+    parser.add_argument(
+        "--receipt",
+        type=Path,
+        help="where to record that this ran green (default: verification.json beside the manifest)",
     )
     args = parser.parse_args()
 
@@ -571,11 +617,18 @@ def main() -> int:
     if args.docs is not None and args.docs.is_dir():
         check_docs(args.docs, report)
 
+    receipt = args.receipt or args.manifest.parent / "verification.json"
+    inputs = [args.manifest, *pages.keys()]
+    if str(table):
+        inputs.append(Path(str(table)))
+    write_receipt(receipt, inputs, report)
+
     result = {
         "ok": not report.errors,
         "checked": report.checked,
         "errors": report.errors,
         "warnings": report.warnings,
+        "receipt": str(receipt) if not report.errors else None,
     }
     print(json.dumps(result, indent=2, ensure_ascii=False))
     summary = f"verify-output: {report.checked} checked, {len(report.errors)} error(s)"

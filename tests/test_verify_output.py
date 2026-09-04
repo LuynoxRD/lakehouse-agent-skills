@@ -15,6 +15,7 @@ Shell is tested by starting it.
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import os
@@ -388,3 +389,44 @@ def test_a_project_with_no_dependency_file_is_not_second_guessed(tmp_path: Path)
     _code, report = run_with_project(note, html, tmp_path)
 
     assert "project/second-library" not in rules(report)
+
+
+@pytest.mark.skipif(not HAS_DUCKDB, reason="the figure check needs the DuckDB package")
+def test_a_green_run_leaves_a_receipt(tmp_path: Path) -> None:
+    """Something has to be able to check that this ran, without taking a checklist at its word."""
+    note, html = project(tmp_path, CLEAN_PAGE)
+
+    code, report = run(note, html)
+
+    assert code == 0, report
+    receipt = json.loads((tmp_path / "verification.json").read_text(encoding="utf-8"))
+    assert receipt["ok"] is True
+    recorded = {entry["path"] for entry in receipt["inputs"]}
+    assert str(html) in recorded
+    assert str(note) in recorded
+    assert all(len(entry["sha256"]) == 64 for entry in receipt["inputs"])
+
+
+def test_a_failing_run_removes_a_receipt_that_was_there(tmp_path: Path) -> None:
+    """A receipt from an earlier green run must not vouch for a page that now fails."""
+    note, html = project(tmp_path, NESTED_PAGE)
+    stale = tmp_path / "verification.json"
+    stale.write_text('{"ok": true}\n', encoding="utf-8")
+
+    code, _report = run(note, html)
+
+    assert code == 1
+    assert not stale.exists()
+
+
+@pytest.mark.skipif(not HAS_DUCKDB, reason="the figure check needs the DuckDB package")
+def test_the_receipt_records_the_bytes_that_were_checked(tmp_path: Path) -> None:
+    """Editing the page after the check leaves a receipt whose digest no longer matches."""
+    note, html = project(tmp_path, CLEAN_PAGE)
+    run(note, html)
+    before = json.loads((tmp_path / "verification.json").read_text(encoding="utf-8"))
+    digest = next(e["sha256"] for e in before["inputs"] if e["path"] == str(html))
+
+    html.write_text(CLEAN_PAGE.replace("25.50", "99.99"), encoding="utf-8", newline="\n")
+
+    assert hashlib.sha256(html.read_bytes()).hexdigest() != digest

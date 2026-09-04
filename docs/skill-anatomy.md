@@ -103,6 +103,7 @@ and `artifacts/layer`):
 | Model note | `docs/data/model.md` |
 | Disclosure note | `docs/data/disclosure.md` |
 | Figure manifest | `docs/data/figures.json` |
+| Verification receipt | `docs/data/verification.json` |
 | Raw inputs | `data/raw/` |
 | Cleaned data | `data/clean/` |
 | Curated parquet | `data/curated/` |

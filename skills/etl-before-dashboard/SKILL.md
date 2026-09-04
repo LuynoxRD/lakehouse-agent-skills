@@ -216,6 +216,13 @@ A failure here is never fixed by editing the delivered file. The number came fro
 go back to the step that produced it. Patching the page leaves the pipeline still producing the
 wrong value, and the next run publishes it again.
 
+A run with zero errors writes `docs/data/verification.json`, naming what it read and the digest of
+each one; a run with any errors deletes it. That receipt is the evidence, not the claim: pasting
+the output into an answer says the check passed, and the receipt is what something else can look
+at. Never write it by hand, and never edit a checked file afterwards without running the check
+again — the receipt then describes bytes that no longer exist, which is the state it is designed
+to expose.
+
 ## Common Rationalizations
 
 | Excuse | Reality |
@@ -275,4 +282,6 @@ Stop and return to Step 1 when you notice any of these:
       kind exist, what distinguishes them is written down, not implied by the import list.
 - [ ] `scripts/verify-output.sh` was run against the file that ships, and its output is quoted in
       the answer showing zero errors. Not run, or run and not read, is the same as not checked.
+- [ ] `docs/data/verification.json` exists, was written by that run rather than by hand, and is
+      newer than every file it names.
 - [ ] Any ambiguity that could not be resolved appears in the output, not only in the log.
