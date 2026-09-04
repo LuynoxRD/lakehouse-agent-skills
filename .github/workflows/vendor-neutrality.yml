@@ -1,9 +1,24 @@
 name: Vendor neutrality
 
-on:
+on:  # zizmor: ignore[dangerous-triggers]
   push:
     branches: [main]
-  pull_request:
+  # pull_request_target, not pull_request, and the difference is the whole point. The denylist is
+  # a repository secret, and a pull request from a fork never receives secrets, so under
+  # pull_request this job could only skip. A skipped job reports as skipped, GitHub counts a
+  # skipped required check as satisfied, and the merge button goes green over a check that never
+  # ran. That is the failure this workflow exists to prevent, arriving through the workflow.
+  #
+  # pull_request_target runs the workflow and the script from the base branch, with the secret,
+  # so neither can be changed by the pull request. The pull request is checked out into pr/ and
+  # is only ever read: no build, no install, no script from it is executed. Attacker-controlled
+  # text reaches the scan through the environment, never through a shell.
+  # zizmor flags this trigger, and as a general rule it is right: pull_request_target with a
+  # checkout of the pull request is how secrets get stolen. The suppression is deliberate and
+  # narrow. Nothing from pr/ is executed, installed, built or sourced; the only thing that runs is
+  # the base branch's own script, reading pr/ as text. Any future step that runs something out of
+  # pr/ makes this suppression wrong, and that is the line to look at first.
+  pull_request_target:
   workflow_dispatch:
 
 permissions:
@@ -13,23 +28,49 @@ jobs:
   vendor-neutrality:
     name: Vendor neutrality
     runs-on: ubuntu-latest
-    # The denylist is a repository secret. Pull requests from forks do not receive secrets, so
-    # they skip this job and the maintainer's review covers the check before merge; the push
-    # to main runs it again with the secret.
-    if: >-
-      github.event_name != 'pull_request' ||
-      github.event.pull_request.head.repo.full_name == github.repository
     steps:
-      - name: Check out full history
+      - name: Check out the base repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
+
+      - name: Check out the pull request as data
+        if: github.event_name == 'pull_request_target'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          # By commit, not by branch name: the sha is what will be merged, and a branch can move
+          # between the event and the checkout.
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          path: pr
+
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
-      - name: Scan tree, commit messages and ref names
-        run: python scripts/check_vendor_neutrality.py --tree --history
+
+      - name: Scan the pull request
+        if: github.event_name == 'pull_request_target'
         env:
           VENDOR_DENYLIST: ${{ secrets.VENDOR_DENYLIST }}
+          # The branch name, the title and the body are written by whoever opened the pull
+          # request, and the title and body become the squash-merge message on the default
+          # branch, so they are scanned before the merge rather than after it. They travel in the
+          # environment because that is how attacker-controlled text reaches a job without ever
+          # being interpolated into a shell command.
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: >
+          python scripts/check_vendor_neutrality.py
+          --root pr --tree --history
+          --scan-env PR_BRANCH --scan-env PR_TITLE --scan-env PR_BODY
+
+      - name: Scan the repository
+        if: github.event_name != 'pull_request_target'
+        env:
+          VENDOR_DENYLIST: ${{ secrets.VENDOR_DENYLIST }}
+        run: python scripts/check_vendor_neutrality.py --tree --history

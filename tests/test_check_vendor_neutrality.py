@@ -180,3 +180,74 @@ def test_main_outside_git_is_a_config_error(
         cvn.main(["--root", str(plain), "--denylist", str(denylist), "--tree"]) == cvn.EXIT_CONFIG
     )
     assert "git command failed" in capsys.readouterr().err
+
+
+def test_environment_values_are_scanned_and_redacted(
+    git_repo: Path,
+    denylist: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A pull request's title and body become the squash-merge message on the default branch.
+
+    They are written by whoever opened the pull request, so they have to be scanned before the
+    merge rather than after it, and they reach the scan through the environment because that is
+    how attacker-controlled text gets into a job without ever touching a shell.
+    """
+    monkeypatch.setenv("PR_TITLE", "Add support for AcmeCorp exports")
+    monkeypatch.setenv("PR_BRANCH", "feature/ordinary-name")
+
+    code = cvn.main(
+        ["--root", str(git_repo), "--denylist", str(denylist), "--scan-env", "PR_TITLE"]
+    )
+
+    out = capsys.readouterr().out
+    assert code == cvn.EXIT_FINDINGS
+    assert "env PR_TITLE:1: matches denylist pattern #1" in out
+    assert "AcmeCorp" not in out
+    assert "(environment)" in out
+
+    assert (
+        cvn.main(["--root", str(git_repo), "--denylist", str(denylist), "--scan-env", "PR_BRANCH"])
+        == cvn.EXIT_CLEAN
+    )
+
+
+def test_an_unset_variable_scans_as_empty_rather_than_failing(
+    git_repo: Path, denylist: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A pull request with no body is ordinary; failing on it would teach people to ignore this."""
+    monkeypatch.delenv("PR_BODY", raising=False)
+    assert (
+        cvn.main(["--root", str(git_repo), "--denylist", str(denylist), "--scan-env", "PR_BODY"])
+        == cvn.EXIT_CLEAN
+    )
+
+
+def test_the_summary_names_what_was_actually_scanned(
+    git_repo: Path,
+    denylist: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reporting a scope that did not run is the failure this whole check exists to prevent."""
+    monkeypatch.setenv("PR_BODY", "nothing to see")
+    cvn.main(["--root", str(git_repo), "--denylist", str(denylist), "--scan-env", "PR_BODY"])
+    assert "(environment)" in capsys.readouterr().out
+
+    cvn.main(["--root", str(git_repo), "--denylist", str(denylist), "--tree"])
+    assert "(tree)" in capsys.readouterr().out
+
+    cvn.main(
+        [
+            "--root",
+            str(git_repo),
+            "--denylist",
+            str(denylist),
+            "--tree",
+            "--history",
+            "--scan-env",
+            "PR_BODY",
+        ]
+    )
+    assert "(tree, history, environment)" in capsys.readouterr().out
