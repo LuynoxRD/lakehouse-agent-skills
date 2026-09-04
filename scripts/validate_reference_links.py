@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from lib.markdown import markdown_links
-from lib.repo import Layout, add_root_argument, iter_files, read_text
+from lib.repo import Layout, add_root_argument, iter_files, read_checked
 from lib.report import Report
 
 ROOT_DOCUMENTS = ("README.md", "CONTRIBUTING.md", "SECURITY.md", "AGENTS.md", "CLAUDE.md")
@@ -71,10 +71,8 @@ def validate(layout: Layout) -> Report:
 
     for path in scanned_files(layout):
         report.checked += 1
-        try:
-            text = read_text(path)
-        except UnicodeDecodeError as error:
-            report.error("links/encoding", f"file is not valid UTF-8: {error.reason}", path)
+        text = read_checked(path, report, "links/encoding")
+        if text is None:
             continue
         skill = _skill_of(path, layout)
         _check_links(text, path, skill, scan)

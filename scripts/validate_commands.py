@@ -15,11 +15,11 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from lib import frontmatter
-from lib.repo import Layout, add_root_argument, read_text
+from lib.repo import Layout, add_root_argument, read_checked, read_text
 from lib.report import Report
+from lib.skill_lint import NAME_RE
 
 COMMAND_KEYS = frozenset({"description", "prompt"})
-NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 SKILL_REFERENCE_RE = re.compile(r"`([a-z0-9]+(?:-[a-z0-9]+)+)`")
 MAX_DESCRIPTION_LENGTH = 250
 
@@ -63,12 +63,11 @@ def check_skill_references(prompt: str, known: Sequence[str], report: Report, pa
             path,
         )
     for candidate in sorted(referenced - set(existing)):
-        if candidate.count("-") >= 1 and "/" not in candidate:
-            report.warning(
-                "command/unknown-skill",
-                f"'{candidate}' looks like a skill name but no skill has it",
-                path,
-            )
+        report.warning(
+            "command/unknown-skill",
+            f"'{candidate}' looks like a skill name but no skill has it",
+            path,
+        )
 
 
 def check_claude_copy(name: str, fields: dict[str, str], layout: Layout, report: Report) -> None:
@@ -76,8 +75,11 @@ def check_claude_copy(name: str, fields: dict[str, str], layout: Layout, report:
     if not copy.is_file():
         report.error("command/missing-copy", f"missing per-tool copy {copy.name}", copy)
         return
+    text = read_checked(copy, report, "command/encoding")
+    if text is None:
+        return
     try:
-        parsed = frontmatter.parse(read_text(copy))
+        parsed = frontmatter.parse(text)
     except frontmatter.FrontmatterError as error:
         report.error("command/copy-frontmatter", error.detail, copy, error.line)
         return
@@ -96,7 +98,8 @@ def check_gemini_copy(name: str, source: Path, layout: Layout, report: Report) -
     if not copy.is_file():
         report.error("command/missing-copy", f"missing per-tool copy {copy.name}", copy)
         return
-    if read_text(copy) != read_text(source):
+    copy_text = read_checked(copy, report, "command/encoding")
+    if copy_text is not None and copy_text != read_text(source):
         report.error("command/prompt-drift", "copy is not identical to commands/*.toml", copy)
 
 

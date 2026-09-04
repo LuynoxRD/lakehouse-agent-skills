@@ -79,6 +79,19 @@ def test_copy_with_broken_frontmatter(repo: Layout) -> None:
     assert rules(repo)["command/copy-frontmatter"] == "error"
 
 
+def test_a_copy_that_is_not_utf8_is_a_finding_not_a_traceback(repo: Layout) -> None:
+    (repo.claude_commands / "profile.md").write_bytes(b"---\ndescription: caf\xe9\n---\n\nbody\n")
+    found = rules(repo)
+    assert found["command/encoding"] == "error"
+
+
+def test_a_copy_with_crlf_endings_is_reported(repo: Layout) -> None:
+    # Universal newlines would otherwise hide CRLF drift behind a passing parity check.
+    source = (repo.gemini_commands / "profile.toml").read_text()
+    (repo.gemini_commands / "profile.toml").write_bytes(source.replace("\n", "\r\n").encode())
+    assert rules(repo)["command/encoding"] == "error"
+
+
 def test_empty_command_set_only_flags_orphans(repo: Layout) -> None:
     (repo.commands / "profile.toml").unlink()
     found = [f.rule for f in validate_commands.validate(repo).findings]

@@ -13,7 +13,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from lib.artifact_paths import find_violations
-from lib.repo import Layout, add_root_argument, iter_files, read_text
+from lib.repo import Layout, add_root_argument, iter_files, read_checked
 from lib.report import Report
 
 SCANNED_SUFFIXES = frozenset({".md", ".toml"})
@@ -40,10 +40,8 @@ def validate(layout: Layout) -> Report:
     report = Report("validate-artifact-paths")
     for path in scanned_files(layout):
         report.checked += 1
-        try:
-            text = read_text(path)
-        except UnicodeDecodeError as error:
-            report.error("artifacts/encoding", f"file is not valid UTF-8: {error.reason}", path)
+        text = read_checked(path, report, "artifacts/encoding")
+        if text is None:
             continue
         for violation in find_violations(text):
             report.error(
