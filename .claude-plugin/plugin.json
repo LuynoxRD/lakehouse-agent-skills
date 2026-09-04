@@ -1,0 +1,23 @@
+{
+  "name": "lakehouse-agent-skills",
+  "version": "0.1.0",
+  "description": "Data-engineering discipline for AI coding agents: profile before you clean, clean before you chart, persist to columnar storage, query it with SQL, pick the chart the data deserves, and disclose exactly what was not processed.",
+  "author": {
+    "name": "Luis Castillo",
+    "url": "https://github.com/LuynoxRD"
+  },
+  "homepage": "https://github.com/LuynoxRD/lakehouse-agent-skills",
+  "repository": "https://github.com/LuynoxRD/lakehouse-agent-skills",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "agents",
+    "data-engineering",
+    "lakehouse",
+    "parquet",
+    "duckdb",
+    "data-quality",
+    "dashboards"
+  ],
+  "skills": "./skills"
+}

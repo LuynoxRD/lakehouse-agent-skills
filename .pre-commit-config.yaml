@@ -1,0 +1,65 @@
+# Every commit passes these gates before it exists. Install once with:
+#   uv run pre-commit install
+# The vendor-neutrality hooks read the denylist from outside the repository
+# (see CONTRIBUTING.md); the list itself is never committed.
+default_install_hook_types: [pre-commit, commit-msg]
+default_stages: [pre-commit]
+fail_fast: false
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c # v6.0.0
+    hooks:
+      - id: check-added-large-files
+        args: [--maxkb=2048]
+      - id: check-json
+      - id: check-toml
+      - id: check-yaml
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: end-of-file-fixer
+        exclude: ^evals/fixtures/
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+        exclude: ^evals/fixtures/
+      - id: mixed-line-ending
+        args: [--fix=lf]
+        exclude: ^evals/fixtures/
+
+  - repo: local
+    hooks:
+      - id: gitleaks
+        name: gitleaks (staged changes)
+        entry: gitleaks git --pre-commit --staged --redact --exit-code 1
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: ruff-check
+        name: ruff check
+        entry: uv run --frozen ruff check --force-exclude
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+      - id: ruff-format
+        name: ruff format --check
+        entry: uv run --frozen ruff format --check --force-exclude
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+      - id: mypy
+        name: mypy --strict
+        entry: uv run --frozen mypy
+        language: system
+        pass_filenames: false
+        files: \.(py|pyi|toml)$
+      - id: vendor-neutrality-staged
+        name: vendor neutrality (staged tree)
+        entry: uv run --frozen python scripts/check_vendor_neutrality.py --staged
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: vendor-neutrality-commit-msg
+        name: vendor neutrality (commit message)
+        entry: uv run --frozen python scripts/check_vendor_neutrality.py --commit-msg
+        language: system
+        stages: [commit-msg]

@@ -1,0 +1,23 @@
+# Keeps the SHA-pinned Actions and the locked Python tooling current.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      github-actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "ci"
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      python-tooling:
+        patterns: ["*"]
+    commit-message:
+      prefix: "build"

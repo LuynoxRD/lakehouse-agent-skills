@@ -1,0 +1,88 @@
+"""Tests for the manifest version validator."""
+
+from __future__ import annotations
+
+import json
+
+import pytest
+
+import validate_versions
+from conftest import manifest, marketplace, pyproject, write
+from lib.repo import Layout
+
+
+def rules(layout: Layout) -> list[str]:
+    return [f.rule for f in validate_versions.validate(layout).findings]
+
+
+def test_valid_manifests_are_clean(repo: Layout) -> None:
+    report = validate_versions.validate(repo)
+    assert report.findings == []
+    assert report.checked == 5
+
+
+def test_cli(repo: Layout, capsys: pytest.CaptureFixture[str]) -> None:
+    assert validate_versions.main(["--root", str(repo.root)]) == 0
+    assert "validate-versions: 5 checked" in capsys.readouterr().out
+
+
+def test_version_mismatch_names_files(repo: Layout) -> None:
+    write(repo.root / "pyproject.toml", pyproject("0.2.0"))
+    report = validate_versions.validate(repo)
+    assert [f.rule for f in report.findings] == ["manifest/version-mismatch"]
+    assert "pyproject.toml=0.2.0" in report.findings[0].message
+    assert "plugin.json=0.1.0" in report.findings[0].message
+
+
+def test_marketplace_version_and_name_participate(repo: Layout) -> None:
+    write(
+        repo.root / ".claude-plugin" / "marketplace.json", marketplace("0.1.1", name="other-plugin")
+    )
+    found = rules(repo)
+    assert "manifest/version-mismatch" in found
+    assert "manifest/name-mismatch" in found
+
+
+@pytest.mark.parametrize("bad", ["1.0", "v1.0.0", "1.0.0.0", "", "01.0.0"])
+def test_semver_is_enforced(repo: Layout, bad: str) -> None:
+    write(repo.root / "plugin.json", manifest(bad))
+    assert "manifest/version" in rules(repo)
+
+
+def test_missing_and_unreadable_manifests(repo: Layout) -> None:
+    (repo.root / ".codex-plugin" / "plugin.json").unlink()
+    write(repo.root / "plugin.json", "{not json")
+    found = rules(repo)
+    assert "manifest/missing" in found
+    assert "manifest/unreadable" in found
+
+
+def test_declared_paths_must_exist(repo: Layout) -> None:
+    document = json.loads((repo.root / ".claude-plugin" / "plugin.json").read_text())
+    document["commands"] = ["./commands", "./.claude/commands", "./nowhere"]
+    document["hooks"] = "./hooks/hooks.json"
+    write(repo.root / ".claude-plugin" / "plugin.json", json.dumps(document))
+    messages = [
+        f.message for f in validate_versions.validate(repo).findings if f.rule == "manifest/path"
+    ]
+    assert len(messages) == 2
+    assert any("./nowhere" in m for m in messages)
+    assert any("./hooks/hooks.json" in m for m in messages)
+
+
+def test_marketplace_source_path_must_exist(repo: Layout) -> None:
+    document = json.loads((repo.root / ".claude-plugin" / "marketplace.json").read_text())
+    document["plugins"][0]["source"] = "./plugins/missing"
+    write(repo.root / ".claude-plugin" / "marketplace.json", json.dumps(document))
+    assert "manifest/path" in rules(repo)
+    document["plugins"] = []
+    write(repo.root / ".claude-plugin" / "marketplace.json", json.dumps(document))
+    assert "manifest/shape" in rules(repo)
+
+
+def test_required_fields(repo: Layout) -> None:
+    write(
+        repo.root / "plugin.json",
+        json.dumps({"name": "lakehouse-agent-skills", "version": "0.1.0"}),
+    )
+    assert "manifest/required" in rules(repo)

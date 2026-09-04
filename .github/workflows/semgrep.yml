@@ -1,0 +1,35 @@
+name: Semgrep
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  UV_VERSION: "0.11.6"
+
+jobs:
+  semgrep:
+    name: Semgrep
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - name: Sync environment (semgrep is locked for Linux)
+        run: uv sync --locked --extra dev
+      - name: Static analysis; nothing leaves the runner
+        run: >-
+          uv run --frozen semgrep scan
+          --config p/default --config p/security-audit --config p/python
+          --metrics=off --error --severity ERROR .

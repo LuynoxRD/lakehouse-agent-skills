@@ -1,0 +1,17 @@
+# Skill content, hooks, tooling, commands, reviewer personas and CI run inside
+# other people's agents. Every change to them needs the maintainer's review.
+/skills/        @LuynoxRD
+/hooks/         @LuynoxRD
+/scripts/       @LuynoxRD
+/commands/      @LuynoxRD
+/agents/        @LuynoxRD
+/.github/       @LuynoxRD
+/.claude/       @LuynoxRD
+/.gemini/       @LuynoxRD
+/.opencode/     @LuynoxRD
+/.claude-plugin/ @LuynoxRD
+/.codex-plugin/ @LuynoxRD
+/plugin.json    @LuynoxRD
+/pyproject.toml @LuynoxRD
+/uv.lock        @LuynoxRD
+/.pre-commit-config.yaml @LuynoxRD
