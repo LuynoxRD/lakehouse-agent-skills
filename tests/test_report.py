@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from lib.repo import read_checked
 from lib.report import Finding, Report, Severity
 
 
@@ -50,6 +51,33 @@ def test_render_adds_annotations_when_requested(tmp_path: Path) -> None:
     lines = report.render(tmp_path, github=True).split("\n")
     assert "::error file=x.md::[rule/e] bad" in lines
     assert not any(line.startswith("::notice") for line in lines)
+
+
+def test_read_checked_reports_encoding_problems_instead_of_raising(tmp_path: Path) -> None:
+    good = tmp_path / "good.md"
+    good.write_bytes(b"plain text\n")
+    report = Report("demo")
+    assert read_checked(good, report, "x/encoding") == "plain text\n"
+    assert report.findings == []
+
+    bom = tmp_path / "bom.md"
+    bom.write_bytes(b"\xef\xbb\xbfwith a mark\n")
+    report = Report("demo")
+    assert read_checked(bom, report, "x/encoding") == "with a mark\n"
+    assert [f.rule for f in report.findings] == ["x/encoding"]
+    assert "byte-order mark" in report.findings[0].message
+
+    crlf = tmp_path / "crlf.md"
+    crlf.write_bytes(b"one\r\ntwo\r\n")
+    report = Report("demo")
+    assert read_checked(crlf, report, "x/encoding") == "one\ntwo\n"
+    assert "CRLF" in report.findings[0].message
+
+    latin1 = tmp_path / "latin1.md"
+    latin1.write_bytes(b"caf\xe9\n")
+    report = Report("demo")
+    assert read_checked(latin1, report, "x/encoding") is None
+    assert "not valid UTF-8" in report.findings[0].message
 
 
 def test_paths_outside_the_root_stay_whole(tmp_path: Path) -> None:

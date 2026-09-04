@@ -6,7 +6,10 @@ import argparse
 from dataclasses import dataclass
 from pathlib import Path
 
+from lib.report import Report
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
+BOM = b"\xef\xbb\xbf"
 
 TEXT_SUFFIXES = frozenset(
     {".md", ".toml", ".json", ".yml", ".yaml", ".sh", ".py", ".txt", ".csv", ".sql", ".cfg"}
@@ -79,17 +82,6 @@ class Layout:
     def docs(self) -> Path:
         return self.root / "docs"
 
-    @property
-    def manifests(self) -> tuple[Path, ...]:
-        """Every file that carries the plugin version."""
-        return (
-            self.root / "plugin.json",
-            self.root / ".claude-plugin" / "plugin.json",
-            self.root / ".claude-plugin" / "marketplace.json",
-            self.root / ".codex-plugin" / "plugin.json",
-            self.root / "pyproject.toml",
-        )
-
     def skill_dirs(self) -> list[Path]:
         """Directories under ``skills/``, sorted; files such as a README are ignored."""
         if not self.skills.is_dir():
@@ -122,6 +114,28 @@ def read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def read_checked(path: Path, report: Report, rule: str) -> str | None:
+    """Read a text file, reporting encoding problems under *rule*.
+
+    Returns None when the file cannot be decoded, so a caller reports one finding instead of
+    aborting the whole run with a traceback. Byte-order marks and CRLF endings are errors
+    everywhere: `.gitattributes` normalizes to LF, and a bash script with CRLF fails in CI.
+    """
+    raw = path.read_bytes()
+    if raw.startswith(BOM):
+        report.error(rule, "file starts with a UTF-8 byte-order mark", path, 1)
+        raw = raw[len(BOM) :]
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError as error:
+        report.error(rule, f"file is not valid UTF-8: {error.reason}", path)
+        return None
+    if "\r\n" in text:
+        report.error(rule, "file uses CRLF line endings; use LF", path)
+        text = text.replace("\r\n", "\n")
+    return text
+
+
 def is_text_file(path: Path) -> bool:
     """Whether a file is safe to scan as text."""
     return path.suffix.lower() in TEXT_SUFFIXES or path.name in TEXT_NAMES
@@ -139,11 +153,3 @@ def iter_files(directory: Path) -> list[Path]:
             continue
         found.append(path)
     return sorted(found)
-
-
-def relative(path: Path, root: Path) -> str:
-    """POSIX-style path relative to *root*, or the absolute path when outside it."""
-    try:
-        return path.relative_to(root).as_posix()
-    except ValueError:
-        return path.as_posix()
