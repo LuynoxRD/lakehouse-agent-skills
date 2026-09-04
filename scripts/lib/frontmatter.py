@@ -206,4 +206,15 @@ def _scalar(raw: str, line_no: int) -> str:
         raise FrontmatterError(
             f"values starting with {raw[0]!r} are not supported; quote the value", line_no
         )
+    # A plain scalar holding a colon and a space, or a space and a hash, is ambiguous: a strict
+    # reader takes the first as a second mapping separator and the second as a comment. Tools that
+    # use one drop the whole file, and they do it silently, so this has to be an error here rather
+    # than something a lenient parser waves through.
+    for ambiguity, reads_as in ((": ", "another key"), (" #", "a comment")):
+        if ambiguity in raw:
+            raise FrontmatterError(
+                f"a plain value containing {ambiguity!r} is ambiguous, since a strict YAML "
+                f"reader takes it as the start of {reads_as}; rewrite the value or quote it",
+                line_no,
+            )
     return raw

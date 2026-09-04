@@ -73,3 +73,32 @@ def test_errors_carry_line_numbers(text: str, line: int, fragment: str) -> None:
 def test_has_frontmatter() -> None:
     assert frontmatter.has_frontmatter("---\nname: x\n---\n")
     assert not frontmatter.has_frontmatter("# Title\n")
+
+
+def test_a_plain_value_that_a_strict_reader_would_reject_is_an_error() -> None:
+    """Found by installing the pack, not by any check in this repository.
+
+    Four skills whose description held a colon and a space were dropped by the standard installer,
+    silently, while every validator here passed: this parser accepted the plain scalar and a strict
+    YAML reader did not. Four of thirteen skills were invisible and nothing said so.
+    """
+    for value in ("Declares what a run missed: rows, sheets and files.", "A note # not a comment"):
+        with pytest.raises(frontmatter.FrontmatterError) as error:
+            frontmatter.parse("---\nname: a-skill\ndescription: " + value + "\n---\n\nbody\n")
+        assert "ambiguous" in error.value.detail
+        assert error.value.line == 3
+
+    # Quoting is the escape hatch, and it still yields the value the author meant.
+    parsed = frontmatter.parse(
+        '---\nname: a-skill\ndescription: "Declares what a run missed: rows."\n---\n\nbody\n'
+    )
+    assert parsed.data["description"] == "Declares what a run missed: rows."
+
+
+def test_a_colon_without_a_following_space_is_still_a_plain_value() -> None:
+    """A ratio or a time is not ambiguous, and rejecting it would be a worse rule than none."""
+    parsed = frontmatter.parse(
+        "---\nname: a-skill\ndescription: Holds text to a contrast ratio of 4.5:1 at 09:30.\n"
+        "---\n\nbody\n"
+    )
+    assert parsed.data["description"] == "Holds text to a contrast ratio of 4.5:1 at 09:30."
