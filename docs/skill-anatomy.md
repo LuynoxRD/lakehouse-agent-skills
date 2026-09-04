@@ -108,14 +108,34 @@ and `artifacts/layer`):
 ## Safety
 
 `scripts/validate_skill_safety.py` fails the build when skill, hook, command or persona content
-contains: a download piped into a shell, `eval` or `Invoke-Expression`, base64 decoding,
-recursive deletes outside temporary directories, writes outside the project, environment
-variables read or sent anywhere, global package installs, links to installers, instructions to
-ignore previous instructions, or invisible characters. Network commands are errors unless the
-host is on the documentation allowlist, and even then they warn. Plain links to unknown hosts
-warn. Shell scripts under `skills/<name>/scripts/` start with `#!/usr/bin/env bash`, set
-`set -euo pipefail` in the first ten lines, install a cleanup `trap`, print status to stderr and
-JSON to stdout, and make no network calls.
+contains any of the following:
+
+| Rule | What it stops |
+| --- | --- |
+| `safety/pipe-to-shell` | a download piped into a shell |
+| `safety/substituted-download` | the same download run through `<(…)` or `$(…)` substitution |
+| `safety/eval` | `eval`, `exec`, `Invoke-Expression` running text as code |
+| `safety/base64-decode` | payloads hidden behind an encoder |
+| `safety/recursive-delete` | recursive deletes outside a temporary directory the skill created |
+| `safety/write-outside-project` | writes to the home directory, `/etc`, `/usr`, `/var` or `%APPDATA%` |
+| `safety/home-directory` | the same reach from Python (`Path.home()`, `expanduser`, `os.environ['HOME']`) |
+| `safety/env-secret-read`, `safety/env-exfiltration` | secrets read from the environment, and secrets sent anywhere |
+| `safety/global-install` | global installers (`npm -g`, `pipx`, `uv tool install`, `brew`, `apt`, `cargo`, `go install`, `sudo pip`) |
+| `safety/remote-installer` | links to a script or installer to download |
+| `safety/instruction-override` | text telling the agent to set aside its instructions |
+| `safety/invisible-characters` | zero-width characters that hide text from reviewers |
+
+Network commands are errors when the host is not on the documentation allowlist and warnings
+even when it is. Plain links to unknown hosts warn. Shell scripts under
+`skills/<name>/scripts/` start with `#!/usr/bin/env bash`, set `set -euo pipefail` in the first
+ten lines, install a cleanup `trap`, print status to stderr and JSON to stdout, and make no
+network calls.
+
+The rules are written to catch the phrasing, not one spelling of it: the test suite feeds them
+realistic bypass attempts (process substitution, `exec` instead of `eval`, Python reaching into
+`~`, injection wording that names no keyword) alongside legitimate data guidance that uses the
+same verbs ("ignore all rows before 2020"), and asserts that the first set fails and the second
+passes untouched.
 
 ## Evals
 

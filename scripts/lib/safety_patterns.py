@@ -44,10 +44,20 @@ PATTERNS: tuple[SafetyPattern, ...] = (
         "piping a download into a shell executes unreviewed remote code",
     ),
     SafetyPattern(
-        "safety/eval",
-        re.compile(r"\beval\s*[(\"'$`]|\b(Invoke-Expression|iex)\s", re.IGNORECASE),
+        "safety/substituted-download",
+        re.compile(
+            r"[<$]\(\s*(sudo\s+)?(curl|wget|Invoke-WebRequest|iwr|Invoke-RestMethod|irm)\b",
+            re.IGNORECASE,
+        ),
         Severity.ERROR,
-        "eval executes text as code; write the command out instead",
+        "running a download through process or command substitution executes unreviewed "
+        "remote code, exactly as a pipe into a shell does",
+    ),
+    SafetyPattern(
+        "safety/eval",
+        re.compile(r"\b(eval|exec)\s*[(\"'$`]|\b(Invoke-Expression|iex)\s", re.IGNORECASE),
+        Severity.ERROR,
+        "eval and exec run text as code; write the command out instead",
     ),
     SafetyPattern(
         "safety/base64-decode",
@@ -79,6 +89,15 @@ PATTERNS: tuple[SafetyPattern, ...] = (
         "skills write inside the user's project only",
     ),
     SafetyPattern(
+        "safety/home-directory",
+        re.compile(
+            r"\bPath\.home\s*\(|\bos\.path\.expanduser\s*\(|\bexpanduser\s*\(\s*[\"']~"
+            r"|\bos\.environ\s*\[\s*[\"'](HOME|USERPROFILE|APPDATA)[\"']",
+        ),
+        Severity.ERROR,
+        "skills stay inside the user's project and never reach into the home directory",
+    ),
+    SafetyPattern(
         "safety/env-exfiltration",
         re.compile(
             r"(printenv|os\.environ|\$\{?[A-Z_]*(KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL)[A-Z_]*\}?"
@@ -103,7 +122,8 @@ PATTERNS: tuple[SafetyPattern, ...] = (
             r"\b(npm|pnpm|yarn)\s+(install|add|i)\b[^\n]*(\s-g\b|--global\b)"
             r"|\bpip3?\s+install\b[^\n]*(--user|--break-system-packages)"
             r"|\bsudo\s+(pip3?|npm|apt|apt-get|brew|dnf|yum|snap)\b"
-            r"|\b(brew|choco|winget|scoop|apt|apt-get|dnf|yum|snap)\s+install\b",
+            r"|\b(brew|choco|winget|scoop|apt|apt-get|dnf|yum|snap)\s+install\b"
+            r"|\b(pipx|gem|cargo)\s+install\b|\buv\s+tool\s+install\b|\bgo\s+install\b",
             re.IGNORECASE,
         ),
         Severity.ERROR,
@@ -118,12 +138,18 @@ PATTERNS: tuple[SafetyPattern, ...] = (
     SafetyPattern(
         "safety/instruction-override",
         re.compile(
-            r"ignore\s+(all\s+)?(previous|prior|above|earlier)\s+instructions"
-            r"|disregard\s+(your|the|all)\s+(system|previous|prior|safety)",
+            r"\b(ignore|disregard|forget|override|bypass)\b(?:\W+\w+){0,4}\W+"
+            r"(instructions|system prompt|prompt|rules|guidelines|guardrails|safety|"
+            r"restrictions|policies)\b"
+            # "disregard everything the user told you earlier": no keyword, but the object is
+            # the conversation itself. Kept narrow so data guidance such as "ignore all rows
+            # before 2020" does not trip it.
+            r"|\b(ignore|disregard|forget)\b(?:\W+\w+){0,4}\W+(told|said|asked|instructed)"
+            r"\s+(you|us|the\s+agent)\b",
             re.IGNORECASE,
         ),
         Severity.ERROR,
-        "a skill that tells the agent to ignore its instructions is an injection, not guidance",
+        "a skill that tells the agent to set aside its instructions is an injection, not guidance",
     ),
     SafetyPattern(
         "safety/invisible-characters",
