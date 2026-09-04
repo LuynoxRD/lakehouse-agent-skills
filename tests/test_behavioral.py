@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -283,6 +284,36 @@ def test_a_judge_that_never_ran_is_reported_as_such(repo: Layout) -> None:
     outcome = behavioral.run_case(repo, case, behavioral.BehavioralSettings(), runner)[0]
     assert not outcome.passed
     assert all("the judge did not run (exit 126)" in j.evidence for j in outcome.judgements)
+
+
+def test_run_command_carries_a_large_prompt_and_unicode_through_a_real_process(
+    tmp_path: Path,
+) -> None:
+    """Exercise the real subprocess path, not a stand-in.
+
+    Every runner defect found so far lived here rather than in the logic: a prompt too long for
+    a Windows command line, output the console encoding could not carry, a workspace path the
+    agent refused. A fake runner validates the logic and cannot see any of them, so this test
+    spawns a real process, feeds it a prompt far past the 32,767-character command-line limit,
+    and has it echo a character outside the legacy code page.
+    """
+    script = tmp_path / "echo_prompt.py"
+    script.write_text(
+        "import sys\n"
+        "sys.stdout.reconfigure(encoding='utf-8')\n"
+        "text = sys.stdin.read()\n"
+        "print(len(text), '\\u2192', sys.argv[1:], sep='|')\n",
+        encoding="utf-8",
+    )
+    prompt = "x" * 100_000
+    result = behavioral.run_command(
+        [sys.executable, str(script), "-p"], tmp_path, 60, stdin_text=prompt
+    )
+    assert result.returncode == 0, result.stderr
+    length, arrow, argv = result.stdout.strip().split("|")
+    assert int(length) == len(prompt)
+    assert arrow == "→"
+    assert "-p" in argv
 
 
 def test_run_command_handles_missing_executable(tmp_path: Path) -> None:
