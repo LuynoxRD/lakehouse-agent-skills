@@ -19,8 +19,9 @@ skills/<name>/
 - `<name>` is lowercase-hyphen-separated, at most 64 characters, and equals the frontmatter
   `name` (`skill/name-mismatch`, `skill/name-format`, `skill/name-length`).
 - Do not create empty `references/` or `scripts/` directories to mirror other skills
-  (`skill/empty-directory`). Files other than markdown next to `SKILL.md` are flagged
-  (`skill/unexpected-file`).
+  (`skill/empty-directory`); a directory holding only a `.gitkeep` counts as empty, since that
+  placeholder is the only way an empty directory could reach the repository at all. Files other
+  than markdown next to `SKILL.md` are flagged (`skill/unexpected-file`).
 - Checklists shared by more than one skill live in the top-level `references/` directory, never
   inside a skill (`references/single-use`, `references/unused`). A per-skill install does not
   carry `references/`, so the guidance a skill cannot work without stays inline, and every link
@@ -56,9 +57,9 @@ description: >
 
 ## Body
 
-The body opens with a level-1 title (`skill/title`) and contains these sections, in this order.
-Equivalent headings are accepted when they serve the same purpose; the alias list is in
-`scripts/lib/skill_lint.py`.
+The body opens with a level-1 title (`skill/title`) and contains these sections, in this order
+(`skill/section-order`). Equivalent headings are accepted when they serve the same purpose; the
+alias list is in `scripts/lib/skill_lint.py`.
 
 | Section | Purpose | Rule |
 | --- | --- | --- |
@@ -117,19 +118,30 @@ contains any of the following:
 | `safety/eval` | `eval`, `exec`, `Invoke-Expression` running text as code |
 | `safety/base64-decode` | payloads hidden behind an encoder |
 | `safety/recursive-delete` | recursive deletes outside a temporary directory the skill created |
-| `safety/write-outside-project` | writes to the home directory, `/etc`, `/usr`, `/var` or `%APPDATA%` |
+| `safety/write-outside-project` | writes to the home directory, `/etc`, `/usr`, `/var`, `/home`, `/root`, `/opt` or `%APPDATA%` |
 | `safety/home-directory` | the same reach from Python (`Path.home()`, `expanduser`, `os.environ['HOME']`) |
 | `safety/env-secret-read`, `safety/env-exfiltration` | secrets read from the environment, and secrets sent anywhere |
 | `safety/global-install` | global installers (`npm -g`, `pipx`, `uv tool install`, `brew`, `apt`, `cargo`, `go install`, `sudo pip`) |
 | `safety/remote-installer` | links to a script or installer to download |
 | `safety/instruction-override` | text telling the agent to set aside its instructions |
 | `safety/invisible-characters` | zero-width characters that hide text from reviewers |
+| `safety/script-language` | a file in a skill's `scripts/` directory that is not a `.sh` bash script |
 
-Network commands are errors when the host is not on the documentation allowlist and warnings
-even when it is. Plain links to unknown hosts warn. Shell scripts under
-`skills/<name>/scripts/` start with `#!/usr/bin/env bash`, set `set -euo pipefail` in the first
-ten lines, install a cleanup `trap`, print status to stderr and JSON to stdout, and make no
-network calls.
+**Every file that decodes as text is scanned, whatever its extension.** A suffix says nothing
+about what an agent will run, so a `.ps1`, a `.bash` or an extensionless file gets the same
+treatment as a `.md`. A file that is not valid UTF-8 is an error; a genuinely binary file
+(one containing NUL bytes) is reported as unscannable and must be reviewed by hand.
+
+Network rules: a network command inside a script shipped with a skill is always an error. In
+other content it is an error when the file names a host outside the documentation allowlist,
+because the command's target may be assembled from a variable defined on another line, and a
+warning otherwise. Host detection ignores URL userinfo, so
+`https://allowed.example@evil.example.net/x` is judged on the host that actually serves it.
+
+Shell scripts under `skills/<name>/scripts/` start with `#!/usr/bin/env bash`, set
+`set -euo pipefail` within the first ten lines, install a `trap` that runs on `EXIT`, and make
+no network calls. Printing status to stderr and JSON to stdout is a review expectation rather
+than a validator rule.
 
 The rules are written to catch the phrasing, not one spelling of it: the test suite feeds them
 realistic bypass attempts (process substitution, `exec` instead of `eval`, Python reaching into
@@ -141,5 +153,9 @@ passes untouched.
 
 Every skill ships `evals/cases/<name>.json` (`skill/missing-eval-case`, `catalog/orphan-case`)
 with at least 3 positive triggers, 2 negative triggers naming the skill that should win, and 1
-behavioral eval backed by a synthetic fixture under `evals/fixtures/<name>/` with a `FIXTURE.md`.
-`evals/README.md` describes the tiers, the schema and how to run them.
+**execution** eval backed by a synthetic fixture. A `dialogue` eval carries no fixture and is
+graded by a human, so it never satisfies that minimum on its own. Every skill also owns a
+fixture folder at `evals/fixtures/<name>/` with a `FIXTURE.md` (`fixture/missing-folder`), and
+the files an eval names must stay inside the fixture tree (`fixture/outside-tree`): the runner
+copies them into the agent's workspace. `evals/README.md` describes the tiers, the schema and
+how to run them.
