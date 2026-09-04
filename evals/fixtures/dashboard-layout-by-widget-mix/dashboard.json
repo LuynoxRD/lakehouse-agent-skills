@@ -1,0 +1,86 @@
+{
+  "$comment": "A reporting page as it exists today. Synthetic: the panels and their titles were invented for this fixture and belong to no product.",
+  "page": {
+    "title": "Operations overview",
+    "grid": { "columns": 12, "row_height_px": 80 },
+    "note": "Every panel was added to the next free cell as it was requested."
+  },
+  "panels": [
+    { "id": "p01", "type": "single_figure", "title": "Orders today", "grid": { "w": 3, "h": 3 } },
+    { "id": "p02", "type": "single_figure", "title": "Revenue today", "grid": { "w": 3, "h": 3 } },
+    { "id": "p03", "type": "single_figure", "title": "Refund rate", "grid": { "w": 3, "h": 3 } },
+    { "id": "p04", "type": "single_figure", "title": "Open tickets", "grid": { "w": 3, "h": 3 } },
+    { "id": "p05", "type": "single_figure", "title": "Average handling time", "grid": { "w": 3, "h": 3 } },
+    { "id": "p06", "type": "single_figure", "title": "Active couriers", "grid": { "w": 3, "h": 3 } },
+    {
+      "id": "p07",
+      "type": "line_chart",
+      "title": "Orders per hour, last 14 days",
+      "series": 1,
+      "points": 336,
+      "grid": { "w": 3, "h": 3 }
+    },
+    {
+      "id": "p08",
+      "type": "line_chart",
+      "title": "Delivery time against target",
+      "series": 2,
+      "points": 336,
+      "grid": { "w": 3, "h": 3 }
+    },
+    {
+      "id": "p09",
+      "type": "bar_chart",
+      "title": "Orders by depot",
+      "categories": 24,
+      "grid": { "w": 3, "h": 3 }
+    },
+    {
+      "id": "p10",
+      "type": "bar_chart",
+      "title": "Refunds by reason",
+      "categories": 9,
+      "grid": { "w": 3, "h": 3 }
+    },
+    {
+      "id": "p11",
+      "type": "bar_chart",
+      "title": "Tickets by queue",
+      "categories": 11,
+      "grid": { "w": 3, "h": 3 }
+    },
+    {
+      "id": "p12",
+      "type": "table",
+      "title": "Late deliveries",
+      "columns": 14,
+      "rows": 480,
+      "grid": { "w": 3, "h": 3 }
+    },
+    {
+      "id": "p13",
+      "type": "heatmap",
+      "title": "Depot by hour",
+      "rows": 24,
+      "columns": 24,
+      "grid": { "w": 3, "h": 3 }
+    },
+    {
+      "id": "p14",
+      "type": "text",
+      "title": "How these figures are calculated",
+      "words": 210,
+      "grid": { "w": 3, "h": 3 }
+    }
+  ],
+  "layout": {
+    "mode": "absolute",
+    "positions": {
+      "p01": [0, 0], "p02": [3, 0], "p03": [6, 0], "p04": [9, 0],
+      "p05": [0, 3], "p06": [3, 3], "p07": [6, 3], "p08": [9, 3],
+      "p09": [0, 6], "p10": [3, 6], "p11": [6, 6], "p12": [9, 6],
+      "p13": [0, 9], "p14": [3, 9]
+    },
+    "narrow_viewport": "not defined"
+  }
+}
