@@ -242,6 +242,12 @@ def format_outcome(outcome: EvalOutcome, root: Path) -> str:
         marker = "met" if judgement.met else "MISSED"
         evidence = f" -- {judgement.evidence}" if judgement.evidence else ""
         lines.append(f"  [{marker}] {judgement.expectation}{evidence}")
+    if outcome.outside_catalogue:
+        # A pass that leans on a skill the pack does not ship is not a pass for the pack.
+        lines.append(
+            "  invoked from the host machine, not from this catalogue: "
+            + ", ".join(outcome.outside_catalogue)
+        )
     lines.append(f"  transcript: {outcome.transcript_path.relative_to(root).as_posix()}")
     lines.append(f"  verdict:    {outcome.verdict_path.relative_to(root).as_posix()}")
     return "\n".join(lines)

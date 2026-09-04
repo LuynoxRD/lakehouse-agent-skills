@@ -457,3 +457,74 @@ def test_cli_reports_which_capability_produced_the_numbers(
     )
     assert "(commands allowed)" in capsys.readouterr().out
     assert seen == [False, True]
+
+
+def test_a_skill_the_pack_does_not_ship_is_named_as_such(repo: Layout) -> None:
+    """The router eval passed while the agent used a skill from the host machine.
+
+    Authentication lives in the machine's own agent configuration, so a headless run cannot be
+    given a clean one; it resolves skills from there as well as from the workspace. The judge
+    sees no workspace, so left alone it reported the outside skill as part of the catalogue.
+    The runner now states what it installed and names what came from elsewhere.
+    """
+    cases, _ = load_cases(repo)
+    case = next(c for c in cases if c.skill_name == SKILL_A)
+
+    class RunnerUsingAnOutsideSkill(FakeRunner):
+        def __call__(
+            self,
+            args: Sequence[str],
+            cwd: Path,
+            _timeout: int,
+            stdin_text: str | None = None,
+        ) -> behavioral.CommandResult:
+            if "stream-json" in args:
+                stream = "\n".join(
+                    [
+                        json.dumps(
+                            {
+                                "type": "assistant",
+                                "message": {
+                                    "content": [
+                                        {
+                                            "type": "tool_use",
+                                            "name": "Skill",
+                                            "input": {"skill": name},
+                                        }
+                                    ]
+                                },
+                            }
+                        )
+                        for name in (SKILL_A, "dataviz", SKILL_A)
+                    ]
+                )
+                self.calls.append(list(args))
+                self.stdin.append(stdin_text)
+                self.workspaces.append(cwd)
+                return behavioral.CommandResult(0, stream, "")
+            return super().__call__(args, cwd, _timeout, stdin_text)
+
+    runner = RunnerUsingAnOutsideSkill(judge_envelope([True, True]))
+    outcome = behavioral.run_case(repo, case, behavioral.BehavioralSettings(), runner)[0]
+
+    assert outcome.invoked_skills == (SKILL_A, "dataviz")
+    assert outcome.outside_catalogue == ("dataviz",)
+    verdict = json.loads(outcome.verdict_path.read_text(encoding="utf-8"))
+    assert verdict["skills_outside_catalogue"] == ["dataviz"]
+
+    judge_prompt = runner.stdin[1]
+    assert judge_prompt is not None
+    assert f"Skills installed in the workspace: {SKILL_A}." in judge_prompt
+    assert "dataviz" in judge_prompt
+    assert "not part of the catalogue" in judge_prompt
+
+    assert "not from this catalogue: dataviz" in run_evals.format_outcome(outcome, repo.root)
+
+
+def test_a_run_that_stays_inside_the_catalogue_says_nothing_extra(repo: Layout) -> None:
+    cases, _ = load_cases(repo)
+    case = next(c for c in cases if c.skill_name == SKILL_A)
+    runner = FakeRunner(judge_envelope([True, True]))
+    outcome = behavioral.run_case(repo, case, behavioral.BehavioralSettings(), runner)[0]
+    assert outcome.outside_catalogue == ()
+    assert "not from this catalogue" not in run_evals.format_outcome(outcome, repo.root)

@@ -125,6 +125,16 @@ points at do not resolve, an agent correctly reports them as missing, and the ve
 as an invented skill name. The flag installs the whole catalog, which is also how the pack is
 actually installed.
 
+**A run is not isolated from the machine it runs on.** Authentication lives in the agent's own
+configuration directory, so pointing the headless session at an empty one leaves it unable to
+reach the API; the skills, plugins and settings installed on that machine come along with the
+credentials. An agent can therefore invoke a skill that this pack does not ship, and a judge,
+which never sees the workspace, will read it as part of the catalogue. The runner closes that
+gap by stating in the judge prompt exactly which skills it installed, naming any others the
+agent invoked as coming from the host, and recording both in the verdict as `invoked_skills` and
+`skills_outside_catalogue`. A verdict listing a skill under the second key was not earned by the
+pack alone.
+
 Two things about a run are worth knowing before reading a verdict. A timeout is reported as a
 failed eval with the agent's exit code set, even when the transcript shows the work was done, so
 check the duration against the timeout before concluding the skill failed. And the headless

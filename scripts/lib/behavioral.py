@@ -81,6 +81,8 @@ class EvalOutcome:
     duration_seconds: float
     agent_returncode: int
     blocked: str | None = None
+    invoked_skills: tuple[str, ...] = ()
+    outside_catalogue: tuple[str, ...] = ()
 
 
 def run_command(
@@ -272,12 +274,64 @@ def list_workspace_changes(workspace: Path, staged: set[Path]) -> list[str]:
     return changed
 
 
-def build_judge_prompt(behavioral: BehavioralEval, transcript: str, changes: Sequence[str]) -> str:
+def skills_invoked(stream_json: str) -> tuple[str, ...]:
+    """Names the agent passed to the Skill tool, in order of first use.
+
+    A headless run resolves skills from the machine's own configuration as well as from the
+    staged workspace, and authentication is tied to that configuration, so the two cannot be
+    pulled apart. What can be pulled apart is fact from impression: comparing this list against
+    what the runner installed separates a router that stayed inside the pack from one that
+    reached for a skill the pack does not ship.
+    """
+    seen: dict[str, None] = {}
+    for raw_line in stream_json.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(event, dict):
+            continue
+        message = event.get("message")
+        content = message.get("content") if isinstance(message, dict) else None
+        for block in content if isinstance(content, list) else []:
+            if not isinstance(block, dict) or block.get("type") != "tool_use":
+                continue
+            if block.get("name") != "Skill":
+                continue
+            payload = block.get("input")
+            name = payload.get("skill") if isinstance(payload, dict) else None
+            if isinstance(name, str) and name:
+                seen.setdefault(name, None)
+    return tuple(seen)
+
+
+def build_judge_prompt(
+    behavioral: BehavioralEval,
+    transcript: str,
+    changes: Sequence[str],
+    installed: Sequence[str] = (),
+    outside: Sequence[str] = (),
+) -> str:
     """Instruct the judge to return JSON only."""
     expectations = "\n".join(
         f"{index}. {text}" for index, text in enumerate(behavioral.expectations, 1)
     )
     changed = "\n".join(f"- {name}" for name in changes) or "- (none)"
+    # The judge cannot see the workspace, so left to itself it reads any skill the agent
+    # invoked as part of the catalogue. Stating what was installed removes the assumption.
+    catalogue = ""
+    if installed:
+        catalogue = "Skills installed in the workspace: " + ", ".join(installed) + ".\n"
+        if outside:
+            catalogue += (
+                "The agent also invoked, from the host machine and not from this catalogue: "
+                + ", ".join(outside)
+                + ". Those are not part of the catalogue.\n"
+            )
+        catalogue += "\n"
     return (
         "You are grading a transcript of an AI coding agent working on a data task.\n"
         "Judge each expectation strictly against the transcript and the files it produced. "
@@ -287,6 +341,7 @@ def build_judge_prompt(behavioral: BehavioralEval, transcript: str, changes: Seq
         f"Expected output (guidance, not a literal match):\n{behavioral.expected_output}\n\n"
         f"Expectations:\n{expectations}\n\n"
         f"Files the agent created or modified:\n{changed}\n\n"
+        f"{catalogue}"
         f"Transcript:\n<transcript>\n{transcript}\n</transcript>\n\n"
         "Answer with JSON only, no prose, in exactly this shape:\n"
         '{"results": [{"expectation": "<text>", "met": true, '
@@ -388,7 +443,10 @@ def run_eval(
                 f"{transcript}\n[agent exited with {agent.returncode}: {agent.stderr.strip()}]"
             )
         changes = list_workspace_changes(workspace, staged)
-        judge_prompt = build_judge_prompt(behavioral, transcript, changes)
+        installed = sorted(path.name for path in (workspace / ".claude" / "skills").iterdir())
+        invoked = skills_invoked(agent.stdout)
+        outside = tuple(name for name in invoked if name not in set(installed))
+        judge_prompt = build_judge_prompt(behavioral, transcript, changes, installed, outside)
         judge = runner(
             build_judge_args(settings), workspace, settings.timeout_seconds, judge_prompt
         )
@@ -426,6 +484,8 @@ def run_eval(
                 "execution_allowed": settings.allow_execution,
                 "duration_seconds": round(duration, 1),
                 "changed_files": changes,
+                "invoked_skills": list(invoked),
+                "skills_outside_catalogue": list(outside),
                 "judgements": [asdict(j) for j in judgements],
             },
             indent=2,
@@ -443,6 +503,8 @@ def run_eval(
         duration_seconds=duration,
         agent_returncode=agent.returncode,
         blocked=blocked,
+        invoked_skills=invoked,
+        outside_catalogue=outside,
     )
 
 
