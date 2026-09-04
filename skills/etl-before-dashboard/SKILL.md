@@ -111,18 +111,25 @@ order line per day per store". Everything downstream depends on that sentence be
 
 Write the modelled table to `data/curated/` as Parquet before any query or chart runs.
 
-This is not a performance preference. A CSV carries no types, so every consumer re-guesses them
-and each guess can differ; Parquet stores the schema in the file, which is what stops Step 1
-from having to happen again. It also holds column statistics that let a reader skip data it does
-not need.
+This is not a performance preference. A delimited text file defines no types, so every consumer
+infers them again and the inferences can differ. Parquet stores its schema, including the type
+of every column, in the file footer, which is what stops Step 1 from having to happen twice.
+What comes back is the type recorded in the file, so record the types you proved rather than
+assuming a particular engine's native type survives untouched.
 
 - Partition by the column that queries filter on, usually a date, only when the data is large
   enough that skipping matters. Partitioning a small table just creates many small files.
 - Treat the written file as the input to everything after it. Re-cleaning per question is how
   two charts in one report end up disagreeing.
-- Adding data means writing another file into the directory. Parquet files are not edited in
-  place; if the task needs updates, deletes or concurrent writers, that is a different problem
-  than a directory of files solves.
+- A file can also carry per-column statistics that let a reader skip data which cannot match a
+  filter. They are optional, so treat them as an optimization that may be present, never as a
+  guarantee that a scan was avoided.
+- Adding data means writing another file into the directory. The footer is written after the
+  data and closes the file, and the format defines no append operation, so a finished file is
+  not extended. Row-level updates and deletes are therefore not an operation this layer has:
+  they come from a table format layered on top, which keeps data files immutable and changes
+  metadata instead. If the task needs them, or needs concurrent writers, say so rather than
+  simulating it with a directory of files.
 
 ### Step 5: Only now, visualize
 
