@@ -63,7 +63,7 @@ that follows:
 | Trap | How to detect it | What it does if missed |
 | --- | --- | --- |
 | Ambiguous dates | Any first component above 12 proves day-first; if none exists, the order is genuinely undecidable from the data | Days and months swap for the first twelve days of every month |
-| Serial dates | A date column arriving as integers around 40000–50000 | Dates become meaningless integers, or shift by a day |
+| Serial dates | A date column arriving as integers around 40000–50000 | Dates become meaningless integers; the common epoch also counts a day that never existed, so two serials can land on one date |
 | Decimal comma | Values like `1.234,56`, or a "number" column parsed as text | Values inflate or collapse by three orders of magnitude |
 | Lost leading zeros | Identifier-like columns whose values differ in length | Codes silently merge; joins produce wrong matches |
 | Encoding and byte-order mark | Mojibake in the first column name, or three unexpected bytes before it | The first column cannot be addressed by name |
@@ -88,8 +88,12 @@ step you cannot defend.
 - **Remove aggregate rows** and record how many, because their absence changes every total.
 - **Deduplicate on a stated key**, and report how many rows collapsed. If the key was not
   obvious, that uncertainty belongs in the log.
-- **Never edit the source file.** Write to `data/clean/`, leaving `data/raw/` untouched. When
-  the source is a spreadsheet, opening and re-saving it destroys more than it changes.
+- **Never edit the source file.** Write to `data/clean/`, leaving `data/raw/` untouched.
+  Round-tripping a workbook through a library is not lossless: the cached results of formulas
+  are dropped every time, and drawings, embedded images, macros and rich text may be too,
+  depending on the library and which of its optional dependencies are installed. If a workbook
+  really must be changed in place, list what the round trip drops and prove it by reading the
+  result back.
 
 Ambiguity is recorded, not resolved by preference. If a column cannot be interpreted with
 confidence, the log says so and the chart says so.

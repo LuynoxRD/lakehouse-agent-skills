@@ -54,7 +54,10 @@ exist in the file:
 | Columns in one spreadsheet worksheet | 16,384 | Columns past it were never saved |
 
 If a source was ever converted through a spreadsheet, treat a row count at exactly the ceiling
-as evidence of truncation upstream, not as a coincidence, and say so.
+as evidence of truncation upstream, not as a coincidence, and say so. A spreadsheet that opens
+a file too large for its grid warns that the data was not fully loaded and that saving the
+workbook discards what was left out; if anyone in the chain saw that warning and saved, the
+file you were handed is already the truncated one.
 
 **How many sheets, and what is on them?** Enumerate every sheet by name before reading any.
 A workbook is not a table. Two more traps live here:
