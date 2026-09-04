@@ -54,6 +54,10 @@ scripts with CRLF fail in CI.
    deleted after merge. Stacked pull requests are not used.
 7. Reference issues with `Closes #N`.
 
+Commands live in `commands/*.toml` and are copied per tool. Run
+`uv run python scripts/sync_commands.py` after any change and commit the source together with both
+copies; editing a copy directly only produces a parity failure later.
+
 Changes to `skills/`, `hooks/`, `scripts/`, `commands/`, `agents/` and `.github/` require
 code-owner review (`.github/CODEOWNERS`).
 

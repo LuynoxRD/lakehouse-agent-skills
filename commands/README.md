@@ -16,6 +16,11 @@ Invoke the `etl-before-dashboard` skill ...
 Every prompt invokes at least one existing skill by its backticked name and writes its artifacts
 to the canonical paths in [docs/skill-anatomy.md](../docs/skill-anatomy.md).
 
+**Never edit a copy by hand.** After changing a command, run
+`uv run python scripts/sync_commands.py` and commit all three files. The validator can only tell
+you that a copy drifted; the sync script is what stops it drifting, because keeping three files in
+step by hand is a job nobody wins twice.
+
 | Phase | Command | Artifact |
 | --- | --- | --- |
 | PROFILE | `/profile` | `docs/data/profile.md` |
