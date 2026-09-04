@@ -15,7 +15,7 @@ from pathlib import Path
 
 from lib.evals_schema import EvalCase, load_cases
 from lib.markdown import normalize_heading, sections
-from lib.repo import Layout, add_root_argument, iter_files, read_checked
+from lib.repo import Layout, add_root_argument, confined_path, iter_files, read_checked
 from lib.report import Report
 
 FIXTURE_NOTE = "FIXTURE.md"
@@ -175,16 +175,10 @@ def _is_confined(fixture: str, layout: Layout) -> bool:
     """Whether a fixture path stays inside ``evals/fixtures/``.
 
     The behavioral runner copies these files into the agent's workspace, so a path such as
-    ``../../pyproject.toml`` would smuggle repository files into an eval.
+    ``../../pyproject.toml`` would smuggle repository files into an eval. The runner enforces
+    this again at the point of use; this check reports it as a finding at review time.
     """
-    candidate = Path(fixture)
-    if candidate.is_absolute() or ".." in candidate.parts:
-        return False
-    root = layout.eval_fixtures.resolve()
-    try:
-        return (root / candidate).resolve().is_relative_to(root)
-    except OSError:
-        return False
+    return confined_path(layout.eval_fixtures, fixture) is not None
 
 
 def main(argv: Sequence[str] | None = None) -> int:

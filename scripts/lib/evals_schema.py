@@ -8,6 +8,7 @@ run against fixtures and are judged by expectations.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -21,6 +22,8 @@ MIN_NEGATIVE_TRIGGERS = 2
 MIN_EXECUTION_EVALS = 1
 DEFAULT_TOP_K = 3
 KINDS = frozenset({"execution", "dialogue"})
+# At least one alphanumeric, so an id can never be a bare "." or ".." directory reference.
+EVAL_ID_RE = re.compile(r"^(?=.*[A-Za-z0-9])[A-Za-z0-9._-]{1,64}$")
 TOP_LEVEL_KEYS = frozenset({"skill_name", "trigger", "evals"})
 
 
@@ -239,6 +242,9 @@ def _eval_id(
     if isinstance(identifier, bool) or not isinstance(identifier, int | str):
         return None, f"{where}.id must be an integer or string"
     eval_id = str(identifier)
+    if not EVAL_ID_RE.match(eval_id):
+        # The id becomes part of a result file name, so it is restricted to a safe token.
+        return None, (f"{where}.id must be 1 to 64 characters of letters, digits, '.', '_' or '-'")
     if eval_id in seen_ids:
         return None, f"{where}.id '{eval_id}' is duplicated"
     seen_ids.add(eval_id)

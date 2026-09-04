@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from conftest import SKILL_A, SKILL_B, case_json, write
 from lib.evals_schema import load_case, load_cases
 from lib.repo import Layout
@@ -107,6 +109,18 @@ def test_a_dialogue_eval_alone_does_not_satisfy_the_minimum(tmp_path: Path) -> N
     case, findings = load(tmp_path, document)
     assert case is None
     assert any("execution eval backed by a fixture" in f for f in findings)
+
+
+@pytest.mark.parametrize("bad_id", ["../../../pwned", "a/b", "with space", "x" * 65, "", "..", "."])
+def test_eval_ids_are_restricted_to_a_safe_file_name_token(tmp_path: Path, bad_id: str) -> None:
+    # The id becomes part of a result file name.
+    document = base_case()
+    evals = document["evals"]
+    assert isinstance(evals, list)
+    evals[0]["id"] = bad_id
+    case, findings = load(tmp_path, document)
+    assert case is None
+    assert any("letters, digits" in f for f in findings)
 
 
 def test_unknown_keys_warn_and_bad_json_errors(tmp_path: Path) -> None:

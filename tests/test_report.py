@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from lib.repo import read_checked
+from lib.repo import confined_path, read_checked
 from lib.report import Finding, Report, Severity
 
 
@@ -51,6 +51,15 @@ def test_render_adds_annotations_when_requested(tmp_path: Path) -> None:
     lines = report.render(tmp_path, github=True).split("\n")
     assert "::error file=x.md::[rule/e] bad" in lines
     assert not any(line.startswith("::notice") for line in lines)
+
+
+def test_confined_path_behaves_the_same_on_every_platform(tmp_path: Path) -> None:
+    root = tmp_path / "fixtures"
+    (root / "skill").mkdir(parents=True)
+    (root / "skill" / "data.csv").write_text("a\n", encoding="utf-8")
+    assert confined_path(root, "skill/data.csv") == (root / "skill" / "data.csv").resolve()
+    for escape in ["../secret", "/etc/passwd", "C:/Windows/win.ini", "c:/x", "skill/../../x"]:
+        assert confined_path(root, escape) is None, escape
 
 
 def test_read_checked_reports_encoding_problems_instead_of_raising(tmp_path: Path) -> None:

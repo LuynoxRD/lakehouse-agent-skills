@@ -176,6 +176,43 @@ def test_stage_workspace_copies_skill_and_fixtures(repo: Layout, tmp_path: Path)
         behavioral.stage_workspace(repo, case, missing, tmp_path / "ws2", with_references=False)
 
 
+@pytest.mark.parametrize("escape", ["../../pyproject.toml", "C:/Windows/win.ini", "/etc/passwd"])
+def test_stage_workspace_refuses_paths_outside_the_fixture_tree(
+    repo: Layout, tmp_path: Path, escape: str
+) -> None:
+    # The path comes from a JSON file a contributor writes. An absolute path would replace the
+    # base in `eval_fixtures / fixture` and copy anything on the machine into the workspace.
+    # All three are rejected on every platform, including the drive-letter form that is only
+    # dangerous on Windows: the rule must not mean one thing locally and another in CI.
+    cases, _ = load_cases(repo)
+    case = next(c for c in cases if c.skill_name == SKILL_A)
+    hostile = BehavioralEval("1", "execution", "p", "e", (escape,), ("x",))
+    workspace = tmp_path / f"ws-{abs(hash(escape))}"
+    workspace.mkdir()
+    with pytest.raises(ValueError, match="escapes evals/fixtures"):
+        behavioral.stage_workspace(repo, case, hostile, workspace, with_references=False)
+
+
+def test_the_eval_id_cannot_walk_out_of_the_results_directory(repo: Layout) -> None:
+    cases, _ = load_cases(repo)
+    case = next(c for c in cases if c.skill_name == SKILL_A)
+    hostile = BehavioralEval(
+        "../../../pwned", "execution", "p", "e", (f"{SKILL_A}/sales.csv",), ("x",)
+    )
+    outcome = behavioral.run_eval(
+        repo,
+        case,
+        hostile,
+        behavioral.BehavioralSettings(),
+        FakeRunner(judge_envelope([True, True])),
+    )
+    assert outcome.transcript_path.resolve().is_relative_to(repo.eval_results.resolve())
+    assert outcome.verdict_path.resolve().is_relative_to(repo.eval_results.resolve())
+    # The separators are what would walk out; the remaining dots are just characters in a name.
+    assert "/" not in outcome.transcript_path.name
+    assert "\\" not in outcome.transcript_path.name
+
+
 def test_run_command_handles_missing_executable(tmp_path: Path) -> None:
     result = behavioral.run_command(["definitely-not-a-real-binary-xyz"], tmp_path, 5)
     assert result.returncode == 127

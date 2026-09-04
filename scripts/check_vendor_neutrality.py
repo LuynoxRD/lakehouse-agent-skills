@@ -7,8 +7,9 @@ environment variable (the list itself, one pattern per line, as CI receives it f
 or ``~/.config/lakehouse-agent-skills/denylist.txt``. Patterns are case-insensitive regular
 expressions; lines starting with ``#`` and blank lines are ignored.
 
-Output names the file, line and pattern number only. The matched text is never printed, so a
-public CI log cannot leak what the list protects.
+Output names the location, line and pattern number only, and every location is redacted before
+it is printed, because a matching path or branch name is itself the matched text. A public CI
+log therefore cannot leak what the list protects.
 """
 
 from __future__ import annotations
@@ -28,6 +29,7 @@ from pathlib import Path
 # subset and still print OK. The output stays hand-rolled on purpose, so this script can never
 # print the matched text.
 REPO_ROOT = Path(__file__).resolve().parents[1]
+REDACTION = "***"
 DEFAULT_DENYLIST = Path.home() / ".config" / "lakehouse-agent-skills" / "denylist.txt"
 GIT = shutil.which("git") or "git"
 EXIT_CLEAN = 0
@@ -89,6 +91,18 @@ def _read(path: Path) -> str:
         return path.read_text(encoding="utf-8")
     except OSError as error:
         raise DenylistError(f"cannot read denylist {path}: {error.strerror}") from None
+
+
+def redact(text: str, patterns: Sequence[re.Pattern[str]]) -> str:
+    """Replace every denylisted term in *text* with ``***``.
+
+    A label is usually a plain file name, but a matching **path** or **branch name** is itself
+    the matched text, so printing the label raw would publish the term in a CI log. Redacting
+    every label keeps the location actionable without ever naming what the list protects.
+    """
+    for pattern in patterns:
+        text = pattern.sub(REDACTION, text)
+    return text
 
 
 def scan_items(items: Iterable[tuple[str, str]], patterns: Sequence[re.Pattern[str]]) -> list[Hit]:
@@ -219,7 +233,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     hits = scan_items(items, patterns)
     for hit in hits:
-        print(f"{hit.label}:{hit.line}: matches denylist pattern #{hit.pattern}")
+        print(f"{redact(hit.label, patterns)}:{hit.line}: matches denylist pattern #{hit.pattern}")
     scanned = ", ".join(name for name, enabled in scopes.items() if enabled) or "commit message"
     verdict = "FAIL" if hits else "OK"
     print(

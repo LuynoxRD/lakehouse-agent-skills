@@ -140,6 +140,29 @@ def test_main_exit_codes_and_output(
     assert "cannot read" in capsys.readouterr().err
 
 
+def test_a_matching_path_or_branch_is_redacted_before_it_is_printed(
+    git_repo: Path, denylist: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # A file name or branch name that matches IS the matched text, so printing the location
+    # raw would publish the protected term in a public CI log.
+    (git_repo / "notes-acmecorp-migration.md").write_text("clean body\n", encoding="utf-8")
+    git(git_repo, "branch", "feature/acmecorp-support")
+    assert (
+        cvn.main(["--root", str(git_repo), "--denylist", str(denylist), "--tree", "--history"])
+        == cvn.EXIT_FINDINGS
+    )
+    out = capsys.readouterr().out
+    assert "acmecorp" not in out.lower()
+    assert "path notes-***-migration.md:1" in out
+    assert "ref refs/heads/feature/***-support:1" in out
+
+
+def test_redact_leaves_unmatched_text_alone() -> None:
+    patterns = cvn.load_patterns(DENYLIST)
+    assert cvn.redact("path docs/clean.md", patterns) == "path docs/clean.md"
+    assert cvn.redact("path docs/acmecorp.md", patterns) == "path docs/***.md"
+
+
 def test_root_defaults_to_the_checkout_not_the_working_directory() -> None:
     # `git ls-files` without a pathspec lists only what is below the current directory, so a
     # cwd default would silently scan a subset of the repository and still print OK.

@@ -36,7 +36,9 @@ PATTERNS: tuple[SafetyPattern, ...] = (
     SafetyPattern(
         "safety/pipe-to-shell",
         re.compile(
-            r"\b(curl|wget|Invoke-WebRequest|iwr|Invoke-RestMethod|irm)\b[^\n|]*\|\s*"
+            # Anything may sit between the download and the shell, including another pipe:
+            # `curl … | tee /tmp/i | bash` executes the download just the same.
+            r"\b(curl|wget|Invoke-WebRequest|iwr|Invoke-RestMethod|irm)\b[^\n]*\|\s*"
             r"(sudo\s+)?(ba|z|da|k)?sh\b|\|\s*(iex|Invoke-Expression)\b",
             re.IGNORECASE,
         ),
@@ -56,11 +58,15 @@ PATTERNS: tuple[SafetyPattern, ...] = (
     SafetyPattern(
         "safety/eval",
         re.compile(
-            # A delimiter after the keyword covers eval("x"), exec($payload), eval `cmd`.
-            r"\b(eval|exec)\s*[(\"'$`]"
-            # A bare `eval ssh-agent -s` has no delimiter, so anchor it to a command position:
-            # the start of a line, after a shell separator, or inside backticks.
-            r"|(?:^|[;&|]\s*|`)\s*(eval|exec)\s+[\w$\"'`./-]"
+            # The call form takes no space before the parenthesis, so prose such as
+            # "the eval (tier 2) results" is not mistaken for code.
+            r"\b(eval|exec)\("
+            # Quoted or interpolated arguments: eval "$(cat cmd)", exec $payload.
+            r"|\b(eval|exec)[ \t]*[\"'$`]"
+            # A bare `eval ssh-agent -s` has no delimiter. Anchor it to a command position and
+            # require the argument to look like a command rather than an English word, so
+            # "Eval cases live in evals/cases/" stays clean.
+            r"|(?:^|[;&|]\s*|`)[ \t]*(eval|exec)[ \t]+\S*[$\"'`/\\-]"
             r"|\b(Invoke-Expression|iex)\s",
             re.IGNORECASE | re.MULTILINE,
         ),
@@ -97,7 +103,10 @@ PATTERNS: tuple[SafetyPattern, ...] = (
         re.compile(
             r"(>>?|\btee\b|\bcp\b|\bmv\b|\bmkdir\b|\btouch\b|Set-Content|Out-File|Add-Content)"
             r"[^\n]*?(~/|\$HOME/|\$\{HOME\}|\"\$HOME|/etc/|/usr/|/var/|/home/|/root/|/opt/"
-            r"|%APPDATA%|%USERPROFILE%|\$env:APPDATA|\$env:USERPROFILE|\$env:HOME|C:\\Users\\)",
+            r"|%APPDATA%|%USERPROFILE%|\$env:APPDATA|\$env:USERPROFILE|\$env:HOME"
+            r"|C:[\\/]Users[\\/])",
+            # Windows spellings arrive in any case: `set-content`, `$env:appdata`, `c:\users\`.
+            re.IGNORECASE,
         ),
         Severity.ERROR,
         "skills write inside the user's project only",
@@ -114,7 +123,8 @@ PATTERNS: tuple[SafetyPattern, ...] = (
     SafetyPattern(
         "safety/env-exfiltration",
         re.compile(
-            r"(printenv|os\.environ|\$\{?[A-Z_]*(KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL)[A-Z_]*\}?"
+            r"(printenv|os\.environ|os\.getenv|\$\{?[A-Z_]*"
+            r"(KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL)[A-Z_]*\}?"
             r"|\$env:[A-Z_]*(KEY|TOKEN|SECRET|PASSWORD))[^\n]*"
             r"(curl|wget|http|requests\.|fetch\(|Invoke-WebRequest|Invoke-RestMethod|nc\s|ncat)",
         ),
@@ -124,7 +134,11 @@ PATTERNS: tuple[SafetyPattern, ...] = (
     SafetyPattern(
         "safety/env-secret-read",
         re.compile(
-            r"\bprintenv\b|\benv\s*\|\s*grep\b|os\.environ\[[\"'][A-Z_]*(KEY|TOKEN|SECRET|PASSWORD)"
+            r"\bprintenv\b|\benv\s*\|\s*grep\b"
+            # Subscript and accessor forms both read the variable:
+            # os.environ["X"], os.environ.get("X"), os.getenv("X").
+            r"|os\.(environ\[|environ\.get\s*\(|getenv\s*\()\s*[\"'][A-Z_]*"
+            r"(KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL)"
             r"|\$\{?[A-Z_]*(API_KEY|TOKEN|SECRET|PASSWORD)[A-Z_]*\}?",
         ),
         Severity.ERROR,
@@ -152,12 +166,14 @@ PATTERNS: tuple[SafetyPattern, ...] = (
     SafetyPattern(
         "safety/instruction-override",
         re.compile(
-            r"\b(ignore|disregard|forget|override|bypass)\b(?:\W+\w+){0,4}\W+"
-            r"(instructions|system prompt|prompt|rules|guidelines|guardrails|safety|"
-            r"restrictions|policies)\b"
+            # The object must belong to the agent, not to the data. "Override the type
+            # inference rules" is ordinary cleaning guidance; "override the safety rules" is
+            # not, and the qualifier is what separates them.
+            r"\b(ignore|disregard|forget|override|bypass)\b(?:\W+\w+){0,3}\W+"
+            r"(system|safety|security|previous|prior|above|earlier|your)\b(?:\W+\w+){0,2}\W*"
+            r"(instructions?|prompts?|rules?|guidelines?|guardrails?|restrictions?|policies)\b"
             # "disregard everything the user told you earlier": no keyword, but the object is
-            # the conversation itself. Kept narrow so data guidance such as "ignore all rows
-            # before 2020" does not trip it.
+            # the conversation itself.
             r"|\b(ignore|disregard|forget)\b(?:\W+\w+){0,4}\W+(told|said|asked|instructed)"
             r"\s+(you|us|the\s+agent)\b",
             re.IGNORECASE,

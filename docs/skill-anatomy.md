@@ -144,10 +144,16 @@ no network calls. Printing status to stderr and JSON to stdout is a review expec
 than a validator rule.
 
 The rules are written to catch the phrasing, not one spelling of it: the test suite feeds them
-realistic bypass attempts (process substitution, `exec` instead of `eval`, Python reaching into
-`~`, injection wording that names no keyword) alongside legitimate data guidance that uses the
-same verbs ("ignore all rows before 2020"), and asserts that the first set fails and the second
-passes untouched.
+realistic bypass attempts (process substitution, an intermediate pipe before the shell, `exec`
+instead of `eval`, Python reaching into `~`, Windows spellings in lower case, `os.environ.get`
+instead of a subscript, injection wording that names no keyword) alongside legitimate data
+guidance that uses the same verbs, and asserts that the first set fails and the second passes
+untouched.
+
+The second half matters as much as the first. A rule that flags "do not override the type
+inference rules" or "check the eval (tier 2) results" would block ordinary skill content, so
+the injection rule requires the object to belong to the agent (`system`, `safety`, `previous`,
+`your`) rather than to the data, and the `eval` rule distinguishes a call from a noun.
 
 ## Evals
 
