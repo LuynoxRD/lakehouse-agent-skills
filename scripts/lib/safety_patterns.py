@@ -55,14 +55,24 @@ PATTERNS: tuple[SafetyPattern, ...] = (
     ),
     SafetyPattern(
         "safety/eval",
-        re.compile(r"\b(eval|exec)\s*[(\"'$`]|\b(Invoke-Expression|iex)\s", re.IGNORECASE),
+        re.compile(
+            # A delimiter after the keyword covers eval("x"), exec($payload), eval `cmd`.
+            r"\b(eval|exec)\s*[(\"'$`]"
+            # A bare `eval ssh-agent -s` has no delimiter, so anchor it to a command position:
+            # the start of a line, after a shell separator, or inside backticks.
+            r"|(?:^|[;&|]\s*|`)\s*(eval|exec)\s+[\w$\"'`./-]"
+            r"|\b(Invoke-Expression|iex)\s",
+            re.IGNORECASE | re.MULTILINE,
+        ),
         Severity.ERROR,
         "eval and exec run text as code; write the command out instead",
     ),
     SafetyPattern(
         "safety/base64-decode",
         re.compile(
-            r"\bbase64\s+(-d|--decode|-D)\b|\bb64decode\s*\(|FromBase64String|\batob\s*\(",
+            # -d, -D, --decode and combined short flags such as -di all decode.
+            r"\bbase64\s+(-[a-zA-Z]*[dD][a-zA-Z]*|--decode)"
+            r"|\bb64decode\s*\(|FromBase64String|\batob\s*\(",
             re.IGNORECASE,
         ),
         Severity.ERROR,
@@ -71,8 +81,12 @@ PATTERNS: tuple[SafetyPattern, ...] = (
     SafetyPattern(
         "safety/recursive-delete",
         re.compile(
-            r"\brm\s+-[a-zA-Z]*[rR][a-zA-Z]*\s+(?!\"?\$\{?(TMP|TMPDIR|tmp|tmpdir|scratch|WORK)"
-            r"|/tmp/|\$\(mktemp)|Remove-Item\b[^\n]*-Recurse",
+            r"\brm\s+(-[a-zA-Z]*[rR][a-zA-Z]*|--recursive)\s+"
+            r"(?!\"?\$\{?(TMP|TMPDIR|tmp|tmpdir|scratch|WORK)|/tmp/|\$\(mktemp)"
+            r"|Remove-Item\b[^\n]*-Recurse"
+            r"|\bgit\s+clean\b[^\n]*-[a-zA-Z]*[fdx]"
+            r"|\bfind\b[^\n]*\s-delete\b"
+            r"|\bshutil\.rmtree\s*\(",
             re.IGNORECASE,
         ),
         Severity.ERROR,
@@ -82,8 +96,8 @@ PATTERNS: tuple[SafetyPattern, ...] = (
         "safety/write-outside-project",
         re.compile(
             r"(>>?|\btee\b|\bcp\b|\bmv\b|\bmkdir\b|\btouch\b|Set-Content|Out-File|Add-Content)"
-            r"[^\n]*?(~/|\$HOME/|\$\{HOME\}|/etc/|/usr/|/var/|%APPDATA%|%USERPROFILE%"
-            r"|\$env:APPDATA|\$env:USERPROFILE|\$env:HOME|C:\\Users\\)",
+            r"[^\n]*?(~/|\$HOME/|\$\{HOME\}|\"\$HOME|/etc/|/usr/|/var/|/home/|/root/|/opt/"
+            r"|%APPDATA%|%USERPROFILE%|\$env:APPDATA|\$env:USERPROFILE|\$env:HOME|C:\\Users\\)",
         ),
         Severity.ERROR,
         "skills write inside the user's project only",
@@ -202,7 +216,10 @@ ALLOWED_HOSTS = frozenset(
     }
 )
 
-_URL_RE = re.compile(r"https?://([A-Za-z0-9.-]+)")
+# Userinfo before the host is skipped deliberately: "https://github.com@evil.example.net/x"
+# is served by evil.example.net, and reading the part before the "@" as the host would let an
+# allowlisted name launder any destination.
+_URL_RE = re.compile(r"https?://(?:[^/\s@]*@)?([A-Za-z0-9.-]+)")
 _NETWORK_COMMAND_RE = re.compile(
     r"\b(curl|wget|Invoke-WebRequest|iwr|Invoke-RestMethod|irm|requests\.(get|post|put)"
     r"|urllib\.request|urlopen|httpx\.|aiohttp|fetch\s*\()",
