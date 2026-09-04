@@ -36,17 +36,38 @@ The repository is also a plugin with a marketplace manifest at
 plugin installed from it. That route brings the skills, the nine commands, the three reviewer
 personas and the session hook together, rather than the skills alone.
 
+```bash
+claude plugin marketplace add /path/to/lakehouse-agent-skills
+claude plugin install lakehouse-agent-skills@lakehouse-skills
+claude plugin details lakehouse-agent-skills
+```
+
+Verified end to end in a throwaway project. The inventory that comes back is **23 skills**, which
+is the fourteen skills plus the nine commands, since commands load through the same mechanism;
+**3 agents**; and **1 SessionStart hook**. The pack costs about **2,535 tokens always-on**, and
+each skill costs its own text again only when it fires.
+
 The manifest declares:
 
 | Field | Value | Why |
 | --- | --- | --- |
 | `skills` | `./skills` | One directory per skill, each with its `SKILL.md` |
 | `commands` | `./.claude/commands` | The generated markdown copies, not the TOML sources |
-| `agents` | a list of the three persona files | The field rejects a directory string; it takes paths to files |
+| `agents` | **not declared** | See below. The default `agents/` directory is what works. |
 | `hooks` | `./hooks/hooks.json` | The field takes a JSON configuration file, never a directory of scripts |
 
-Those four shapes were checked against the current plugin reference and against the manifest
-validator, which rejects the directory form of `agents` outright.
+### The agents field, and why it is absent
+
+This one cost a real defect and is worth writing down.
+
+A directory string, `"agents": "./agents"`, is **rejected by the manifest validator**. An array of
+file paths, `["./agents/claim-auditor.md", ...]`, **passes validation and loads nothing**: the
+inventory came back `Agents (0)` while every check was green. Omitting the field entirely, so the
+default `agents/` directory applies, loads all three.
+
+So the validator and the loader do not agree, and the validator is the one that says yes. The only
+way to know which shape works is to install the plugin and read the inventory, which is why that
+is a step in this document and not an assumption in it.
 
 ## What the frontmatter has to survive
 
