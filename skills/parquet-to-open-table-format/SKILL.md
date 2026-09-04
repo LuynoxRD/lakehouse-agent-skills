@@ -108,6 +108,8 @@ Most datasets do not need this, and saying so is the useful answer. When the tri
 
 State which of these was done, and what would change the answer to "yes".
 
+> The shared reference `references/capacity-thresholds.md` collects every hard limit in this pack side by side, with the tool each one was verified against. It is useful when choosing between approaches rather than following one. A per-skill install does not carry it; without it you lose the comparison, not any limit this skill needs, because each one is stated above.
+
 ## Common Rationalizations
 
 | Excuse | Reality |

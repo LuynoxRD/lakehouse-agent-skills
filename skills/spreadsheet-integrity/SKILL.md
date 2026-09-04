@@ -114,6 +114,8 @@ Alongside the output, state which sheets were written, which were copied untouch
 from the loss list that actually applied to this workbook. A loss that applied and went unsaid is
 the failure this skill exists to prevent.
 
+> The shared reference `references/capacity-thresholds.md` collects every hard limit in this pack side by side, with the tool each one was verified against. It is useful when choosing between approaches rather than following one. A per-skill install does not carry it; without it you lose the comparison, not any limit this skill needs, because each one is stated above.
+
 ## Common Rationalizations
 
 | Excuse | Reality |

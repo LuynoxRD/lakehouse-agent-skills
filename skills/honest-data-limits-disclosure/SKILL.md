@@ -130,6 +130,8 @@ Before the answer goes out, check every sentence in it against the coverage:
   the checks that established it, not the absence of an error.
 - A total is described as a total only when nothing was dropped between the source and it.
 
+> The shared reference `references/capacity-thresholds.md` collects every hard limit in this pack side by side, with the tool each one was verified against. It is useful when choosing between approaches rather than following one. A per-skill install does not carry it; without it you lose the comparison, not any limit this skill needs, because each one is stated above.
+
 ## Common Rationalizations
 
 | Excuse | Reality |
