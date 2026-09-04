@@ -20,7 +20,7 @@ import re
 import shutil
 import subprocess
 import sys
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -181,6 +181,20 @@ def commit_message_items(path: Path) -> list[tuple[str, str]]:
     return [(f"commit-msg {path.name}", path.read_text(encoding="utf-8", errors="ignore"))]
 
 
+def environment_items(names: Sequence[str], environ: Mapping[str, str]) -> list[tuple[str, str]]:
+    """Text handed to the scan through the environment, one item per named variable.
+
+    A pull request's branch name, title and body are written by whoever opened it, and the title
+    and body become the squash-merge message on the default branch. They therefore need scanning
+    before the merge, not after. They arrive here through the environment because that is the one
+    way to pass attacker-controlled text into a job without it ever reaching a shell.
+
+    A variable that is not set scans as empty rather than failing: an event without a body is
+    ordinary, and turning that into a build failure would teach people to ignore this check.
+    """
+    return [(f"env {name}", environ.get(name, "")) for name in names]
+
+
 def build_parser() -> argparse.ArgumentParser:
     """CLI options."""
     parser = argparse.ArgumentParser(
@@ -201,6 +215,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--commit-msg", type=Path, metavar="FILE", help="scan a commit message file"
     )
+    parser.add_argument(
+        "--scan-env",
+        action="append",
+        default=[],
+        metavar="NAME",
+        help="also scan the value of this environment variable; repeatable",
+    )
     return parser
 
 
@@ -216,7 +237,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return EXIT_CONFIG
 
     scopes = {"tree": args.tree, "staged": args.staged, "history": args.history}
-    if not any(scopes.values()) and args.commit_msg is None:
+    if not any(scopes.values()) and args.commit_msg is None and not args.scan_env:
         scopes["tree"] = True
         scopes["history"] = True
 
@@ -233,11 +254,21 @@ def main(argv: Sequence[str] | None = None) -> int:
         return EXIT_CONFIG
     if args.commit_msg is not None:
         items.extend(commit_message_items(args.commit_msg))
+    if args.scan_env:
+        items.extend(environment_items(args.scan_env, os.environ))
 
     hits = scan_items(items, patterns)
     for hit in hits:
         print(f"{redact(hit.label, patterns)}:{hit.line}: matches denylist pattern #{hit.pattern}")
-    scanned = ", ".join(name for name, enabled in scopes.items() if enabled) or "commit message"
+    # The summary names what was actually read. Falling back to a fixed label was harmless until
+    # a scope arrived that is neither a scope flag nor a commit message, and then it described a
+    # run that never happened.
+    names = [name for name, enabled in scopes.items() if enabled]
+    if args.commit_msg is not None:
+        names.append("commit message")
+    if args.scan_env:
+        names.append("environment")
+    scanned = ", ".join(names)
     verdict = "FAIL" if hits else "OK"
     print(
         f"vendor-neutrality: {len(items)} items scanned ({scanned}), {len(hits)} hit(s): {verdict}"
