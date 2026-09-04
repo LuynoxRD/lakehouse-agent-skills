@@ -121,9 +121,16 @@ def confined_path(root: Path, relative: str) -> Path | None:
     contributions. An absolute path silently replaces the base in ``root / relative``, and a
     parent traversal walks out of it, so both are rejected and the result is checked again
     after resolution to catch symlinks and drive-relative Windows paths such as ``/etc/x``.
+
+    A colon anywhere in the path is rejected on every platform, not only where it is a drive
+    separator. ``C:/Windows/win.ini`` escapes the tree on Windows but is an ordinary relative
+    directory on Linux, and a rule that means different things on the maintainer's machine and
+    on the runner is a rule nobody can rely on.
     """
     candidate = Path(relative)
     if candidate.is_absolute() or ".." in candidate.parts:
+        return None
+    if any(":" in part for part in candidate.parts):
         return None
     try:
         resolved = (root / candidate).resolve()

@@ -182,6 +182,8 @@ def test_stage_workspace_refuses_paths_outside_the_fixture_tree(
 ) -> None:
     # The path comes from a JSON file a contributor writes. An absolute path would replace the
     # base in `eval_fixtures / fixture` and copy anything on the machine into the workspace.
+    # All three are rejected on every platform, including the drive-letter form that is only
+    # dangerous on Windows: the rule must not mean one thing locally and another in CI.
     cases, _ = load_cases(repo)
     case = next(c for c in cases if c.skill_name == SKILL_A)
     hostile = BehavioralEval("1", "execution", "p", "e", (escape,), ("x",))
