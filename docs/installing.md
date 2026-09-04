@@ -91,21 +91,30 @@ appeared.
 **Skills reach 77 tools.** That breadth is the format's, not this pack's: a `SKILL.md` is markdown
 with frontmatter, so anything that reads one can use these.
 
-They do not all read the same place, and the split is worth knowing.
+### Cursor, opencode, Codex, Copilot and fifteen others
 
-**Nineteen of them share `.agents/skills`**, which is the cross-tool convention rather than any
-one product's directory: Amp, Antigravity, Antigravity CLI, Cline, Codex, **Cursor**, Deep Agents,
-Dexto, Firebender, Gemini CLI, GitHub Copilot, Kimi Code CLI, Loaf, **OpenCode**, PromptScript,
-Replit, Universal, Warp and Zed. One directory, nineteen tools, and it is where most of the
-familiar names live.
+They all work, and they all take the same command. Name your tool, or name several:
+
+```bash
+npx skills add LuynoxRD/lakehouse-agent-skills --skill '*' --agent cursor -y
+npx skills add LuynoxRD/lakehouse-agent-skills --skill '*' --agent opencode -y
+npx skills add LuynoxRD/lakehouse-agent-skills --skill '*' --agent cursor,opencode,codex -y
+```
+
+Nineteen tools share one project directory, `.agents/skills`, which is the cross-tool convention
+rather than any single product's folder: Amp, Antigravity, Antigravity CLI, Cline, Codex,
+**Cursor**, Deep Agents, Dexto, Firebender, Gemini CLI, GitHub Copilot, Kimi Code CLI, Loaf,
+**OpenCode**, PromptScript, Replit, Universal, Warp and Zed. Install for one of them and the rest
+find the skills too, because they are all reading the same place.
 
 **The rest read their own**, as `.<tool>/skills/`: Windsurf, Continue, Roo, Kilo Code, Junie,
-Trae, Goose, OpenHands, Crush, Kiro, Qoder and a long tail.
+Trae, Goose, OpenHands, Crush, Kiro, Qoder and a long tail. Those need naming individually, or
+`--agent '*'` for all of them at once.
 
-The practical consequence is that looking for a `.cursor/` or `.opencode/` directory after an
-install finds nothing and means nothing. `.cursor/skills` exists, but as Cursor's **global**
-directory; its project directory is the shared one. Check `.agents/skills/` before concluding a
-tool was skipped.
+One thing that trips people up, including whoever wrote this document the first time: after
+installing for Cursor there is no `.cursor/` directory in the project, and that is correct rather
+than a failure. `.cursor/skills` is Cursor's **global** directory; its project directory is the
+shared one. Look in `.agents/skills/`.
 
 **The rest of the pack is narrower, and deliberately so.**
 
@@ -120,6 +129,46 @@ The skills are the portable part and the pack is built that way on purpose: ever
 cannot work without is inside its own `SKILL.md`, so the tools that get only the skills still get
 the discipline. The commands are a convenience for reaching a stage by name, and the personas and
 the hook are Claude Code affordances layered on top.
+
+## Updating
+
+**Nothing updates itself.** Neither route watches this repository, so a skill installed today stays
+exactly as it is until somebody runs a command. That is worth knowing before you rely on a fix
+reaching anyone.
+
+```bash
+npx skills update                              # skills, every source
+npx skills update etl-before-dashboard         # one of them
+claude plugin update lakehouse-agent-skills    # the plugin route
+```
+
+Two behaviours of `skills update` are worth knowing because neither is obvious:
+
+- **A local-path install is never updated.** Installing from a directory records the source as
+  local, and the updater skips local and `node_modules` sources by design. Only an install from
+  GitHub is refreshed. If you installed from a checkout to try it, reinstall from GitHub before
+  expecting updates.
+- **It notices skills that disappeared upstream.** If a skill is removed from this repository, the
+  updater lists it and offers to delete the local copy, so a retired skill does not linger in a
+  project that once installed it.
+
+### What that means for a security fix
+
+A fix landing on `main` reaches nobody by itself. So on this side of it:
+
+- The version in the manifests moves, and a release is tagged, which is what the security policy
+  points at when it says older tags are not patched.
+- A vulnerability gets a **GitHub security advisory**, which is the mechanism that actually
+  notifies people rather than assuming they check.
+- Reporting one goes through private vulnerability reporting, never a public issue. `SECURITY.md`
+  has the terms and the response times.
+
+**Dependabot does not do this job**, and it is worth being precise because the name suggests
+otherwise. It watches this repository's own toolchain, the pinned GitHub Actions and the locked
+Python packages, and it opens pull requests here. It does not look at skill content, and it does
+not tell anyone who installed the pack that anything changed. The content is guarded by
+`scripts/validate_skill_safety.py` on every pull request; the people who installed it are reached
+by advisories and a release.
 
 ## Verifying an install
 
