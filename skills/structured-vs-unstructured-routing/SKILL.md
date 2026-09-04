@@ -102,10 +102,23 @@ preference:
 - A cluster is defined by the most common word in the corpus rather than by a subject.
 - Changing the number of clusters changes the story entirely.
 
-Only then escalate, and state the cost honestly: a topic model of that kind pulls in a pretrained
-model that has to be downloaded, and it is a substantially heavier install than one package. Say
-that before proposing it, and point at the project's own package manager rather than any global
-installation.
+An escalation is **proposed before it is performed**, and the order is the point:
+
+1. **Say what the cheaper rung produced and how it fell short**, in specifics from this data, not
+   in general terms about the method.
+2. **Say what the heavier rung costs, before anything is installed or created.** Name the
+   dependencies it adds, say that it pulls a pretrained model which has to be downloaded, and
+   give the rough size of the tree. A cost mentioned after the install is a report, not a
+   decision, and the person paying for it never got to say no.
+3. **Say how it will be brought in.** Through the project's own package manager, so it is
+   recorded and reproducible, or as an environment created for this run and discarded afterwards.
+   **Never a bare global installation command:** an install line that lands in whatever
+   interpreter happens to be first on the path is a change to somebody's machine that outlives
+   the question it answered.
+4. **Say where the text will be processed**, on this machine or at a service.
+
+Only then set anything up. Every one of those four is a sentence, and together they are the
+difference between an escalation somebody agreed to and one they discovered afterwards.
 
 ### Step 5: Embeddings run locally unless somebody decides otherwise, out loud
 
@@ -116,6 +129,11 @@ Moving to a hosted embedding service, for volume or for quality, is a legitimate
 transfer of every document embedded. It is stated before it happens, with what is being sent and
 where, and it goes through the `data-privacy-before-llm` skill first. Never make that call
 silently because the hosted path was fewer lines.
+
+**Say where the text will be processed whenever embeddings enter the proposal, including when the
+answer is that nothing leaves the machine.** Following the local default is not the same as
+reporting it. To a reader who has seen both arrangements, silence about where the documents go
+reads as the hosted one, and the person who would have objected never gets the chance.
 
 ### Step 6: State the shape you decided and what it cost
 

@@ -57,6 +57,13 @@ Then translate the question directly: the filter is the `WHERE`, the "per" is th
 "top" is an `ORDER BY` with a `LIMIT`, and "compared to" is a join or a window, not a second
 query whose result is pasted next to the first.
 
+When the request arrives with a deadline, or with "it is only a few rows, do not overthink it",
+keep the checks and say what they cost. Counting the rows on both sides of a join is one more
+query and it runs in the time it takes to read this sentence; it is also the whole difference
+between a ranking and a wrong ranking. Speed is a reason to drop work that is slow, and these
+checks are not. Say that in one line rather than either arguing about the deadline or quietly
+dropping the check to meet it.
+
 ### Step 3: Read the plan before claiming anything about speed
 
 The engine will describe what it intends to do. Read it and say what it showed, rather than
