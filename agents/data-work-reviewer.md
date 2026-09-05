@@ -1,6 +1,6 @@
 ---
 name: data-work-reviewer
-description: Reviews finished data work against the artifacts it left behind, reporting which verification claims are backed by evidence and which are assertions. Use after a profile, clean, model or disclose step, or before a result is handed to someone who will act on it.
+description: Reviews finished data work against the artifacts it left behind, reporting which verification claims are backed by evidence and which are assertions. Use after a profile, clean, model or disclose step, or before a result is handed to someone who will act on it. Do not use on a first look that stays inside the project and that nobody will act on, since the stakes decide this and not the size of the data.
 model: inherit
 color: cyan
 tools: ["Read", "Grep", "Glob", "Bash"]

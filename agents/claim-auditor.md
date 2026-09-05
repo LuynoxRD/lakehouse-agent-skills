@@ -1,6 +1,6 @@
 ---
 name: claim-auditor
-description: Audits a written finding against the numbers it rests on, checking the base of every percentage, whether an average is weighted, and whether a comparison reverses once the groups are pooled. Use before a takeaway, a ranking or a growth figure is sent to anyone.
+description: Audits a written finding against the numbers it rests on, checking the base of every percentage, whether an average is weighted, and whether a comparison reverses once the groups are pooled. Use before a takeaway, a ranking or a growth figure is sent to anyone or acted on. Do not use on a figure being read only to decide whether the work is worth continuing, since the stakes decide this and not the size of the data.
 model: inherit
 color: purple
 tools: ["Read", "Grep", "Glob", "Bash"]

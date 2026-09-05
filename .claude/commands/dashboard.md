@@ -4,6 +4,12 @@ description: Lay out a page by what its panels are and how many of them there ar
 
 Lay out the page.
 
+Before writing anything, ask where the page goes: a file in the project, or a page published and
+handed back as a link. Put the trade-off inside the question rather than after it, because the
+answer depends on it: the published page opens in one click and travels as a link, and gives up
+having its figures recomputed against the real table; the project file keeps that and has to be
+opened by hand. Do not pick one silently.
+
 Invoke the `dashboard-layout-by-widget-mix` skill. Inventory the panels by type, size each one by
 what its content needs rather than by the grid, state in one sentence the question the page
 answers, and order the panels by how directly they answer it. Past what fits, group before

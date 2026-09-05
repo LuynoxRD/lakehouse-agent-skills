@@ -39,6 +39,32 @@ Do **not** use it to choose what form each chart takes, which is the
 
 ## Core Process
 
+### Before any of it: ask where the page is going
+
+A page has two possible destinations, they are not interchangeable, and which one it is decides
+what can still be verified afterwards. So it is settled before a file exists, not after one does.
+
+- **A file inside the project.** Somebody has to open it by hand. It is the only form the artefact
+  check in Step 7 can work on, because that check recomputes every published figure against the
+  table that is still sitting beside it.
+- **A page the tool publishes and hands back as a link.** It opens in one click and can be given
+  to somebody who installs nothing. It has left the project, and nothing recomputes its numbers
+  against the source once it has.
+
+**Ask which one, and put both halves in the question.** Not "file or published page?", which
+names two words and no consequences, but the trade-off itself: one opens in a click and travels as
+a link, and gives up the recomputation against the real table; the other keeps that guarantee and
+has to be opened by hand. Asking without saying what each option costs moves the decision without
+moving the information the decision needs, which is worse than deciding alone — it looks like
+consultation and is delegation.
+
+They are not exclusive in the order things happen. When the answer is the published page, build it
+as a project file, run Step 7 against it, and publish what passed. The guarantee is lost by
+publishing a page nothing ever checked, not by publishing.
+
+Assume neither. A pipeline that always writes a project file has chosen for the reader every time,
+and the reader is the one who knows whether anybody else has to open it.
+
 ### Step 1: Inventory the panels by type, and give each type the area it needs
 
 Area is a property of the content, not of the grid. List every panel with its type, then size it
@@ -236,6 +262,8 @@ So the last act is to open it, at named widths, and write down what you saw:
 | "Tabs hide information." | Tabs name it. Twelve unlabelled panels on one screen hide it far more effectively. |
 | "The table is important, so it gets a big tile." | Importance decides position and order. Area is decided by what the content physically needs to be legible. |
 | "We can tidy the layout later." | Layout is what people use, and later is when there are twenty panels instead of twelve. |
+| "A file in the project is the obvious default." | It is the default of the check, not of the reader. The check needs a file it can find beside the table; that is a fact about the check, and passing it off as the reader's requirement is how somebody is handed a path they have no way to open. |
+| "Asking about the format is a detour; the page is what matters." | The format decides who can open the result and what can still be recomputed about it. Both are properties of the page. Choosing them silently is not saving the reader a question, it is answering one on their behalf. |
 | "The page opened in the browser, so the assembly is fine." | Opening proves the browser recovered. Nested documents, duplicated stylesheets and a header that disagrees with its own tile all survive that test intact. |
 | "That figure in the header is just context, not a metric." | It is a number on the page, so it is read as one. Context that nothing computed is the easiest kind of wrong to ship. |
 
@@ -243,6 +271,10 @@ So the last act is to open it, at named widths, and write down what you saw:
 
 Stop when any of these is true:
 
+- A page is being written and nobody was asked where it goes. The destination was inherited from
+  whatever the previous step happened to produce.
+- The destination was asked as two bare words, with neither what each one gains nor what it gives
+  up stated in the question.
 - Every panel on the page is the same size.
 - A table or a heatmap is in the same tile size as a single-figure panel.
 - The page holds more than about a dozen panels with no grouping.
@@ -267,6 +299,8 @@ Stop when any of these is true:
 
 ## Verification
 
+- [ ] Where the page goes was asked before it was written, not assumed, and the question carried
+      what each destination gains and what it gives up.
 - [ ] Every panel is listed with its type and the area that type needs, and the sizes on the page
       reflect that rather than a uniform grid.
 - [ ] The question the page answers is written in one sentence, and the panels are ordered by how
