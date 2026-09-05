@@ -1,0 +1,230 @@
+<!doctype html>
+<!--
+  The starting page for a dashboard built with the lakehouse skills.
+
+  It already carries the decisions this skill would otherwise ask you to make: a declared width,
+  a type scale with three roles, spans and height floors by content type, two gap sizes, a stated
+  narrow-viewport behaviour, one colour map every panel reads, and a place for each kind of caveat.
+
+  Fill every FILL, delete every section you do not need, keep it one file. Departures from this
+  are fine and expected — write them in the layout note with the reason.
+
+  What this file deliberately does NOT decide: which library draws the charts. That is Step 4 of
+  the `chart-type-and-library-selection` skill, decided from the destination and the interaction
+  the reader needs, and the panels below are empty containers so any of them can fill one.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- The page's question, not the library's default. It is the browser tab and the shared link. -->
+<title><!-- FILL: the question this page answers --></title>
+<style>
+  :root {
+    /* Surfaces and text. Neutrals carry a slight hue toward the accent so they read as chosen. */
+    --ground:#F7F8FA; --surface:#FFFFFF; --ink:#14181B; --muted:#5B6672; --line:#DDE2E7;
+    /* One accent carries emphasis. Status colours are a separate set and never double as accent. */
+    --accent:#1B4D5B; --good:#2F6B4F; --warn:#8A5410; --crit:#9C3126;
+    /* Two gaps, and the difference between them IS the grouping. */
+    --gap-in:12px; --gap-between:32px;
+    --measure:68ch;                       /* readable line length for any prose */
+    /* Three type sizes, by role. A fourth distinction is a weight, a colour or letter-spacing. */
+    --t-figure:1.75rem; --t-body:1rem; --t-label:0.8rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#0E1315; --surface:#151B1E; --ink:#E6EBEE; --muted:#93A0AA; --line:#273136;
+      --accent:#6FC0CE; --good:#6FBF93; --warn:#D9A253; --crit:#E0796B;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#0E1315; --surface:#151B1E; --ink:#E6EBEE; --muted:#93A0AA; --line:#273136;
+    --accent:#6FC0CE; --good:#6FBF93; --warn:#D9A253; --crit:#E0796B;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:24px; background:var(--ground); color:var(--ink);
+         font:var(--t-body)/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  .page { max-width:1400px; margin-inline:auto; }   /* bounded AND centred; one without the other
+                                                       leaves the board against the left edge */
+  h1 { font-size:var(--t-figure); text-wrap:balance; margin:0 0 4px; }
+  .sub { color:var(--muted); max-width:var(--measure); margin:0 0 var(--gap-between); }
+
+  /* ── Grid ──────────────────────────────────────────────────────────────────────────────────
+     Twelve tracks, and spans come from the Step 1 table: area is a property of the content. */
+  .board { display:grid; grid-template-columns:repeat(12,1fr); gap:var(--gap-in); }
+  .group + .group { margin-top:var(--gap-between); }
+  .group > h2 { grid-column:1/-1; margin:0 0 4px; font-size:var(--t-label); font-weight:600;
+                letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+
+  .kpi    { grid-column:span 2; }                          /* read at a glance; never a full tile */
+  .trend  { grid-column:span 12; min-height:320px; }       /* width is the time axis */
+  .ranked { grid-column:span 6;  min-height:360px; }       /* height holds the category labels */
+  .matrix { grid-column:span 6;  min-height:360px; }       /* area in both directions */
+  .table  { grid-column:span 12; min-height:420px; overflow-x:auto; }  /* the page never scrolls
+                                                                          sideways; the table does */
+  .prose  { grid-column:span 6;  max-width:var(--measure); }
+
+  /* ── Panels ───────────────────────────────────────────────────────────────────────────────
+     Border, fill and radius each say "separate object". A KPI is not a separate object: it is a
+     number with a label, so it gets none of them. Not everything is a card. */
+  .panel { background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:16px; }
+  .panel > h3 { margin:0 0 8px; font-size:var(--t-label); font-weight:600; color:var(--muted);
+                letter-spacing:.04em; text-transform:uppercase; }
+  .chart { width:100%; height:100%; min-height:inherit; }  /* never a pixel width: that is what
+                                                              overflows a phone */
+  .kpi { padding:8px 0; }
+  .kpi b { display:block; font-size:var(--t-figure); font-variant-numeric:tabular-nums;
+           line-height:1.15; }
+  .kpi span { font-size:var(--t-label); color:var(--muted); }
+
+  /* A caveat that changes how the figure is read sits with the figure, in label type. */
+  .note { margin:6px 0 0; font-size:var(--t-label); color:var(--muted); }
+
+  /* ── Filter state ─────────────────────────────────────────────────────────────────────────
+     Visible, clearable in one action, and never hover-only: a control nobody can see is a
+     feature that exists only in the source. */
+  .filterbar { display:flex; align-items:center; gap:8px; margin-bottom:var(--gap-in);
+               font-size:var(--t-label); color:var(--muted); }
+  .chip { border:1px solid var(--line); border-radius:999px; padding:3px 10px; color:var(--ink); }
+  .clear { border:1px solid var(--line); border-radius:999px; padding:3px 10px; cursor:pointer;
+           background:none; color:var(--ink); font:inherit; }
+  .clear:focus-visible, .panel:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  [data-clickable] { cursor:pointer; }
+
+  table { border-collapse:collapse; width:100%; font-size:var(--t-body); }
+  th,td { border-bottom:1px solid var(--line); padding:8px 10px; text-align:left; }
+  td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+
+  /* Coverage and provenance go here, whole and visible — never behind a hover. */
+  footer { margin-top:var(--gap-between); border-top:1px solid var(--line); padding-top:12px;
+           font-size:var(--t-label); color:var(--muted); max-width:var(--measure); }
+
+  /* ── Narrow ───────────────────────────────────────────────────────────────────────────────
+     What reflows, what stacks, and what is dropped on purpose because it cannot be read. */
+  @media (max-width:800px) {
+    body { padding:16px; }
+    .board { grid-template-columns:repeat(4,1fr); }
+    .kpi { grid-column:span 2; }                     /* two across instead of six */
+    .trend,.ranked,.table,.prose { grid-column:span 4; }
+    .matrix { display:none; }                        /* cells below this width cannot be judged */
+  }
+  @media (prefers-reduced-motion:reduce) { * { animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER — the one question the page answers, and what it was computed from. Keep both. -->
+  <h1><!-- FILL: the question, e.g. "Which channel carries revenue, and is that changing?" --></h1>
+  <p class="sub"><!-- FILL: population and source, e.g. "42,318 orders, Jan–Dec 2025, from
+       data/curated/orders.parquet" --></p>
+
+  <!-- FILTER BAR — delete only if the page truly answers one question. If it filters, the active
+       selection shows here and clears in one action. -->
+  <div class="filterbar">
+    <span id="chip" class="chip">All <!-- FILL: dimension, e.g. "channels" --></span>
+    <button id="clear" class="clear" hidden>Clear filter</button>
+    <span>Click a bar to filter every panel.</span>
+  </div>
+
+  <!-- HEADLINE — the answer, first, because this is where the reader lands. Three to six KPIs. -->
+  <section class="group">
+    <h2>Headline</h2>
+    <div class="board">
+      <div class="kpi">
+        <b id="kpi-1"><!-- FILL --></b><span><!-- FILL: label --></span>
+        <p class="note"><!-- FILL: the caveat that changes how this is read, or delete --></p>
+      </div>
+      <div class="kpi"><b id="kpi-2"><!-- FILL --></b><span><!-- FILL: label --></span></div>
+      <div class="kpi"><b id="kpi-3"><!-- FILL --></b><span><!-- FILL: label --></span></div>
+    </div>
+  </section>
+
+  <!-- SUPPORTING — the panels that explain the headline. Each keeps the span its content needs. -->
+  <section class="group">
+    <h2><!-- FILL: what this group is about --></h2>
+    <div class="board">
+      <div class="panel trend">
+        <h3><!-- FILL: what this chart compares, in one phrase --></h3>
+        <div id="trend" class="chart"></div>
+      </div>
+      <div class="panel ranked" data-clickable tabindex="0">
+        <h3><!-- FILL --></h3>
+        <div id="ranked" class="chart"></div>
+      </div>
+      <div class="panel matrix">
+        <h3><!-- FILL --></h3>
+        <div id="matrix" class="chart"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DETAIL — the table, and any prose that has to sit beside it. Delete if nothing needs it. -->
+  <section class="group">
+    <h2>Detail</h2>
+    <div class="board">
+      <div class="panel table">
+        <h3><!-- FILL --></h3>
+        <table>
+          <thead><tr><th><!-- FILL --></th><th class="num"><!-- FILL --></th></tr></thead>
+          <tbody id="rows"><!-- filled by render() --></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- COVERAGE — what the run did not reach, in counts. This is the disclosure's home on the page. -->
+  <footer>
+    <!-- FILL: inputs processed of inputs present, rows read of rows present,each failure with its
+         reason, and when the figures were last recomputed against the curated table. -->
+  </footer>
+
+</div>
+
+<!-- Load the charting library here, ONCE for every panel, and only after the decision in Step 4
+     of `chart-type-and-library-selection`. Five files each embedding their own copy is five
+     charts, not a dashboard. -->
+<!-- <script src="…the one library…"></script> -->
+<script>
+  // The curated rows, embedded once. Every panel is a view computed from these, never a second
+  // extract — two panels aggregating from two extracts is how they come to disagree.
+  const ROWS = [/* FILL: the curated rows */];
+
+  // One map from category to colour, read by every panel, so a category is one colour everywhere.
+  // Palette type follows the variable: distinct hues for unordered categories, one hue varying in
+  // lightness for an ordered measure, two hues around a neutral for a meaningful midpoint.
+  const COLOUR = { /* FILL: "Category": "#hex" */ };
+  const CATEGORIES = Object.keys(COLOUR);   // canonical order, so a filter cannot reassign it
+
+  let active = new URL(location).searchParams.get("filter");
+  const visible = () => (active ? ROWS.filter(r => r.category === active) : ROWS);
+
+  function render() {
+    const rows = visible();
+
+    // FILL: recompute every KPI from `rows` and write it onto the page. A figure printed to a
+    // console has not been published.
+    // document.getElementById("kpi-1").textContent = …;
+
+    // FILL: redraw every panel that shares the grain from `rows`, inside this one function. A
+    // panel left outside it shows a different population with nothing saying so.
+
+    // FILL: repaint the table body from `rows`.
+
+    // Filter state stays visible, clearable, and in the URL so a filtered view can be handed on.
+    document.getElementById("chip").textContent = active ? active : "All";
+    document.getElementById("clear").hidden = !active;
+    const url = new URL(location);
+    active ? url.searchParams.set("filter", active) : url.searchParams.delete("filter");
+    history.replaceState(null, "", url);
+  }
+
+  // Clicking the driving panel filters; clicking the same mark again clears. Keyboard too — a
+  // control reachable only by mouse is a control some readers do not have.
+  function toggle(category) { active = active === category ? null : category; render(); }
+  document.getElementById("clear").onclick = () => { active = null; render(); };
+
+  render();
+</script>
+</body>
+</html>

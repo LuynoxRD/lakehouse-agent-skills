@@ -75,78 +75,33 @@ that shipped had no viewport meta, no width rule, a container fixed at 800×1000
 inherited from the plotting library's logo, and every computed figure printed to a terminal instead
 of onto the page.
 
-So the decisions arrive already made. **Copy this, then change what your content needs and say what
-you changed in the layout note from Step 6.** Reaching Step 1 with this on the page is the floor;
-the steps below are how you improve on it, not how you get here.
+So the decisions arrive already made. **Generate the page from `template.html` in this skill
+directory**, the same folder as this file. It already carries:
 
-```html
-<!doctype html>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Revenue by channel, 2025</title>   <!-- the question, never the library's default -->
-<style>
-:root {
-  --ground:#F7F8FA; --surface:#FFF; --ink:#14181B; --muted:#5B6672; --line:#DDE2E7;
-  --accent:#1B4D5B; --good:#2F6B4F; --warn:#8A5410; --crit:#9C3126;  /* status ≠ accent */
-  --gap-in:12px; --gap-between:32px; --measure:68ch;
-  --t-figure:1.75rem; --t-body:1rem; --t-label:0.8rem;   /* three sizes. add weight, not sizes */
-}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --ground:#0E1315; --surface:#151B1E; --ink:#E6EBEE; --muted:#93A0AA; --line:#273136;
-}}
-body{margin:0;padding:24px;background:var(--ground);color:var(--ink);font:var(--t-body)/1.5
-     system-ui,sans-serif}
-h1{font-size:var(--t-figure);text-wrap:balance;margin:0 0 4px}
-.sub{color:var(--muted);max-width:var(--measure);margin:0 0 var(--gap-between)}
-.board{display:grid;grid-template-columns:repeat(12,1fr);gap:var(--gap-in)}
-.group + .group{margin-top:var(--gap-between)}
-.group > h2{grid-column:1/-1;font-size:var(--t-label);letter-spacing:.08em;text-transform:uppercase;
-             color:var(--muted);margin:0 0 4px}
-/* Spans and floors come from the Step 1 table: area is a property of the content. */
-.kpi{grid-column:span 2}
-.trend{grid-column:span 12;min-height:320px}
-.ranked,.matrix{grid-column:span 6;min-height:360px}
-.table{grid-column:span 12;min-height:420px;overflow-x:auto}  /* the page never scrolls sideways */
-.prose{grid-column:span 6;max-width:var(--measure)}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px}
-.kpi{border:0;background:none;padding:8px 0}   /* not everything is a card */
-.kpi b{display:block;font-size:var(--t-figure);font-variant-numeric:tabular-nums}
-.kpi span,.note{font-size:var(--t-label);color:var(--muted)}
-.note{margin-top:6px}                          /* the caveat that changes the reading */
-footer{margin-top:var(--gap-between);border-top:1px solid var(--line);padding-top:12px;
-       font-size:var(--t-label);color:var(--muted);max-width:var(--measure)}
-@media (max-width:800px){
-  .board{grid-template-columns:repeat(4,1fr)}
-  .kpi{grid-column:span 2}
-  .trend,.ranked,.table,.prose{grid-column:span 4}
-  .matrix{display:none}                        /* cells below this width cannot be judged */
-}
-</style>
+- a viewport meta, a `<title>` that is the page's question, and a container that is both bounded
+  and centred;
+- colour tokens for the light and dark grounds, with the status colours kept separate from the
+  accent;
+- **three type sizes by role** — figure, body, label — because a fourth distinction is a weight, a
+  colour or a letter-spacing change, and a delivered page that grew to eight sizes had no figure
+  and no label, only text;
+- the twelve-track grid, with the span and the height floor of every panel type taken from the
+  Step 1 table, and two gap sizes whose difference is the grouping;
+- a stated narrow-viewport rule that names the panel it drops and why;
+- the filter bar, visible and clearable in one action, with the selection in the URL;
+- one colour map read by every panel, and one `render()` that recomputes every panel from the
+  current filter;
+- a `note` under each figure and a `footer` for coverage, which is where each kind of caveat goes;
+- figures in `tabular-nums`, and no pixel width anywhere.
 
-<h1>Which channel carries revenue, and is that changing?</h1>
-<p class="sub">42,318 orders, Jan–Dec 2025, from <code>data/curated/orders.parquet</code>.</p>
+Fill every `FILL`, delete the sections you do not need, keep it one file. It deliberately does not
+choose the charting library: that is Step 4 of the `chart-type-and-library-selection` skill, and
+the panels are empty containers so any library can fill them.
 
-<section class="group"><h2>Headline</h2>
-  <div class="board">
-    <div class="kpi"><b>$1.24M</b><span>Revenue</span><p class="note">Excludes 41 refunds.</p></div>
-    <div class="kpi"><b>3,918</b><span>Orders</span></div>
-    <div class="kpi"><b>$317</b><span>Average order</span><p class="note">Weighted, not a mean of means.</p></div>
-  </div>
-</section>
+Reaching Step 1 with that page is the floor. The steps below are how you improve on it, and every
+departure from it is named in the layout note from Step 6.
 
-<section class="group"><h2>By channel</h2>
-  <div class="board">
-    <div class="panel trend" id="trend"></div>
-    <div class="panel ranked" id="ranked"></div>
-    <div class="panel matrix" id="matrix"></div>
-  </div>
-</section>
-
-<footer>Coverage: 12 of 12 monthly files read; 41 rows excluded with an unparseable date.
-        Figures recomputed against the curated table on 2025-01-14.</footer>
-```
-
-Four things that page does which the failing one did not, each traceable to a rule already stated:
+Four things that template does which the failing page did not, each traceable to a rule already stated:
 
 - **It declares a width and a title.** A viewport meta, one media query, and a `<title>` that is
   the page's question. A chart library's HTML export supplies none of these.
