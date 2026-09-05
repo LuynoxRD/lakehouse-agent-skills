@@ -95,8 +95,8 @@ between a reader getting a usable BI page and a reader getting four identical sq
 figures on them. A stronger model loses nothing: it starts from the floor and improves on it, and
 the layout note records what it changed.
 
-So the decisions arrive already made. **Generate the page from `template.html` in this skill
-directory**, the same folder as this file. It already carries:
+So the decisions arrive already made. **Generate the page from `assets/template.html` in this
+skill directory**, beside this file. It already carries:
 
 - a viewport meta, a `<title>` that is the page's question, and a container that is both bounded
   and centred;
