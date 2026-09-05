@@ -124,7 +124,33 @@ Write "revenue rose 12% in the same period that the campaign ran", not "the camp
 revenue 12%". The first is what the data says. If the causal claim matters, name the experiment
 that would establish it rather than asserting it.
 
-### Step 6: Write it in the reader's language, and leave the identifiers alone
+### Step 6: Say each caveat once, where it belongs
+
+Every step above adds something a figure has to carry: its base, its period, its population, the
+groups it pools. Nothing here has said **where** that goes, so the only available answer has been
+"into the sentence", and pages come back reading like an audit log rather than an answer. A reader
+who has to wade through four qualifications to reach the number has been handed the working rather
+than the finding.
+
+The caveat is not the problem; its placement is. Sort each one by what it does:
+
+- **It changes how this figure is read** — the base is eleven people, the period is partial, the
+  average is weighted, the population is not what the label implies. It stays **with the figure**,
+  in the smallest type on the page, because a reader who misses it misreads the number.
+- **It is about coverage or provenance** — which files were read, which sheets were skipped, what
+  failed and why, when the figures were last recomputed. It goes **once, whole, into the page's
+  coverage block**, not repeated beside every figure it touches. The
+  `honest-data-limits-disclosure` skill owns what it says; this decides that it is said in one
+  place.
+- **It is a definition somebody may not share** — what counts as an active customer, where a month
+  boundary falls. It belongs beside the first use, once.
+
+Never behind a hover as its only carrier. The `dashboard-color-and-visual-hierarchy` skill already
+refuses an encoding that exists only on hover, and a caveat is an encoding.
+
+A sentence carrying three qualifications is usually two findings and a definition. Split it.
+
+### Step 7: Write it in the reader's language, and leave the identifiers alone
 
 Prose is the artefact this skill produces, so the language is part of its correctness. Whatever
 language the reader wrote in is the language of the takeaway, the caption and the summary, all of
@@ -151,6 +177,7 @@ unit beside anything that could still be taken two ways.
 | "Everyone knows 'up 40%' means year over year." | Half the readers assume month over month, and both halves are confident. |
 | "Saying 'associated with' sounds weak." | It sounds exactly as strong as the evidence. The confident version is a claim the data cannot pay for. |
 | "The chart shows the trend clearly." | A chart of a wrongly weighted metric is a clear picture of a wrong number. |
+| "The caveats are what makes it honest." | Honest is where they are said, not how many times. A qualification repeated beside every figure it touches is noise that trains the reader to skip all of them, including the one that mattered. |
 | "It's a summary, the detail is in the table." | The summary is what gets quoted. The table is what nobody reopens. |
 | "The notes are internal; only the page is for the reader." | Everything in the delivery is read by whoever received it, and the notes are what they open when they doubt a number. A delivery in two languages tells them one half was written for somebody else. |
 | "The technical words are clearer in English." | Then they are clearer to you. A term of art has a form in the reader's language; a column name does not, and that is the one thing that stays as it is. |
@@ -180,6 +207,9 @@ unit beside anything that could still be taken two ways.
       used otherwise.
 - [ ] The sample size behind each claim is stated, taking coverage from the disclosure rather
       than restating it here.
+- [ ] Every caveat is placed by what it does: one that changes how a figure is read sits with
+      that figure, coverage and provenance are stated once in the coverage block, and none of
+      them is hover-only.
 - [ ] The prose is in the reader's language throughout, with nothing left in another, and every
       column name, path and piece of code is quoted unchanged.
 - [ ] Every displayed number and date uses the reader's separators and order, and anything that

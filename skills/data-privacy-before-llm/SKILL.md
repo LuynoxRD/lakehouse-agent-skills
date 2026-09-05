@@ -97,12 +97,29 @@ from settling the next one silently. Answer it, then reduce the data anyway.
 
 In order of preference:
 
-1. **Aggregate.** A count per group answers most questions and identifies nobody, provided the
-   groups are large enough that a count of one is not itself the disclosure.
+1. **Aggregate.** A count per group answers most questions and identifies nobody — but only
+   after the check below. Aggregating is not by itself a protection.
 2. **Pseudonymise.** Replace each identifier with a stable token so rows still join, and keep the
    mapping inside the project. The mapping never goes in the prompt; if it does, the
    pseudonymisation was decoration.
 3. **Mask.** Truncate, hash or redact what is left.
+
+**Small counts are their own control, and it applies to a single dimension.** Before an aggregate
+is published or sent, check every group's size and suppress or combine the ones below a stated
+floor. The floor is written down once and applied to every panel on the page; a group that gets a
+looser standard than its neighbours is the one worth asking about.
+
+The common mistake is to reason that a count is safe because it was not crossed with anything.
+It does not hold. If somebody knows their own record is in a group of two, the published count
+tells them there is exactly one other person, and everything they already know about the
+population narrows who that is — no join with a second attribute required. That is why statistical
+disclosure control treats small-cell suppression as a control in its own right rather than as a
+consequence of not cross-tabulating.
+
+Combining is usually cheap and is the first move: two adjacent periods, two neighbouring
+categories, or a residual bucket that is named as one. Say which groups were combined and why,
+because a reader comparing two pages will otherwise see the categories change and not know it was
+deliberate.
 
 Say what the technique protects against. Masking the direct identifiers while leaving the
 quasi-identifiers intact does not anonymise a row; it removes the label from a record that can

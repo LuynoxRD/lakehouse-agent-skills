@@ -18,12 +18,12 @@ def rules(layout: Layout) -> list[str]:
 def test_valid_manifests_are_clean(repo: Layout) -> None:
     report = validate_versions.validate(repo)
     assert report.findings == []
-    assert report.checked == 5
+    assert report.checked == 6
 
 
 def test_cli(repo: Layout, capsys: pytest.CaptureFixture[str]) -> None:
     assert validate_versions.main(["--root", str(repo.root)]) == 0
-    assert "validate-versions: 5 checked" in capsys.readouterr().out
+    assert "validate-versions: 6 checked" in capsys.readouterr().out
 
 
 def test_version_mismatch_names_files(repo: Layout) -> None:
@@ -103,6 +103,23 @@ def test_a_hooks_field_pointing_at_the_standard_file_is_refused(
     out = capsys.readouterr().out
     assert "manifest/conventional-path" in out
     assert "already loads by convention" in out
+
+
+def test_manifests_that_describe_the_package_differently_are_refused(repo: Layout) -> None:
+    """Found by audit, then by the check itself.
+
+    Six fields hold the same sentence. An edit reached five of them, and the sixth was a manifest
+    neither the author nor the reviewer had listed. Nothing could see it: the existing rule only
+    asked that a description exist.
+    """
+    manifest = repo.root / "plugin.json"
+    document = json.loads(manifest.read_text(encoding="utf-8"))
+    document["description"] = "Something else entirely."
+    manifest.write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8", newline="\n")
+
+    report = validate_versions.validate(repo)
+
+    assert "manifest/description-mismatch" in {finding.rule for finding in report.findings}
 
 
 def test_a_hooks_field_pointing_somewhere_else_is_allowed(
