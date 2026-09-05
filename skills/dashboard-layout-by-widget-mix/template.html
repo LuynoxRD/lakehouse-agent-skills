@@ -127,7 +127,11 @@
 <body>
 <div class="page">
 
-  <!-- HEADER — the one question the page answers, and what it was computed from. Keep both. -->
+  <!-- HEADER — the one question the page answers, and what it was computed from. Keep both.
+       Written for whoever opens the page, not for whoever ran the pipeline: population and
+       source, e.g. "42,318 orders, Jan–Dec 2025, from data/curated/orders.parquet" — never a
+       stage name (PROFILE, CLEAN, ...), a row count excluded in cleaning, or a build date. That
+       detail goes in the reply that hands the page over, or in docs/data/*.md. -->
   <h1><!-- FILL: the question, e.g. "Which channel carries revenue, and is that changing?" --></h1>
   <p class="sub"><!-- FILL: population and source, e.g. "42,318 orders, Jan–Dec 2025, from
        data/curated/orders.parquet" --></p>
@@ -186,7 +190,12 @@
     </div>
   </section>
 
-  <!-- COVERAGE — what the run did not reach, in counts. This is the disclosure's home on the page. -->
+  <!-- COVERAGE — what the run did not reach, in counts. This is the disclosure's home on the page,
+       and its audience is still the reader, not the pipeline: what a number does or does not
+       cover, in the reader's own words ("1 lead did not answer", never "1 lead in the
+       'unspecified' bucket"). Row counts removed in cleaning, script names, artefact filenames
+       (cleaning-log.md, figures.json, verify-output.sh...) and unprompted redact justifications
+       go in the reply that hands the page over, or in docs/data/*.md — not here. -->
   <footer>
     <!-- FILL: inputs processed of inputs present, rows read of rows present,each failure with its
          reason, and when the figures were last recomputed against the curated table. -->

@@ -299,6 +299,112 @@ def test_a_summary_row_carried_in_as_data_is_refused(tmp_path: Path) -> None:
     assert "table/aggregate-row" in rules(report)
 
 
+JARGON_PAGE = """<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sales</title>
+<style>.board { display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }</style>
+</head>
+<body>
+  <h1>Sales</h1>
+  <p>Revenue 25.50 across delivered orders only. Rows were excluded in CLEAN.</p>
+</body>
+</html>
+"""
+
+
+def test_a_pipeline_stage_name_on_the_page_is_refused(tmp_path: Path) -> None:
+    """CLEAN is this pack's own stage name, not a word a business reader was ever meant to see."""
+    note, html = project(tmp_path, JARGON_PAGE)
+
+    code, report = run(note, html)
+
+    assert code == 1
+    assert "page/pipeline-jargon" in rules(report)
+    assert "CLEAN" in messages(report)
+
+
+BUCKET_PAGE = """<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sales</title>
+<style>.board { display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }</style>
+</head>
+<body>
+  <h1>Sales</h1>
+  <p>Revenue 25.50 across delivered orders only. Some orders sit in the "unspecified" bucket.</p>
+</body>
+</html>
+"""
+
+
+def test_the_word_bucket_on_the_page_is_refused(tmp_path: Path) -> None:
+    """'Bucket' is pipeline vocabulary for an uncategorised group, not a word for the reader."""
+    note, html = project(tmp_path, BUCKET_PAGE)
+
+    code, report = run(note, html)
+
+    assert code == 1
+    assert "page/pipeline-jargon" in rules(report)
+
+
+ARTEFACT_NAME_PAGE = """<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sales</title>
+<style>.board { display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }</style>
+</head>
+<body>
+  <h1>Sales</h1>
+  <p>Revenue 25.50 across delivered orders only — see cleaning-log.md for what was excluded.</p>
+</body>
+</html>
+"""
+
+
+def test_a_pipeline_artefact_filename_on_the_page_is_refused(tmp_path: Path) -> None:
+    """A reader of the page cannot open cleaning-log.md and has no reason to know it exists."""
+    note, html = project(tmp_path, ARTEFACT_NAME_PAGE)
+
+    code, report = run(note, html)
+
+    assert code == 1
+    assert "page/pipeline-jargon" in rules(report)
+
+
+@pytest.mark.skipif(not HAS_DUCKDB, reason="the figure check needs the DuckDB package")
+def test_a_declared_page_copy_exception_is_not_refused(tmp_path: Path) -> None:
+    """A real business term that happens to collide with a stage name is named, not guessed."""
+    table = tmp_path / "orders.csv"
+    document = manifest(table)
+    document["page_copy_exceptions"] = ["model"]
+    page = JARGON_PAGE.replace("CLEAN", "MODEL")
+    note, html = project(tmp_path, page, document)
+
+    code, report = run(note, html)
+
+    assert code == 0
+    assert "page/pipeline-jargon" not in rules(report)
+
+
+@pytest.mark.skipif(not HAS_DUCKDB, reason="the figure check needs the DuckDB package")
+def test_an_ordinary_lowercase_word_is_not_mistaken_for_a_stage_name(tmp_path: Path) -> None:
+    """Stage names are matched in capitals only, so ordinary prose about clean energy passes."""
+    page = CLEAN_PAGE.replace(
+        "Revenue 25.50 across delivered orders only",
+        "Revenue 25.50 across delivered orders only, mostly from clean energy customers",
+    )
+    note, html = project(tmp_path, page)
+
+    code, report = run(note, html)
+
+    assert code == 0
+    assert "page/pipeline-jargon" not in rules(report)
+
+
 @pytest.mark.skipif(not HAS_DUCKDB, reason="the figure check needs the DuckDB package")
 def test_sql_that_is_not_a_select_is_refused(tmp_path: Path) -> None:
     """The manifest is read, not trusted: the check never becomes a way to write to the table."""
