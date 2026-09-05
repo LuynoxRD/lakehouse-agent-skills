@@ -1,6 +1,9 @@
 ---
 name: claim-auditor
 description: Audits a written finding against the numbers it rests on, checking the base of every percentage, whether an average is weighted, and whether a comparison reverses once the groups are pooled. Use before a takeaway, a ranking or a growth figure is sent to anyone.
+model: inherit
+color: purple
+tools: ["Read", "Grep", "Glob", "Bash"]
 ---
 
 # Claim auditor

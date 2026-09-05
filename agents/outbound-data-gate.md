@@ -1,6 +1,9 @@
 ---
 name: outbound-data-gate
 description: Reviews what is about to leave the project, classifying every field that would be sent and naming what a free-text column actually contains. Use before rows are pasted into a prompt, attached to a request, or sent to any hosted service, including one that only returns numbers.
+model: haiku
+color: orange
+tools: ["Read", "Grep", "Glob", "Bash"]
 ---
 
 # Outbound data gate

@@ -82,7 +82,7 @@ def parse(text: str) -> Frontmatter:
             children, index = _read_children(lines, index + 1, close, line_no)
             data[key] = children
             continue
-        data[key] = _scalar(rest, line_no)
+        data[key] = _inline_list(rest, line_no) if rest.startswith("[") else _scalar(rest, line_no)
         index += 1
     body = "\n".join(lines[close + 1 :])
     return Frontmatter(data=data, body=body, end_line=close + 1)
@@ -191,6 +191,25 @@ def _read_map(lines: list[str], start: int, close: int) -> tuple[dict[str, str],
         mapping[key] = _scalar(rest, index + 1)
         index += 1
     return mapping, index
+
+
+def _inline_list(raw: str, line_no: int) -> list[str]:
+    """Read a bracketed sequence written on the key's own line.
+
+    Supported because it is the form the agent-frontmatter documentation shows for a persona's
+    tool list, and a file the loader reads has to be a file this parser reads too. Kept as narrow
+    as the rest of the module: one line, quoted or plain items, no nesting.
+    """
+    if not raw.endswith("]"):
+        raise FrontmatterError(
+            "unterminated inline list; it has to close on the same line", line_no
+        )
+    inner = raw[1:-1].strip()
+    if not inner:
+        return []
+    if "[" in inner or "{" in inner:
+        raise FrontmatterError("inline lists hold scalars only", line_no)
+    return [_scalar(item.strip(), line_no) for item in inner.split(",") if item.strip()]
 
 
 def _scalar(raw: str, line_no: int) -> str:
