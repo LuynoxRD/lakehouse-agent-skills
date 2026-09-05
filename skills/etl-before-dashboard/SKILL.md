@@ -49,6 +49,27 @@ to the `insight-narrative-integrity` skill.
 
 ## Core Process
 
+### How the notes hold more than one source
+
+There is one `docs/data/profile.md`, one `docs/data/cleaning-log.md` and one
+`docs/data/model.md` per project, never one per file. Those paths are canonical: the artefact
+check hashes them by name, the reviewer opens them by name, and a note written anywhere else is
+a note nothing will find. So more than one source lives in the same note, and it does it in
+sections:
+
+- **`profile.md`** carries one section per source, headed by the path the source arrived at, such
+  as `## data/raw/orders.csv`. Everything Step 1 asks for goes under its own heading.
+- **`cleaning-log.md`** groups its rules under the same headings, because a rule belongs to the
+  source it matched and a row count that does not say which file it counted is not a row count.
+- **`model.md`** carries one grain sentence per curated table, then a `## Relations` section for
+  the sentences that join them.
+
+This matters more than a filing convention, and the reason is the next step. "Has this arrived
+before" is a question about **the section**, not about the file. A project that has profiled
+`orders.csv` and now receives `customers.csv` for the first time has a `profile.md` and no
+section for the new source, and that is a first arrival — comparing it against the orders profile
+would be comparing two different things because they happen to share a filename.
+
 ### Before Step 1: if this data has arrived before, compare instead of starting over
 
 The most ordinary thing that happens to a dataset is that it arrives a second time, and the two
@@ -56,8 +77,8 @@ reflexes are both wrong. Profiling from scratch throws away the one thing that m
 arrival cheap — a written record of what the first one looked like. Skipping the profile because
 "it is the same file" assumes the answer to the only question worth asking.
 
-If `docs/data/profile.md` exists for this source, the job is a **comparison**, and it is four
-things. Each one is a number or a list, not an impression:
+If `docs/data/profile.md` already has a section for **this** source, the job is a
+**comparison**, and it is four things. Each one is a number or a list, not an impression:
 
 - **Columns that appeared, columns that are gone, types that changed.** A column that vanished
   breaks a chart quietly, by producing an empty panel rather than an error. A column that
@@ -72,9 +93,10 @@ things. Each one is a number or a list, not an impression:
   rows is either fixed upstream or aimed at something that moved. Both are worth knowing before
   the rule runs; neither is visible after it does.
 
-Then profile the new file normally, and give `docs/data/profile.md` a section naming those
-differences against the profile it replaces. On a first arrival that section says so in one line,
-which is what makes its absence later mean something.
+Then profile the new file normally, and rewrite that source's section with the current shape,
+keeping a short **What changed since the last arrival** entry inside it. On a first arrival
+that entry says so in one line, which is what makes a later absence mean something. Sections
+for other sources are left alone: this arrival is evidence about one of them.
 
 One part of this enforces itself. The receipt in `docs/data/verification.json` goes stale the
 moment new data lands, because the files it hashed have changed, so the check that already exists
@@ -162,14 +184,15 @@ order line per day per store". Everything downstream depends on that sentence be
 
 #### When two sources have to be related
 
-`model.md` says what one row of one table means. A relation between two tables is a second thing
-and nothing documents it, which is how a join arrives as a line of SQL that nobody ever decided
-was possible. Whether the join runs correctly is a query question and belongs to the
+`model.md` says what one row of one table means, once per table. A relation between two of them
+is a second kind of statement and nothing documents it, which is how a join arrives as a line of
+SQL that nobody ever decided was possible. Whether the join runs correctly is a query question and belongs to the
 `duckdb-for-local-analytics` skill. Whether the two sides can be related at all is this step, and
 it comes first, because a join over a key that is not a key produces a number rather than an
 error.
 
-Establish these before writing any join, and write the answers into `model.md`:
+Establish these before writing any join, and write the answers into the `## Relations` section of
+`model.md`, below the grain sentence of each table it names:
 
 1. **Which column relates them, named on each side.** They are rarely called the same thing, and
    a name that matches is not evidence that the contents do.
@@ -186,7 +209,7 @@ Establish these before writing any join, and write the answers into `model.md`:
    it removed are usually the interesting ones — the new store, the returned order, the customer
    who has not bought yet.
 
-Write one sentence per relation, in the same form as the grain sentence: "one row of `orders`
+Write one sentence per relation, in the same form as the grain sentences above it: "one row of `orders`
 matches at most one row of `customers` on the normalised `customer_id`; 41 of 5,012 orders match
 nothing and are kept". A relation with no such sentence is an assumption with a query on top.
 
@@ -363,10 +386,15 @@ Stop and return to Step 1 when you notice any of these:
       the answer showing zero errors. Not run, or run and not read, is the same as not checked.
 - [ ] `docs/data/verification.json` exists, was written by that run rather than by hand, and is
       newer than every file it names.
-- [ ] If this source has arrived before, `docs/data/profile.md` names the columns that appeared,
+- [ ] Each source has its own section in `docs/data/profile.md` and its own rules in
+      `docs/data/cleaning-log.md`, and `docs/data/model.md` carries one grain sentence per
+      curated table.
+- [ ] If this source has arrived before — meaning it already had a section, not merely that the
+      file existed — `docs/data/profile.md` names the columns that appeared,
       the columns that are gone, the types that changed, and the overlap on the key as counts,
       with the arrival called an append or a restatement.
-- [ ] Every relation between two tables is one sentence in `docs/data/model.md` naming the key
+- [ ] Every relation between two tables is one sentence under `## Relations` in
+      `docs/data/model.md`, naming the key
       on each side, any normalisation it needed, the cardinality, and how many rows on each
       side match nothing.
 - [ ] Everything written for a reader is in the reader's language, and no column name, path or

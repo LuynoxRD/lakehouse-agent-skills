@@ -135,6 +135,11 @@ What never changes is the identifiers: column names, table names, file paths and
 as they are, because the reader has to be able to search for them. Describe `total_amount` in
 their language; do not rename it into their language.
 
+The numbers follow the reader too. A figure written with the separators of another locale is a
+figure the reader will misread by a factor of a thousand, and this skill exists to stop numbers
+being misread. Format where the number is displayed, leave the stored value alone, and put the
+unit beside anything that could still be taken two ways.
+
 ## Common Rationalizations
 
 | Excuse | Reality |
@@ -177,3 +182,5 @@ their language; do not rename it into their language.
       than restating it here.
 - [ ] The prose is in the reader's language throughout, with nothing left in another, and every
       column name, path and piece of code is quoted unchanged.
+- [ ] Every displayed number and date uses the reader's separators and order, and anything that
+      could be read two ways carries its unit.

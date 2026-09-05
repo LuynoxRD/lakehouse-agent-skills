@@ -47,9 +47,9 @@ because they exist is how a review of a two-hundred-row table costs more than th
 
 | Artifact | What the receipt settles about it | What it has to contain to count |
 | --- | --- | --- |
-| `docs/data/profile.md` | Only that it has not changed since the run | Every column with its inferred and intended type, and a stated decision for each ambiguity with the evidence that settled it |
+| `docs/data/profile.md` | Only that it has not changed since the run | One section per source, each with every column, its inferred and intended type, and a stated decision for each ambiguity with the evidence that settled it |
 | `docs/data/cleaning-log.md` | Only that it has not changed since the run | Every rule, what it matched, and **how many rows it touched** |
-| `docs/data/model.md` | Only that it has not changed since the run | One sentence saying what a single row means, and a key verified unique |
+| `docs/data/model.md` | Only that it has not changed since the run | One grain sentence per curated table, each with a key verified unique, and one sentence per relation under `## Relations` |
 | `docs/data/disclosure.md` | Only that it has not changed since the run | Counts: inputs processed out of inputs present, rows, and each failure with its reason |
 | `docs/data/figures.json` | That it has not changed, **and** that every figure in it was recomputed against the table | Every published number with the population it covers and the query that produces it |
 

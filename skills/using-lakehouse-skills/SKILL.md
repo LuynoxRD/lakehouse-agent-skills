@@ -79,6 +79,15 @@ table names, manifest keys, SQL and code stay exactly as they are, because they 
 something else has to find. A column called `total_amount` is called `total_amount` in a Spanish
 note; describing it in Spanish is the job, renaming it is a bug.
 
+**How a number is written is part of the language.** The decimal separator, the thousands
+separator and the date order follow the reader as well. This is the discipline the profile
+applies on the way in, pointed the other way: handing `1,046.65` to somebody who reads
+`1.046,65` moves the figure by three orders of magnitude in their head, which is the exact
+failure `etl-before-dashboard` spends a whole table catching on arrival. The stored value never
+changes — the curated table, the manifest and any exported file keep one canonical form, and
+the formatting happens where the number is displayed. Where a figure could still be read two
+ways, its unit goes next to it.
+
 The reason to state this so plainly is that the opposite happens by inference. A repository whose
 own files are in English is stating a rule about *its* files, not about what an agent writes to a
 person, and reading it as the second produces exactly what one real run produced: `model.md` in
@@ -188,6 +197,8 @@ dataset is being turned into an answer.
       and the differences are written down, including the overlap on the key.
 - [ ] Everything the reader reads is in the reader's language, with nothing left in another,
       and every column name, path and manifest key is unchanged.
+- [ ] Displayed numbers and dates use the reader's separators and order, while the stored
+      values keep one canonical form.
 - [ ] Whether the result leaves the project, and whether somebody will act on it, were both
       answered from the request before the work started, not from the size of the file.
 - [ ] If both answers were no, the words in the request that support that are quoted next to the
