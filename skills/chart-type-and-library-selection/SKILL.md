@@ -133,6 +133,59 @@ Only then the library, decided by where the chart has to work:
 Name what the reader must be able to do, then the destination, then the library, then why. "It
 is what I know" is the answer this step exists to replace.
 
+#### Linked filtering in one file, with no build step
+
+Question 2 is the one that gets abandoned, because "make the panels filter each other" sounds
+like it needs a framework. It does not, and reaching for one has a cost worth naming: a bundler
+puts a compile step between the code and the artefact, and an agent with no live preview has to
+verify that step blind. A script that writes a file either wrote it or did not.
+
+The shape is four things in one document:
+
+1. **One load of the library, for every panel.** Not one per chart. Five files each embedding
+   their own copy is the same page five times over, and the `dashboard-layout-by-widget-mix`
+   skill refuses it.
+2. **The rows embedded once**, with each panel a view computed from them rather than a separate
+   extract. Two panels aggregating from two extracts is how they come to disagree.
+3. **One redraw that recomputes every panel from the current filter**, so no panel can be stale.
+4. **The active filter visible, clearable in one action, and in the URL** so a filtered view can
+   be handed to somebody.
+
+```html
+<script src="…the charting library, loaded once…"></script>
+<script>
+  const ROWS = [ /* the curated rows, embedded once */ ];
+  let active = new URL(location).searchParams.get("channel");
+
+  const visible = () => (active ? ROWS.filter((r) => r.channel === active) : ROWS);
+
+  function draw() {
+    const rows = visible();
+    Plotly.react("by-category", [byCategory(rows)], categoryLayout);
+    Plotly.react("by-month", [byMonth(rows)], monthLayout);
+    document.getElementById("chip").textContent = active ? `Channel: ${active}` : "All channels";
+    document.getElementById("clear").hidden = !active;
+    const url = new URL(location);
+    active ? url.searchParams.set("channel", active) : url.searchParams.delete("channel");
+    history.replaceState(null, "", url);
+  }
+
+  document.getElementById("by-channel").on("plotly_click", (event) => {
+    const clicked = event.points[0].x;
+    active = active === clicked ? null : clicked; // clicking the same bar clears the filter
+    draw();
+  });
+  document.getElementById("clear").onclick = () => { active = null; draw(); };
+  draw();
+</script>
+```
+
+`react` takes new data and diffs it against what is drawn, which is what a changed aggregation
+needs; `restyle` changes attributes of traces already drawn and is the cheaper call for something
+like highlighting the selected bar. Every panel that shares the grain goes inside `draw`. A panel
+left outside it is the failure question 2 describes: two populations on one screen, with nothing
+saying they differ.
+
 ### Step 5: Label so the chart survives being separated from its context
 
 Every chart travels: it gets screenshotted, pasted, and shown without whatever was said next to
@@ -154,6 +207,7 @@ will not travel with it.
 | "Interactivity makes it richer." | Interaction that carries values is useful. Interaction that carries motion is a delay the reader pays for every time. |
 | "The charts are interactive, so the page is." | Zooming one panel is not filtering the page. If selecting a category does not move the other panels, the reader has to hold the filter in their head while reading numbers that ignore it. |
 | "Filters can be added later; the charts are the hard part." | Filtering decides which library can do the job, so adding it later means rewriting the charts. It is the first decision, not the last. |
+| "Linked filtering needs a framework." | It needs one library load, the rows in one place, and one redraw. A build step between the code and the artefact is a compile that has to be verified blind by anything without a live preview. |
 | "A dashboard is a set of charts on a page." | That is a report. A dashboard is a page someone interrogates; if there is nothing to interrogate it with, build the report deliberately and say that is what it is. |
 | "It is just an exploratory chart." | Exploratory charts are the ones that get pasted into messages, where nothing says they were exploratory. |
 
@@ -169,6 +223,8 @@ Stop when any of these is true:
 - A chart is being built and the sentence describing what is being compared was never written.
 - The library was chosen before the destination was named.
 - A chart carries no units, no period and no source table.
+- Each chart was written to its own file. Panels in separate files cannot filter each
+  other, cannot be compared side by side, and each carries its own copy of the library.
 - A second charting library appears in the project's declared dependencies and nothing states
   what distinguishes it from the first. Two libraries are two visual languages, two sets of
   defaults and two ways the same bar ends up a different colour; having two is allowed, arriving

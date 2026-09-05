@@ -81,6 +81,17 @@ does not help, because it makes each one harder to read while leaving just as ma
 - Splitting is not a defeat. A page that needs scrolling past three screens has already been
   split, just badly, and by the scrollbar rather than by anybody's decision.
 
+**The deliverable is exactly one file, unless splitting it was a decision you write down.** This
+is the firm form of everything above, and it is where a run most often stops early: a page of six
+panels becomes six files of one chart each, and the reader is handed the assembling that the
+layout was for. Six files cannot share an axis, cannot be compared side by side, and cannot carry
+a filter between them. They are six charts.
+
+Each one also carries its own copy of whatever draws it. A real run delivered five files of four
+megabytes where the drawing library is the same bytes five times over: twenty megabytes to show
+what one page would have shown in one. If a split is genuinely right, it is stated with its
+reason, and the library is still loaded once rather than once per page.
+
 ### Step 4: Do not make a uniform grid the default
 
 A grid of identical tiles is the most common layout and it is a decision not to decide. It gives a
@@ -120,12 +131,14 @@ applied to the real document and broke the layout this skill had just decided.
 So the last act of assembly is to read the file:
 
 ```
-bash scripts/verify-output.sh --manifest docs/data/figures.json --html <the page that ships>
+bash scripts/verify-output.sh --manifest docs/data/figures.json   --html <the page that ships> --project .
 ```
 
 It fails on more than one doctype, a repeated `<html>`, `<head>` or `<body>`, a duplicated
 charset, an unclosed or stray tag, a page that does not decode as UTF-8, and on any number in the
-page's own text that no declared figure produces. That last one catches the fault assembly is
+page's own text that no declared figure produces. With `--project` it also **looks for the pages
+rather than trusting the ones it was handed**, and fails when several were delivered with no
+stated reason, or when the same inline script sits in more than one of them. That last one catches the fault assembly is
 uniquely prone to: a count typed into a header or a subtitle by hand, sitting a few centimetres
 from a computed tile that disagrees with it.
 
@@ -158,6 +171,8 @@ Stop when any of these is true:
 - A trend chart is square, or a bar chart's category labels are rotated to fit.
 - The page requires scrolling past several screens and has never been split.
 - A panel was added to the first free space rather than to a group.
+- The deliverable is more than one file and nothing says why.
+- Each delivered file carries its own copy of the drawing library.
 - A figure was embedded by pasting the output of a call whose default is a whole document.
 - A count sits in a header, a subtitle or a footer without a query behind it.
 - The page was declared finished on the strength of having been opened, not read.
@@ -175,6 +190,8 @@ Stop when any of these is true:
 - [ ] The layout is expressed as weights and flow rules, with the narrow-viewport behaviour of each
       panel stated, including any that are deliberately hidden.
 - [ ] Anything removed from the page is named, with the reason.
-- [ ] `scripts/verify-output.sh` was run against the assembled file and its output is quoted
-      showing zero errors. The assembled page is one document, and every number in its own text
+- [ ] The deliverable is one file. If it is not, the split is written down with its reason, and
+      the drawing library is loaded once rather than once per page.
+- [ ] `scripts/verify-output.sh` was run against the assembled file with `--project`, and its
+      output is quoted showing zero errors. The assembled page is one document, and every number in its own text
       is one a declared figure produces.

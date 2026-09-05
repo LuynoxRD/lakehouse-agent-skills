@@ -24,6 +24,10 @@ set -euo pipefail
 #   5. Did a second library of the    Two charting libraries are two visual languages; two
 #      same kind arrive unexplained?  dataframe libraries type the same table twice by different
 #                                     rules. Either is allowed, neither is allowed silently.
+#   6. Is the deliverable one page,   Several files each holding one chart are several charts, and
+#      with one copy of the library?  the reader does the assembling. Pages are found in the
+#                                     project rather than taken from the arguments, and an inline
+#                                     script repeated across them is a library shipped N times.
 #
 # A green run writes a receipt (verification.json beside the manifest) naming what it read and the
 # digest of each one; a failing run deletes any receipt that was there. That is what lets something
@@ -127,6 +131,9 @@ CHART_FAMILIES: dict[str, tuple[str, ...]] = {
     "amcharts": ("@amcharts/amcharts5",),
     "uplot": ("uplot",),
 }
+# An inline script this big is a bundled library rather than page code. Used to notice the same
+# library shipped once per page, which is how five charts became twenty megabytes.
+RUNTIME_BYTES = 50_000
 FRAME_FAMILIES: dict[str, tuple[str, ...]] = {
     "pandas": ("pandas", "geopandas", "modin"),
     "polars": ("polars",),
@@ -501,6 +508,82 @@ def check_libraries(project: Path, manifest: dict[str, object], report: Report) 
         )
 
 
+def delivered_pages(project: Path) -> list[Path]:
+    """Every page sitting in the project, found rather than taken on trust.
+
+    The list of pages to check arrives as arguments, so a run that produced five files can pass
+    one and be told it is fine. This looks instead.
+    """
+    skip = {".git", "node_modules", ".venv", "venv", "__pycache__", "dist", "build", ".next"}
+    found: list[Path] = []
+    for depth in ("*", "*/*"):
+        for pattern in (".html", ".htm"):
+            found += [
+                path
+                for path in sorted(project.glob(depth))
+                if path.is_file()
+                and path.suffix.lower() == pattern
+                and not any(part in skip for part in path.relative_to(project).parts)
+            ]
+    return sorted(set(found))
+
+
+def embedded_runtimes(text: str) -> dict[str, int]:
+    """Digest and size of every inline script big enough to be a bundled library."""
+    runtimes: dict[str, int] = {}
+    for match in re.finditer(r"<script(?![^>]*\ssrc=)[^>]*>(.*?)</script>", text, re.S | re.I):
+        body = match.group(1)
+        if len(body) >= RUNTIME_BYTES:
+            runtimes[hashlib.sha256(body.encode("utf-8", "replace")).hexdigest()] = len(body)
+    return runtimes
+
+
+def check_delivery(project: Path, manifest: dict[str, object], report: Report) -> None:
+    """One deliverable, and one copy of whatever draws it.
+
+    A dashboard is a page somebody interrogates, so it is one page unless splitting it was a
+    decision. Five files each holding one chart are five charts, and a reader comparing them has
+    to do the comparing. Worse, each one carried its own copy of the drawing library: a real run
+    delivered five pages of four megabytes where the library is the same bytes five times.
+    """
+    pages = delivered_pages(project)
+    if not pages:
+        return
+
+    report.checked += 1
+    reason = str(manifest.get("pages_reason", "")).strip()
+    if len(pages) > 1 and not reason:
+        names = ", ".join(path.name for path in pages)
+        report.error(
+            "delivery/many-pages",
+            f"{len(pages)} pages were delivered ({names}) and nothing says why the deliverable "
+            "is not one page. A reader given several files does the assembling that the layout "
+            "was supposed to do. State the split in the manifest as 'pages_reason', or build one "
+            "page",
+        )
+
+    seen: dict[str, list[Path]] = {}
+    sizes: dict[str, int] = {}
+    for path in pages:
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except OSError:  # noqa: PERF203 - an unreadable page is reported by the structure check
+            continue
+        for digest, size in embedded_runtimes(text).items():
+            seen.setdefault(digest, []).append(path)
+            sizes[digest] = size
+    for digest, holders in seen.items():
+        report.checked += 1
+        if len(holders) > 1:
+            names = ", ".join(path.name for path in holders)
+            report.error(
+                "delivery/duplicated-runtime",
+                f"the same {sizes[digest] // 1024} KB of inline script is embedded in "
+                f"{len(holders)} pages ({names}). Load the library once and let the pages share "
+                "it, or deliver one page",
+            )
+
+
 def check_docs(directory: Path, report: Report) -> None:
     """The notes are delivered too, and on Windows they are where the encoding breaks."""
     for path in sorted(directory.rglob("*.md")):
@@ -614,6 +697,7 @@ def main() -> int:
     check_aggregate_rows(connection, manifest, report)
     if args.project is not None and args.project.is_dir():
         check_libraries(args.project, manifest, report)
+        check_delivery(args.project, manifest, report)
     if args.docs is not None and args.docs.is_dir():
         check_docs(args.docs, report)
 
