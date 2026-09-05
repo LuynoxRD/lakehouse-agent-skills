@@ -159,6 +159,35 @@ slot for each:
 **Never a tooltip as the only carrier.** The `dashboard-color-and-visual-hierarchy` skill already
 refuses an encoding that exists only on hover, and a caveat is an encoding.
 
+**Write it for the reader who opens the page, not for the one who ran the pipeline.** Most people
+who open a dashboard never ran PROFILE through DISCLOSE, do not know those words, and should not
+have to: the number and its population are the answer they came for, and the answer is what sells,
+not the process behind it. A waitlist page whose footer reads "3 test submissions and 1 duplicate
+resubmission were excluded in CLEAN, see cleaning-log.md" is accurate and unreadable to the
+business reader it was built for — `CLEAN` is this pack's own stage name, `cleaning-log.md` is a
+file the reader has no way to open, and a paragraph explaining that a redact decision was made
+about a field nobody asked about answers a question the page never raised.
+
+The line is drawn by audience, not by trimming words. Every FILL below has a home on one side:
+
+| Belongs on the page | Belongs in the reply, or in `docs/data/*.md` |
+| --- | --- |
+| What a figure means and its population — "9 of 25 leads (36%)" | How it was produced — cleaning rules, row counts removed, script and file names |
+| A caveat that changes how a figure is read — "a small base, 3 leads" | The pipeline's own provenance — build dates, stage names, which script ran |
+| Why a category is its own group — "1 lead did not answer" | The name that group has in the code, or the word "bucket" itself |
+| An answer to a question the reader actually asked | An unprompted paragraph justifying a redact decision nobody raised |
+
+Four tells, checkable rather than a matter of taste: a pipeline stage name in capitals (`PROFILE`,
+`CLEAN`, `MODEL`, `QUERY`, `VISUALIZE`, `ASSEMBLE`, `NARRATE`, `DISCLOSE`, `REDACT`) sitting as page
+text; the literal word "bucket"; the name of one of this pack's own artefact files
+(`cleaning-log.md`, `figures.json`, `verify-output.sh` and the like); or a sentence explaining a
+decision about data that was never shown, unprompted. None of these words is wrong to know — they
+are wrong on this page. Say them in the reply that hands the page over, and in the disclosure note
+beside the curated table, where a reader who wants that detail already knows to look.
+`scripts/verify-output.sh` checks for the first three; the manifest's `page_copy_exceptions` names
+a real business term that happens to collide with one (a product literally called Model, say),
+because the check cannot tell the two apart on its own.
+
 ### Step 1: Inventory the panels by type, and give each type the area it needs
 
 Area is a property of the content, not of the grid. List every panel with its type, then size it
@@ -360,6 +389,9 @@ So the last act is to open it, at named widths, and write down what you saw:
 | "Asking about the format is a detour; the page is what matters." | The format decides who can open the result and what can still be recomputed about it. Both are properties of the page. Choosing them silently is not saving the reader a question, it is answering one on their behalf. |
 | "The page opened in the browser, so the assembly is fine." | Opening proves the browser recovered. Nested documents, duplicated stylesheets and a header that disagrees with its own tile all survive that test intact. |
 | "That figure in the header is just context, not a metric." | It is a number on the page, so it is read as one. Context that nothing computed is the easiest kind of wrong to ship. |
+| "Saying what was cleaned is being transparent." | Transparent to whom. The reader who opens the page did not ask how it was made; that answer goes in the reply, where the person who did ask is the one reading it. |
+| "It's more accurate to name the exact stage." | Accurate and unreadable both describe this sentence. `CLEAN` is precise to the person who ran the pipeline and meaningless to everyone else, which is most readers. |
+| "Mentioning the file is helpful, in case someone wants to check." | A reader of a page has no way to open `cleaning-log.md`; naming it on the page helps nobody, it only proves the sentence was written for the pipeline's own audit trail. |
 
 ## Red Flags
 
@@ -396,6 +428,13 @@ Stop when any of these is true:
   other shape, and it means Step 1 was never applied.
 - One gap size is used everywhere, so nothing is grouped by proximity.
 - The page has a `max-width` and no other rule about width, which is a fixed layout centred.
+- One of this pack's own stage names (`PROFILE`, `CLEAN`, `MODEL`, `QUERY`, `VISUALIZE`,
+  `ASSEMBLE`, `NARRATE`, `DISCLOSE`, `REDACT`) sits as plain text on the page.
+- The word "bucket" appears on the page, instead of what the group actually is.
+- The page names one of its own artefact files (`cleaning-log.md`, `figures.json`,
+  `verify-output.sh`) as something the reader could open.
+- The page volunteers a paragraph justifying a redact decision — a field that exists but is not
+  shown — that nothing on the page prompted a reader to ask about.
 
 ## Verification
 
@@ -409,6 +448,11 @@ Stop when any of these is true:
       or a letter-spacing change.
 - [ ] Every caveat is placed by what it does: one that changes how a figure is read sits under
       that figure, coverage and provenance sit in the footer, and none of them is hover-only.
+- [ ] Nothing on the page names a pipeline stage in capitals, the word "bucket", or one of this
+      pack's own artefact filenames — that detail is in the reply and in `docs/data/*.md`, or it
+      is named in `page_copy_exceptions` as a real business term. `verify-output.sh` checks this.
+- [ ] No paragraph on the page justifies a redact decision nobody asked about; a field that is
+      not shown is simply not shown.
 - [ ] Every panel is listed with its type and the area that type needs, and the sizes on the page
       reflect that rather than a uniform grid.
 - [ ] The question the page answers is written in one sentence, and the panels are ordered by how

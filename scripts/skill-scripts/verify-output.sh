@@ -109,6 +109,29 @@ AGGREGATE_LABEL = re.compile(
     re.IGNORECASE,
 )
 
+# This pack's own vocabulary for the pipeline that built the page, as opposed to the page itself.
+# A reader who opens the delivered file did not necessarily run PROFILE through DISCLOSE, and has
+# no reason to know what any of these mean; that detail belongs in the reply that hands the page
+# over, or in docs/data beside the curated table. Stage names are matched in capitals only, so an
+# ordinary word in ordinary case (a product literally called "Model") never trips this.
+STAGE_WORD = re.compile(
+    r"(?<![\w-])(PROFILE|CLEAN|MODEL|QUERY|VISUALIZE|ASSEMBLE|NARRATE|DISCLOSE|REDACT)(?![\w-])"
+)
+BUCKET_WORD = re.compile(r"(?<![\w-])bucket(?![\w-])", re.IGNORECASE)
+PIPELINE_ARTEFACT_NAMES = (
+    "cleaning-log.md",
+    "profile.md",
+    "model.md",
+    "disclosure.md",
+    "insights.md",
+    "figures.json",
+    "verification.json",
+    "verify-output.sh",
+)
+ARTEFACT_NAME = re.compile(
+    "(?:" + "|".join(re.escape(name) for name in PIPELINE_ARTEFACT_NAMES) + ")", re.IGNORECASE
+)
+
 # Where a project declares what it depends on. Only the root is read: a lock file lists what was
 # resolved, and a transitive dependency is not a decision anybody made.
 DEPENDENCY_FILES = (
@@ -157,6 +180,9 @@ NOT_VERIFIED = (
     "whether a colour actually reached the category the manifest assigned it to",
     "whether a control that exists in the markup is discoverable by a reader",
     "whether the destination was asked of a person or decided for them; only what was recorded",
+    "whether the page reads as a business answer beyond the specific stage names, artefact "
+    "filenames and the word 'bucket' this checks for; a sentence can still report on the pipeline "
+    "without using any of them",
 )
 
 # The notes a reviewer treats as the evidence behind a claim. They sit beside the manifest and
@@ -514,6 +540,66 @@ def check_page_numbers(
                 str(path),
                 line,
             )
+
+
+def check_pipeline_jargon(
+    pages: dict[Path, PageParser], manifest: dict[str, object], report: Report
+) -> None:
+    """The page is read by whoever opens it, not by whoever ran the pipeline that built it.
+
+    A stage name from this pack, one of its own artefact filenames, or the word "bucket" is true
+    and unreadable to that reader: it names something from PROFILE through DISCLOSE, and that
+    belongs in the reply that hands the page over, or in docs/data beside the curated table --
+    never printed as page text for a reader who never ran the pipeline and has no reason to know
+    what any of it means. See the SKILL's own section on this before assuming a hit is a mistake.
+    """
+    exceptions = manifest.get("page_copy_exceptions")
+    exceptions = {str(item).lower() for item in exceptions} if isinstance(exceptions, list) else set()
+
+    for path, parser in pages.items():
+        for line, chunk in parser.text:
+            stripped = chunk.strip()
+            if not stripped:
+                continue
+            report.checked += 1
+
+            for match in STAGE_WORD.finditer(stripped):
+                token = match.group(1)
+                if token.lower() in exceptions:
+                    continue
+                report.error(
+                    "page/pipeline-jargon",
+                    f"{token!r} is one of this pack's own stage names, sitting as plain text on "
+                    "the page. A reader who did not run the pipeline has no reason to know what "
+                    "it means -- say it in the reply that hands the page over, or record it in "
+                    "'page_copy_exceptions' if it is a real business term here (a product "
+                    "literally named Model, say)",
+                    str(path),
+                    line,
+                )
+            for _match in BUCKET_WORD.finditer(stripped):
+                if "bucket" in exceptions:
+                    continue
+                report.error(
+                    "page/pipeline-jargon",
+                    "'bucket' is this pack's own word for an uncategorized group. Say what the "
+                    "group actually is instead: '1 lead did not answer', not '1 lead in the "
+                    '"unspecified" bucket\'',
+                    str(path),
+                    line,
+                )
+            for match in ARTEFACT_NAME.finditer(stripped):
+                token = match.group(0)
+                if token.lower() in exceptions:
+                    continue
+                report.error(
+                    "page/pipeline-jargon",
+                    f"{token!r} names one of this pack's own artefact files. A reader of the "
+                    "page has no way to open it and no reason to know it exists -- state the "
+                    "detail in docs/data or in the reply instead of naming the file on the page",
+                    str(path),
+                    line,
+                )
 
 
 def check_aggregate_rows(connection, manifest: dict[str, object], report: Report) -> None:  # noqa: ANN001
@@ -1032,6 +1118,7 @@ def main() -> int:
 
     check_destination(manifest, report)
     check_page_numbers(pages, accounted, report)
+    check_pipeline_jargon(pages, manifest, report)
     check_aggregate_rows(connection, manifest, report)
     if args.project is not None and args.project.is_dir():
         check_libraries(args.project, manifest, report)
