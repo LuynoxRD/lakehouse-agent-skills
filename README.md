@@ -1,4 +1,4 @@
-# lakehouse-agent-skills
+# Lakehouse Agent Skills
 
 Data engineering discipline for AI coding agents. **14 skills, 9 commands and 3 reviewer
 subagents** that make an agent profile a file before it cleans it, clean it before it charts it,
@@ -6,6 +6,18 @@ and say plainly what it did not cover.
 
 ![You, the agent's code, the lakehouse pipeline and three subagents, all reading and writing one
 shared store of project files. Built on DuckDB, Polars, openpyxl and Parquet.](docs/architecture.webp)
+
+## The lifecycle
+
+Data work runs in one direction. Each stage assumes the one before it happened.
+
+```
+PROFILE → CLEAN → MODEL → QUERY → VISUALIZE → ASSEMBLE → NARRATE → DISCLOSE
+/profile  /clean  /model   /query   /chart     /dashboard  /insight  /disclose
+                                                              /redact runs across all of them
+```
+
+Run a command to enter a stage by name, or just describe the task and let the router pick.
 
 ## What you get
 
@@ -51,18 +63,6 @@ shared store of project files. Built on DuckDB, Polars, openpyxl and Parquet.](d
 - **A written record of what was skipped** — rows, sheets, files, in counts rather than adjectives.
 - **Nothing personal leaves the project** without somebody deciding it should.
 
-## The lifecycle
-
-Data work runs in one direction. Each stage assumes the one before it happened.
-
-```
-PROFILE → CLEAN → MODEL → QUERY → VISUALIZE → ASSEMBLE → NARRATE → DISCLOSE
-/profile  /clean  /model   /query   /chart     /dashboard  /insight  /disclose
-                                                              /redact runs across all of them
-```
-
-Run a command to enter a stage by name, or just describe the task and let the router pick.
-
 ## Skills (14)
 
 | Stage | Skill | Use it when |
@@ -100,22 +100,123 @@ disclosure written, or a published page has not been checked.
 
 ## Install
 
-The universal CLI installs for whichever agent you name — 77 of them when this was last
-measured. Put yours after `--agent`:
+**Fastest path — one command, any agent.** The open [skills CLI](https://github.com/vercel-labs/skills)
+installs into 77 agents. Name yours after `--agent`:
 
 ```bash
 npx skills add LuynoxRD/lakehouse-agent-skills --skill '*' --agent claude-code -y
+npx skills add LuynoxRD/lakehouse-agent-skills --list       # browse before installing
 ```
 
-One skill on its own:
+Or one skill on its own:
 
 ```bash
 npx skills add LuynoxRD/lakehouse-agent-skills --skill etl-before-dashboard --agent cursor -y
 ```
 
-The commands, subagents and hooks arrive together through the plugin route instead — see
-[docs/installing.md](docs/installing.md), which also says exactly how far each piece reaches and
-what was verified by running it rather than by reading documentation.
+> A per-skill install copies `skills/<name>/` and nothing above it, so the shared `references/`
+> checklists do not come with it. Every skill keeps inline what it cannot work without, and says
+> next to each link what you lose when the shared file is absent — if one ever stops making sense
+> on its own, that is a defect in the skill.
+
+Prefer a native integration, or want the commands and subagents too? Pick your tool.
+
+<details>
+<summary><b>Claude Code</b> — the whole pack: skills, commands, subagents, hooks</summary>
+
+The repository is also a plugin. This is the only route that brings the nine commands, the three
+reviewer subagents and the two session hooks along with the skills:
+
+```bash
+claude plugin marketplace add LuynoxRD/lakehouse-agent-skills
+claude plugin install lakehouse-agent-skills@lakehouse-skills
+claude plugin details lakehouse-agent-skills
+```
+
+`marketplace add` takes a GitHub repo, a URL or a path, so a local clone works the same way and is
+how to try a change before it is merged:
+
+```bash
+git clone https://github.com/LuynoxRD/lakehouse-agent-skills.git
+claude plugin marketplace add ./lakehouse-agent-skills
+claude plugin install lakehouse-agent-skills@lakehouse-skills
+```
+
+That second form is the one verified end to end, in a throwaway project. The inventory that comes
+back is 23 skills — the fourteen plus the nine commands, which load through the same mechanism —
+3 agents, and 2 hooks. About **2,794 tokens always-on**; each skill costs its own text again only
+when it fires.
+
+</details>
+
+<details>
+<summary><b>Cursor, opencode, Codex, Copilot, Zed and 14 more</b> — one shared directory</summary>
+
+Nineteen tools read the same project directory, `.agents/skills`, which is the cross-tool
+convention rather than any one product's folder: Amp, Antigravity, Antigravity CLI, Cline, Codex,
+Cursor, Deep Agents, Dexto, Firebender, Gemini CLI, GitHub Copilot, Kimi Code CLI, Loaf, opencode,
+PromptScript, Replit, Universal, Warp and Zed.
+
+```bash
+npx skills add LuynoxRD/lakehouse-agent-skills --skill '*' --agent cursor -y
+npx skills add LuynoxRD/lakehouse-agent-skills --skill '*' --agent opencode -y
+npx skills add LuynoxRD/lakehouse-agent-skills --skill '*' --agent cursor,opencode,codex -y
+```
+
+**Install for one and the rest find them too**, because they are all reading the same place.
+
+</details>
+
+<details>
+<summary><b>Windsurf, Continue, Roo, Kilo, Junie, Goose, Kiro and the long tail</b></summary>
+
+These read their own `.<tool>/skills/` directory, so name yours — or install for every agent the
+CLI knows in one go:
+
+```bash
+npx skills add LuynoxRD/lakehouse-agent-skills --skill '*' --agent windsurf -y
+npx skills add LuynoxRD/lakehouse-agent-skills --all          # every agent, every skill
+```
+
+</details>
+
+<details>
+<summary><b>Gemini CLI</b> — skills, plus the nine commands</summary>
+
+Gemini reads the shared `.agents/skills` directory, so the universal command covers the skills:
+
+```bash
+npx skills add LuynoxRD/lakehouse-agent-skills --skill '*' --agent gemini-cli -y
+```
+
+The commands exist for Gemini as well, generated into `.gemini/commands/*.toml` from the same
+TOML sources. Copy that directory from a clone into your project to get `/profile`, `/clean` and
+the rest.
+
+</details>
+
+<details>
+<summary><b>Any other agent</b></summary>
+
+A skill is a directory with a `SKILL.md` and no build step, so it works with anything that reads
+instruction files. Clone the repository and point your tool at `skills/`.
+
+</details>
+
+**Nothing updates itself.** Neither route watches this repository, so what you install today stays
+as it is until you run:
+
+```bash
+npx skills update                              # skills, every source
+claude plugin update lakehouse-agent-skills    # the plugin route
+```
+
+**How far each piece reaches.** The skills go everywhere above. The nine commands reach Claude Code
+and Gemini CLI. The three subagents and two hooks are Claude Code only — a gap in this repository's
+packaging rather than a limit of those tools, since every major agent has a subagent mechanism and
+what is missing is the generator. Loading was verified end to end in Claude Code; elsewhere what
+was measured is that the files land, and a file arriving is not a skill running.
+[docs/installing.md](docs/installing.md) has the full accounting.
 
 ## What it works with
 
