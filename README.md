@@ -150,7 +150,7 @@ project already has:
 recompute figures — and if DuckDB is missing it says so and fails, rather than reporting the
 figures as checked.
 
-## Why
+## Why Lakehouse Agent Skills?
 
 An agent writes correct code. That was never the problem.
 
@@ -188,16 +188,38 @@ never renders, so it prints what it could **not** verify on every run, including
 ## Project structure
 
 ```
-skills/       14 skills, one directory each, a SKILL.md as the only required file
-agents/       3 reviewer subagents
-commands/     9 lifecycle commands (source of truth; per-tool copies are checked for parity)
-hooks/        2 session hooks
-references/   checklists shared by more than one skill
-evals/        eval cases, synthetic fixtures, results
-scripts/      validators, the eval runner, and the script the skills ship
-tests/        pytest suite over every validator
-docs/         skill anatomy and installing
+lakehouse-agent-skills/
+├── skills/                                 # 14 skills, a SKILL.md the only required file
+│   ├── using-lakehouse-skills/             #   Route: which skill owns this, and how much review
+│   ├── structured-vs-unstructured-routing/ #   Shape: is this even a table
+│   ├── document-extraction-integrity/      #   Shape: getting numbers off a page
+│   ├── etl-before-dashboard/               #   Values: profile, clean, model, persist  ← ships a script
+│   ├── spreadsheet-integrity/              #   Values: what a round trip through a workbook drops
+│   ├── honest-data-limits-disclosure/      #   Values: what was read, skipped, sampled
+│   ├── parquet-to-open-table-format/       #   Storage: when files stop being enough
+│   ├── duckdb-for-local-analytics/         #   Storage: asking the persisted table a question
+│   ├── chart-type-and-library-selection/   #   Output: the form, then the library  ← ships a script
+│   ├── dashboard-color-and-visual-hierarchy/ # Output: what colour encodes
+│   ├── dashboard-layout-by-widget-mix/     #   Output: where panels sit, one file  ← ships a script
+│   ├── insight-narrative-integrity/        #   Output: does the sentence survive its arithmetic
+│   ├── data-privacy-before-llm/            #   Safety: what may leave the project
+│   └── safe-live-database-access/          #   Safety: connections and writes others share
+├── agents/                                 # 3 reviewer subagents, none able to edit what it reviews
+├── commands/                               # 9 lifecycle commands, as TOML — the source of truth
+├── .claude/commands/                       #   generated copy, checked for parity
+├── .gemini/commands/                       #   generated copy, checked for parity
+├── hooks/                                  # 2 session hooks; one blocks a turn with no disclosure
+├── references/                             # 3 checklists shared by more than one skill
+├── evals/                                  # cases, synthetic fixtures, results
+├── scripts/                                # validators, eval runner, and skill-scripts/ (shipped)
+├── tests/                                  # pytest over every validator and the eval runner
+├── docs/                                   # skill anatomy, installing, the diagram above
+└── .claude-plugin/                         # plugin and marketplace manifests
 ```
+
+The three skills marked **ships a script** carry their own copy of `verify-output.sh` under
+`scripts/`, generated from one source and checked for drift, so a per-skill install brings the
+check with it rather than a reference to a file that is not there.
 
 ## Contributing
 
