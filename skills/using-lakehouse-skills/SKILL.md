@@ -67,6 +67,24 @@ through.
 What never scales down is the order. Profiling a file before charting it costs one pass over it,
 and skipping it is what produces the confident wrong answer this pack exists to prevent.
 
+## The language of what you hand back
+
+**Everything a person reads takes that person's language, whole, and never mixed.** If they
+wrote to you in Spanish, the profile note, the cleaning log, the model note, the disclosure, the
+labels on the page and the answer itself are in Spanish. If they wrote in English, all of it is
+in English. Chinese is Chinese. One delivery, one language.
+
+**Identifiers are the exception, and they are never translated.** Column names, file paths,
+table names, manifest keys, SQL and code stay exactly as they are, because they are literals
+something else has to find. A column called `total_amount` is called `total_amount` in a Spanish
+note; describing it in Spanish is the job, renaming it is a bug.
+
+The reason to state this so plainly is that the opposite happens by inference. A repository whose
+own files are in English is stating a rule about *its* files, not about what an agent writes to a
+person, and reading it as the second produces exactly what one real run produced: `model.md` in
+English and the dashboard in Spanish, in the same delivery, decided by nobody. If a skill's own
+text is in one language and the reader writes in another, the reader wins.
+
 ## The lifecycle
 
 Data work runs in one direction. Each stage assumes the one before it happened.
@@ -107,6 +125,8 @@ whatever the parser guessed.
 | "Connect to the database", "delete the test rows", "run this against production" | `safe-live-database-access` skill |
 | "Paste these rows into the model", "send this to the API", "is there anything identifying in here?" | `data-privacy-before-llm` skill |
 | "Revenue per channel", "the loop is too slow", "group and rank this" | `duckdb-for-local-analytics` skill |
+| "Here is this month's file", "the export came again", "they sent a corrected version" | `etl-before-dashboard` skill, starting from its arrival comparison |
+| "Join these two files", "match the orders to the customers", "add the region from this other table" | `etl-before-dashboard` skill for whether they relate, then `duckdb-for-local-analytics` skill to run it |
 | "The new column isn't showing up", "two jobs write to the same folder", "we need to correct rows" | `parquet-to-open-table-format` skill |
 | "Pie or bar?", "plot this over time", "what kind of chart?" | `chart-type-and-library-selection` skill |
 | "Which colours?", "is red and green enough?", "does it work in dark mode?" | `dashboard-color-and-visual-hierarchy` skill |
@@ -140,7 +160,11 @@ These boundaries are what keep the skills from overlapping. Read them before dec
   people use. Once rows are in hand, it is finished.
 - **`data-privacy-before-llm` skill** owns *what may leave the project*. It applies at any stage,
   because any stage can be the one that sends something.
-- **`duckdb-for-local-analytics` skill** owns *asking a persisted table a question*.
+- **`duckdb-for-local-analytics` skill** owns *asking a persisted table a question*, joins
+  included. Whether two sources can be related at all — one key, the same thing on both sides,
+  the cardinality, the rows that match nothing — is modelling and belongs to
+  `etl-before-dashboard`. Running the join over a key nobody established is how a query
+  returns a number instead of an error.
 - **`parquet-to-open-table-format` skill** owns *whether the storage layer still holds*, which is
   a question about change, never about size.
 - **`chart-type-and-library-selection` skill** owns *the form a chart takes*;
@@ -160,6 +184,10 @@ dataset is being turned into an answer.
 ## Verification
 
 - [ ] The stage this request belongs to is named before any work starts.
+- [ ] If this source has arrived before, the new profile was compared against the recorded one
+      and the differences are written down, including the overlap on the key.
+- [ ] Everything the reader reads is in the reader's language, with nothing left in another,
+      and every column name, path and manifest key is unchanged.
 - [ ] Whether the result leaves the project, and whether somebody will act on it, were both
       answered from the request before the work started, not from the size of the file.
 - [ ] If both answers were no, the words in the request that support that are quoted next to the

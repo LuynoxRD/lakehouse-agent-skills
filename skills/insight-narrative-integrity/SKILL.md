@@ -124,6 +124,17 @@ Write "revenue rose 12% in the same period that the campaign ran", not "the camp
 revenue 12%". The first is what the data says. If the causal claim matters, name the experiment
 that would establish it rather than asserting it.
 
+### Step 6: Write it in the reader's language, and leave the identifiers alone
+
+Prose is the artefact this skill produces, so the language is part of its correctness. Whatever
+language the reader wrote in is the language of the takeaway, the caption and the summary, all of
+it, with nothing left in another. A finding half in one language reads as a translation somebody
+abandoned, and it makes the reader wonder which half was checked.
+
+What never changes is the identifiers: column names, table names, file paths and code are quoted
+as they are, because the reader has to be able to search for them. Describe `total_amount` in
+their language; do not rename it into their language.
+
 ## Common Rationalizations
 
 | Excuse | Reality |
@@ -136,6 +147,8 @@ that would establish it rather than asserting it.
 | "Saying 'associated with' sounds weak." | It sounds exactly as strong as the evidence. The confident version is a claim the data cannot pay for. |
 | "The chart shows the trend clearly." | A chart of a wrongly weighted metric is a clear picture of a wrong number. |
 | "It's a summary, the detail is in the table." | The summary is what gets quoted. The table is what nobody reopens. |
+| "The notes are internal; only the page is for the reader." | Everything in the delivery is read by whoever received it, and the notes are what they open when they doubt a number. A delivery in two languages tells them one half was written for somebody else. |
+| "The technical words are clearer in English." | Then they are clearer to you. A term of art has a form in the reader's language; a column name does not, and that is the one thing that stays as it is. |
 
 ## Red Flags
 
@@ -162,3 +175,5 @@ that would establish it rather than asserting it.
       used otherwise.
 - [ ] The sample size behind each claim is stated, taking coverage from the disclosure rather
       than restating it here.
+- [ ] The prose is in the reader's language throughout, with nothing left in another, and every
+      column name, path and piece of code is quoted unchanged.

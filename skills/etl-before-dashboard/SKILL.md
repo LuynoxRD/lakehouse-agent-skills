@@ -1,6 +1,6 @@
 ---
 name: etl-before-dashboard
-description: Enforces the profile, clean, model and persist order before anything is charted, so a visualization never renders raw ingest. Use when a request asks to chart, plot, dashboard or summarize a CSV, spreadsheet, export or extract, when a bar chart or a monthly total is being built straight from a source file, or when values arrive as text, with mixed date formats, comma decimals or lost leading zeros.
+description: Enforces the profile, clean, model and persist order before anything is charted, so a visualization never renders raw ingest. Use when a request asks to chart, plot, dashboard or summarize a CSV, spreadsheet, export or extract, when a bar chart or a monthly total is being built straight from a source file, when values arrive as text, with mixed date formats, comma decimals or lost leading zeros, when the same source arrives a second time as a refreshed or corrected file, or when two tables have to be related and the key that joins them has not been established.
 ---
 
 # ETL before dashboard
@@ -36,6 +36,10 @@ Use it when values show any of the symptoms in Step 1: text where numbers belong
 could be read two ways, identifiers that lost their leading zeros, a decimal comma read as a
 thousands separator.
 
+Use it when the same data arrives again — next month's export, a corrected file, a second
+extract from the same system. That is a different job from the first arrival and it has its own
+step below, before Step 1.
+
 Do **not** use it for data that is already curated and documented, such as a table this pipeline
 produced earlier with its profile note still valid. Do not use it for streaming or event data
 that never lands as a file; the ordering holds but the persistence advice does not. It does not
@@ -44,6 +48,38 @@ own coverage claims: what was read, sampled or skipped belongs to the
 to the `insight-narrative-integrity` skill.
 
 ## Core Process
+
+### Before Step 1: if this data has arrived before, compare instead of starting over
+
+The most ordinary thing that happens to a dataset is that it arrives a second time, and the two
+reflexes are both wrong. Profiling from scratch throws away the one thing that makes the second
+arrival cheap — a written record of what the first one looked like. Skipping the profile because
+"it is the same file" assumes the answer to the only question worth asking.
+
+If `docs/data/profile.md` exists for this source, the job is a **comparison**, and it is four
+things. Each one is a number or a list, not an impression:
+
+- **Columns that appeared, columns that are gone, types that changed.** A column that vanished
+  breaks a chart quietly, by producing an empty panel rather than an error. A column that
+  appeared is a question for whoever sent the file, not a thing to include by default.
+- **The null spellings, again.** A source that changed its export settings changes those first,
+  and `NA` becoming an empty string moves every count you had.
+- **The overlap on the declared key, before anything is appended.** How many keys are in both
+  files, how many only in the new one, how many only in the old. That distinction is the whole
+  decision: keys in both mean the file restates rows you already have, and appending it doubles
+  them. Say which of the two this is — an append or a restatement — and say it with the counts.
+- **Whether each recorded cleaning rule still matches anything.** A rule that now matches zero
+  rows is either fixed upstream or aimed at something that moved. Both are worth knowing before
+  the rule runs; neither is visible after it does.
+
+Then profile the new file normally, and give `docs/data/profile.md` a section naming those
+differences against the profile it replaces. On a first arrival that section says so in one line,
+which is what makes its absence later mean something.
+
+One part of this enforces itself. The receipt in `docs/data/verification.json` goes stale the
+moment new data lands, because the files it hashed have changed, so the check that already exists
+refuses to treat the old green run as covering the new arrival. That is the mechanism working as
+intended rather than a separate thing to remember.
 
 ### Step 1: Profile before touching anything
 
@@ -123,6 +159,36 @@ order line per day per store". Everything downstream depends on that sentence be
 - Where an aggregate is stored, store the components too: a sum and its count, not a mean.
   A mean cannot be re-aggregated correctly later, which is the failure the
   `insight-narrative-integrity` skill exists to catch.
+
+#### When two sources have to be related
+
+`model.md` says what one row of one table means. A relation between two tables is a second thing
+and nothing documents it, which is how a join arrives as a line of SQL that nobody ever decided
+was possible. Whether the join runs correctly is a query question and belongs to the
+`duckdb-for-local-analytics` skill. Whether the two sides can be related at all is this step, and
+it comes first, because a join over a key that is not a key produces a number rather than an
+error.
+
+Establish these before writing any join, and write the answers into `model.md`:
+
+1. **Which column relates them, named on each side.** They are rarely called the same thing, and
+   a name that matches is not evidence that the contents do.
+2. **Whether it is the same thing on both sides.** Leading and trailing whitespace, upper against
+   lower case, text against integer, leading zeros that one system keeps and the other drops, a
+   prefix one side adds. Compare the normalised forms, and say which normalisation was needed —
+   that normalisation is a cleaning rule and it goes in the log with the rows it touched, not
+   inline in a query where it will be forgotten the next time.
+3. **The cardinality on each side.** Is the key unique on the left, on the right, on both, on
+   neither? One-to-one, one-to-many and many-to-many are three different tables afterwards, and
+   an unnoticed many-to-many multiplies rows and every sum built on them.
+4. **How many rows on each side find no partner**, as two counts, before a join type is chosen.
+   An inner join is a filter written as a join: it removes the unmatched silently, and the rows
+   it removed are usually the interesting ones — the new store, the returned order, the customer
+   who has not bought yet.
+
+Write one sentence per relation, in the same form as the grain sentence: "one row of `orders`
+matches at most one row of `customers` on the normalised `customer_id`; 41 of 5,012 orders match
+nothing and are kept". A relation with no such sentence is an assumption with a query on top.
 
 ### Step 4: Persist to columnar storage
 
@@ -232,6 +298,9 @@ to expose.
 
 | Excuse | Reality |
 | --- | --- |
+| "It is the same file as last month, so the profile still holds." | It is the same shape until it is not, and the arrival that changed is the one nobody compared. One pass tells you whether this file adds rows or restates them, and that is the difference between a total and double a total. |
+| "The join runs, so the key is fine." | A join over a key that is not unique returns rows rather than an error. Fan-out is the failure that looks like success, because it looks like more data. |
+| "An inner join is the safe default." | It is a filter written as a join. It removes the rows that matched nothing, silently, and those are usually the interesting ones: the new store, the returned order, the customer who has not bought yet. |
 | "It's a quick chart, not a pipeline." | Quick charts are the ones that get pasted into decisions. The profile is the cheap part; being wrong in public is not. |
 | "The data looks clean." | Looking clean is what unprofiled data does. Leading zeros, decimal commas and day-first dates all render as ordinary values. |
 | "pandas figured out the types." | It guessed, per column, sometimes per chunk. A guess that is right on the sample and wrong on row 40,000 is worse than an error. |
@@ -251,6 +320,11 @@ to expose.
 Stop and return to Step 1 when you notice any of these:
 
 - A plotting call appears in the work and `docs/data/profile.md` does not exist.
+- A second file from the same source is being profiled from scratch, or not profiled at all.
+- Rows are about to be appended and nobody counted how many keys are already present.
+- A recorded cleaning rule was re-run on a new arrival and nothing checked it still matches.
+- A join is being written and the cardinality of the key on each side has not been stated.
+- A join type was chosen before anybody counted the rows that match nothing on each side.
 - A date column was parsed without any statement of which order was proved.
 - An identifier column is stored as an integer.
 - A total in the output matches a total in the source exactly, including a row labelled "Total".
@@ -289,4 +363,12 @@ Stop and return to Step 1 when you notice any of these:
       the answer showing zero errors. Not run, or run and not read, is the same as not checked.
 - [ ] `docs/data/verification.json` exists, was written by that run rather than by hand, and is
       newer than every file it names.
+- [ ] If this source has arrived before, `docs/data/profile.md` names the columns that appeared,
+      the columns that are gone, the types that changed, and the overlap on the key as counts,
+      with the arrival called an append or a restatement.
+- [ ] Every relation between two tables is one sentence in `docs/data/model.md` naming the key
+      on each side, any normalisation it needed, the cardinality, and how many rows on each
+      side match nothing.
+- [ ] Everything written for a reader is in the reader's language, and no column name, path or
+      manifest key was translated.
 - [ ] Any ambiguity that could not be resolved appears in the output, not only in the log.
