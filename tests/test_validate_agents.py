@@ -46,6 +46,13 @@ def test_a_missing_field_is_refused(repo: Layout, field: str) -> None:
     assert "agents/missing-field" in rules(repo)
 
 
+def test_an_empty_field_is_reported_once_and_as_itself(repo: Layout) -> None:
+    """`tools: []` used to fire twice, and the first message told the author to add a field the
+    file already had. One defect, one finding, and the finding names what is actually wrong."""
+    persona(repo, PERSONA.replace('tools: ["Read", "Grep"]', "tools: []"))
+    assert rules(repo) == ["agents/empty-field"]
+
+
 def test_a_model_that_is_not_one_of_the_four_is_refused(repo: Layout) -> None:
     persona(repo, PERSONA.replace("model: inherit", "model: gpt"))
     assert "agents/model" in rules(repo)
@@ -63,8 +70,9 @@ def test_a_reviewer_that_can_write_is_refused(repo: Layout) -> None:
     assert "agents/tools-write" in rules(repo)
 
 
-def test_an_empty_tool_list_is_refused(repo: Layout) -> None:
-    persona(repo, PERSONA.replace('["Read", "Grep"]', "[]"))
+def test_a_tool_list_that_is_not_a_list_is_refused(repo: Layout) -> None:
+    """An empty list is an empty field, checked above. This is the other shape mistake."""
+    persona(repo, PERSONA.replace('tools: ["Read", "Grep"]', "tools: Read"))
     assert "agents/tools-shape" in rules(repo)
 
 

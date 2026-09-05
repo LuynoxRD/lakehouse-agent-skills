@@ -112,6 +112,12 @@ def test_an_inline_list_is_read_because_the_loader_writes_one() -> None:
     assert parsed.data == {"tools": ["Read", "Grep"], "name": "demo"}
 
 
+def test_a_comma_inside_a_quoted_item_does_not_split_it() -> None:
+    """Splitting the whole line on commas reported `["a, b"]` as an unterminated quote."""
+    parsed = frontmatter.parse("---\ntools: [\"Read\", \"a, b\", 'it''s']\n---\n")
+    assert parsed.data == {"tools": ["Read", "a, b", "it's"]}
+
+
 def test_an_inline_list_may_be_empty_or_unquoted() -> None:
     assert frontmatter.parse("---\ntools: []\n---\n").data == {"tools": []}
     assert frontmatter.parse("---\ntools: [Read, Grep]\n---\n").data == {"tools": ["Read", "Grep"]}

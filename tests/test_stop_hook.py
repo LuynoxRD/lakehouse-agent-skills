@@ -194,6 +194,23 @@ def test_a_receipt_older_than_the_page_is_sent_back(tmp_path: Path) -> None:
     assert "have changed since" in reason
 
 
+def test_a_note_edited_after_the_check_is_sent_back(tmp_path: Path) -> None:
+    """Found by audit. The receipt records a digest for the disclosure, so rewriting it after a
+    green run makes the receipt describe a file that no longer exists in that form. Watching only
+    the pages left the one artefact somebody has a motive to inflate outside the comparison."""
+    project = declared_figures(tmp_path / "project")
+    path = receipt(project)
+    note = project / "docs" / "data" / "disclosure.md"
+    note.write_text("Processed 8 of 8 inputs.\n", encoding="utf-8")
+    stamp = path.stat().st_mtime
+    os.utime(note, (stamp + 10, stamp + 10))
+
+    reason = blocked(run(project, tmp_path / "tmp"))
+
+    assert "disclosure.md" in reason
+    assert "have changed since" in reason
+
+
 def test_a_receipt_newer_than_the_page_is_left_alone(tmp_path: Path) -> None:
     project = declared_figures(tmp_path / "project")
     page = project / "dashboard.html"

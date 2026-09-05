@@ -207,9 +207,47 @@ def _inline_list(raw: str, line_no: int) -> list[str]:
     inner = raw[1:-1].strip()
     if not inner:
         return []
-    if "[" in inner or "{" in inner:
-        raise FrontmatterError("inline lists hold scalars only", line_no)
-    return [_scalar(item.strip(), line_no) for item in inner.split(",") if item.strip()]
+    items = []
+    for item in _split_items(inner, line_no):
+        if not item.startswith(('"', "'")) and ("[" in item or "{" in item):
+            raise FrontmatterError("inline lists hold scalars only", line_no)
+        items.append(_scalar(item, line_no))
+    return items
+
+
+def _split_items(inner: str, line_no: int) -> list[str]:
+    """Split on the commas between items, not on the ones inside a quoted item.
+
+    Splitting the whole string on commas tore `["a, b"]` into two halves and reported the first
+    as an unterminated quote, which named neither the cause nor the fix.
+    """
+    items: list[str] = []
+    current: list[str] = []
+    quote = ""
+    index = 0
+    while index < len(inner):
+        char = inner[index]
+        if quote:
+            current.append(char)
+            if char == "\\" and quote == '"' and index + 1 < len(inner):
+                current.append(inner[index + 1])
+                index += 2
+                continue
+            if char == quote:
+                quote = ""
+        elif char in ('"', "'"):
+            quote = char
+            current.append(char)
+        elif char == ",":
+            items.append("".join(current))
+            current = []
+        else:
+            current.append(char)
+        index += 1
+    if quote:
+        raise FrontmatterError("unterminated quoted scalar", line_no)
+    items.append("".join(current))
+    return [stripped for item in items if (stripped := item.strip())]
 
 
 def _scalar(raw: str, line_no: int) -> str:

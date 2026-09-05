@@ -72,11 +72,14 @@ verify-output.sh writes only when it finishes with zero errors. Run it and read 
     # Anything the check was meant to read that is newer than the receipt means the receipt
     # describes a file that no longer exists in that form. Compared by modification time, which
     # needs no parsing and no hashing tool, and searched from inside the project so the paths come
-    # back relative by construction.
+    # back relative by construction. The notes are in the list because the receipt now records
+    # their digests: an audit found that editing one after a green run left the receipt reading as
+    # intact, which is an absence being taken for a pass.
     newer=$(
       cd "$project_dir" 2>/dev/null || exit 0
       find . -maxdepth "$MAX_DEPTH" -type f \
-        \( -iname '*.html' -o -iname '*.htm' -o -path "./$FIGURES_NOTE" \) \
+        \( -iname '*.html' -o -iname '*.htm' -o -path "./$FIGURES_NOTE" \
+           -o -path './docs/data/*.md' \) \
         -newer "$RECEIPT_NOTE" \
         -not -path './.git/*' -not -path './node_modules/*' -not -path './.venv/*' \
         -not -path './venv/*' -not -path '*/__pycache__/*' 2>/dev/null | head -n 3

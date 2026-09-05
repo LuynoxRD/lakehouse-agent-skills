@@ -430,6 +430,30 @@ def test_a_green_run_leaves_a_receipt(tmp_path: Path) -> None:
     assert all(len(entry["sha256"]) == 64 for entry in receipt["inputs"])
 
 
+@pytest.mark.skipif(not HAS_DUCKDB, reason="the figure check needs the DuckDB package")
+def test_the_receipt_covers_the_notes_a_reviewer_treats_as_evidence(tmp_path: Path) -> None:
+    """Found by audit, not by any check here.
+
+    The reviewer persona is told to read the receipt first and let it bound the rest, and its
+    table of artifacts lists five files. The receipt named two of them. Anyone editing the
+    disclosure after a green run left the receipt intact, so an absence read as a pass, which is
+    the same failure as a green check being read as a page that renders.
+    """
+    note, html = project(tmp_path, CLEAN_PAGE)
+    disclosure = tmp_path / "disclosure.md"
+    disclosure.write_text("Processed 1 of 1 inputs, 4 rows.\n", encoding="utf-8", newline="\n")
+
+    code, report = run(note, html)
+
+    assert code == 0, report
+    receipt = json.loads((tmp_path / "verification.json").read_text(encoding="utf-8"))
+    assert str(disclosure) in {entry["path"] for entry in receipt["inputs"]}
+    # The three that do not exist are named, because an absence has to be read, not inferred.
+    assert receipt["absent_at_check"] == [
+        str(tmp_path / name) for name in ("profile.md", "cleaning-log.md", "model.md")
+    ]
+
+
 def test_a_failing_run_removes_a_receipt_that_was_there(tmp_path: Path) -> None:
     """A receipt from an earlier green run must not vouch for a page that now fails."""
     note, html = project(tmp_path, NESTED_PAGE)

@@ -158,6 +158,13 @@ NOT_VERIFIED = (
     "whether a control that exists in the markup is discoverable by a reader",
 )
 
+# The notes a reviewer treats as the evidence behind a claim. They sit beside the manifest and
+# this script never parses them, but it does hash them, because the receipt is read as the index
+# of the work: a receipt that named only the manifest, the pages and the table let any of these
+# four be rewritten after a green run with nothing recording that it happened, while the receipt
+# still read as intact. Hashing them costs one read each and closes that.
+RECORDED_NOTES = ("profile.md", "cleaning-log.md", "model.md", "disclosure.md")
+
 # A container with a maximum width and nothing centring it sits against the left edge with the
 # remaining space beside it. Real, and found in a delivered page: `max-width: 1280px` in a 1600px
 # viewport left roughly 300px of nothing on the right.
@@ -889,7 +896,7 @@ def check_docs(directory: Path, report: Report) -> None:
             )
 
 
-def write_receipt(path: Path, inputs: list[Path], report: Report) -> None:
+def write_receipt(path: Path, inputs: list[Path], report: Report, absent: list[str]) -> None:
     """Leave proof on disk that this ran green, or remove the proof that it did not.
 
     A checklist box saying "run the check and paste the output" is worth exactly the honesty of
@@ -898,6 +905,12 @@ def write_receipt(path: Path, inputs: list[Path], report: Report) -> None:
     and a red run deletes any receipt that was there. What that buys is narrow and worth stating:
     it proves a green run happened over these exact bytes. It does not defeat a forged file, and
     nothing that runs after the fact can.
+
+    ``absent`` is the other half, and it is the half that is easy to leave out. A reader comparing
+    digests can only conclude something about a file the receipt names; a file missing from
+    ``inputs`` is indistinguishable from one that was never covered, and reading an absence as a
+    pass is the exact failure this whole script exists to refuse. So the notes that did not exist
+    at check time are written down by name rather than left to be inferred.
     """
     if report.errors:
         try:
@@ -916,6 +929,8 @@ def write_receipt(path: Path, inputs: list[Path], report: Report) -> None:
         "ok": True,
         "checked": report.checked,
         "inputs": digests,
+        "absent_at_check": absent,
+        "proves": "a green run over exactly these bytes; nothing about a file not listed here",
     }
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -1004,7 +1019,10 @@ def main() -> int:
     inputs = [args.manifest, *pages.keys()]
     if str(table):
         inputs.append(Path(str(table)))
-    write_receipt(receipt, inputs, report)
+    notes = [args.manifest.parent / name for name in RECORDED_NOTES]
+    inputs.extend(note for note in notes if note.is_file())
+    absent = [str(note) for note in notes if not note.is_file()]
+    write_receipt(receipt, inputs, report, absent)
 
     result = {
         "ok": not report.errors,
