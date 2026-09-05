@@ -46,6 +46,37 @@ jobs:
       - name: pytest
         run: uv run --frozen pytest
 
+  shell-portability:
+    name: Shell on ${{ matrix.os }}
+    # The shipped hooks and the artefact check are bash, written and first run on Windows, and a
+    # user installs them on whatever they have. Proving they work elsewhere by hand once is the
+    # habit this repository keeps replacing with a check. Only the tests that start those scripts
+    # as real processes run here; the rest of the suite is not platform-sensitive and macOS
+    # minutes are not free.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - name: Sync environment
+        run: uv sync --locked --extra dev --extra fixtures
+      - name: Report the shell the scripts will actually run under
+        run: bash --version | head -n 1
+      - name: Run the tests that start the shipped scripts
+        run: >-
+          uv run --frozen pytest
+          tests/test_session_hook.py tests/test_stop_hook.py tests/test_verify_output.py -v
+
   validate-content:
     name: Validate content
     runs-on: ubuntu-latest
