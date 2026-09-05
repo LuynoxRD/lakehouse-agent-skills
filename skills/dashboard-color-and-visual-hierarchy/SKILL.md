@@ -49,6 +49,31 @@ A categorical palette also has a ceiling. Past roughly seven or eight hues, the 
 distinguishable and the legend becomes a lookup table the reader traverses for every mark. That is
 a signal to group the small categories or to change the form, not to find more colours.
 
+**A category keeps the same colour on every panel of the page.** This is the rule that a palette
+chosen per panel breaks, and it breaks quietly: each chart looks correct on its own, and the same
+name is two colours on one screen. The reader has no way to know the two marks are the same thing,
+so the comparison the page was built for is the one thing it cannot do.
+
+Colour is how a categorical identity travels between panels. Once it stops being stable, colour is
+decoration and the legend is the only thing carrying meaning, which is the state Step 2 exists to
+prevent.
+
+So the map is a decision made once, before any panel is drawn:
+
+- **One map from category to colour**, defined in a single place and read by every panel. Two
+  panels that each ask the library for "the default palette" get the same colours assigned in the
+  order each one happened to see the categories, and neither is wrong on its own.
+- **A canonical order for the categories**, so the assignment does not move when a filter removes
+  one. A map keyed by the category's own value survives what a map keyed by position does not:
+  filter out one category and every colour after it shifts by one.
+- **No two categories on the same colour.** The map is checkable for that, and two categories the
+  same colour is not a subtle failure; it is two things a reader cannot tell apart.
+- **A category absent from a panel keeps its slot** rather than letting the next one take its
+  colour.
+
+Declare the map next to the palette table in Step 6, and pass it to the check as
+`layout.categories` so the duplicate case fails the build rather than the review.
+
 ### Step 2: Colour never carries meaning alone
 
 Whatever colour says, something else has to say too: position, shape, a direct label, a pattern,
@@ -99,8 +124,9 @@ highlighted has nothing highlighted.
 
 ### Step 6: Write the palette down with its measurements
 
-The design ships with a short table: each colour, what it encodes, its palette type, and its
-measured ratio against both grounds. That table is what makes the next change checkable instead of
+The design ships with a short table: each colour, what it encodes, its palette type, its measured
+ratio against both grounds, and for a categorical palette the category it belongs to permanently.
+That table is what makes the next change checkable instead of
 a matter of taste, and it is the thing nobody can reconstruct six months later.
 
 ## Common Rationalizations
@@ -120,6 +146,9 @@ a matter of taste, and it is the thing nobody can reconstruct six months later.
 
 Stop when any of these is true:
 
+- The same category is a different colour on two panels of the same page.
+- Each panel was handed the library's default palette instead of one shared map.
+- A filter that removes one category changes the colours of the ones that remain.
 - An ordered variable is drawn in unordered hues, or categories are drawn in a single-hue ramp.
 - Two states differ only by colour, with no label, shape or position separating them.
 - A diverging palette's midpoint is not at a value that means anything.
@@ -140,6 +169,9 @@ Stop when any of these is true:
       stated with its reason.
 - [ ] Both the light and the dark ground were measured, and any token that cannot pass on both has
       a separate value per theme.
+- [ ] Every categorical variable has one map from category to colour, defined once and read
+      by every panel, with a canonical order so a filter cannot reassign it.
+- [ ] No two categories share a colour, checked rather than eyeballed.
 - [ ] One accent carries the emphasis and everything else is neutral.
 - [ ] The palette table ships with the design: colour, what it encodes, palette type, and measured
       ratios.

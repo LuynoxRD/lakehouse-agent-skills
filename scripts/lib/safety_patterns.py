@@ -183,9 +183,17 @@ PATTERNS: tuple[SafetyPattern, ...] = (
     ),
     SafetyPattern(
         "safety/invisible-characters",
-        re.compile(r"[\u200b\u200c\u200d\u2060\u2061\u2062\u2063\u2064\ufeff\u00ad]"),
+        # Zero-width and formatting characters hide text from a reviewer. The C0 control range
+        # does worse: a backspace renders as nothing in most viewers and changes what a regex
+        # matches. One arrived here by accident, written into a shipped script by a shell that
+        # turned an escape sequence into the byte it names, and no check saw it.
+        re.compile(
+            r"[\u200b\u200c\u200d\u2060\u2061\u2062\u2063\u2064\ufeff\u00ad]"
+            r"|[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]"
+        ),
         Severity.ERROR,
-        "zero-width or invisible characters can hide text from reviewers",
+        "zero-width, control or invisible characters can hide text from reviewers and change "
+        "what code means",
     ),
 )
 
