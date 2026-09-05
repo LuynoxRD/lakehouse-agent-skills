@@ -629,6 +629,51 @@ def test_three_roles_resolved_through_tokens_pass(tmp_path: Path) -> None:
     assert "layout/type-scale" not in rules(report)
 
 
+def test_both_streams_decode_as_utf8_whatever_the_console_is(tmp_path: Path) -> None:
+    """Found by running the check over a page in Spanish on a Windows console.
+
+    Both streams carry text lifted from the page -- a label, a population, a quoted sentence -- and
+    they defaulted to the console code page, so stderr came back as bytes no reader could decode
+    and the JSON was one accented label away from the same. A verification whose own output is
+    unreadable to the person who ran it is the failure this script exists to refuse, pointed at
+    itself.
+    """
+    table = tmp_path / "pedidos.csv"
+    table.write_text("estado,total\nentregado,25.50\n", encoding="utf-8", newline="\n")
+    document = manifest(table)
+    figures = document["figures"]
+    assert isinstance(figures, list)
+    figures[0]["label"] = "Facturación"
+    figures[0]["population"] = "sólo pedidos entregados, año 2025"
+    figures[0]["sql"] = "SELECT SUM(total) FROM t"
+    page = CLEAN_PAGE.replace(
+        "Revenue 25.50 across delivered orders only",
+        "Facturación 25.50 sólo pedidos entregados, año 2025",
+    )
+    note, html = project(tmp_path, page, document)
+
+    assert BASH is not None
+    result = subprocess.run(
+        [BASH, str(SCRIPT), "--manifest", str(note), "--html", str(html)],
+        env={
+            "PATH": os.environ.get("PATH", ""),
+            "SYSTEMROOT": os.environ.get("SYSTEMROOT", ""),
+            "LOCALAPPDATA": os.environ.get("LOCALAPPDATA", ""),
+            "VERIFY_OUTPUT_PYTHON": sys.executable,
+        },
+        capture_output=True,
+        timeout=180,
+        check=False,
+    )
+
+    # Bytes, not text: decoding here with a forgiving codec would hide exactly the defect.
+    result.stdout.decode("utf-8")
+    # The bullet the blind-spot list prints on every run was the byte that gave this away, arriving
+    # as a lone 0xB7 from the console code page instead of the two bytes UTF-8 spells it with.
+    assert "·".encode() in result.stderr
+    result.stderr.decode("utf-8")
+
+
 def test_a_failing_run_removes_a_receipt_that_was_there(tmp_path: Path) -> None:
     """A receipt from an earlier green run must not vouch for a page that now fails."""
     note, html = project(tmp_path, NESTED_PAGE)
