@@ -145,6 +145,33 @@ RESPONSIVE = re.compile(
     re.IGNORECASE,
 )
 
+# This script reads a file. It never opens a browser, so everything below is outside what a green
+# result means, and it is printed on every run rather than left for somebody to infer. A page that
+# passed every check here shipped with axis labels rotated on their side and two segment labels
+# overlapping each other, and the run reported zero errors and moved on.
+NOT_VERIFIED = (
+    "whether any text is clipped, truncated or overlapping another element",
+    "whether the page is centred, or sits against one edge with dead space beside it",
+    "whether a chart's own labels stay legible when its container narrows",
+    "how anything looks at any viewport width; no width was rendered",
+    "whether a colour actually reached the category the manifest assigned it to",
+    "whether a control that exists in the markup is discoverable by a reader",
+)
+
+# A container with a maximum width and nothing centring it sits against the left edge with the
+# remaining space beside it. Real, and found in a delivered page: `max-width: 1280px` in a 1600px
+# viewport left roughly 300px of nothing on the right.
+CSS_RULE = re.compile(r"([^{}]+)\{([^{}]*)\}", re.S)
+BOUNDED_WIDTH = re.compile(r"max-width\s*:\s*[\d.]+\s*(px|rem|em|ch|pt|cm|in)\b", re.IGNORECASE)
+CENTRED = re.compile(
+    r"margin\s*:[^;]*\bauto\b|margin-inline\s*:[^;]*\bauto\b|margin-left\s*:\s*auto"
+    r"|justify-self\s*:\s*center|place-self\s*:[^;]*center|align-self\s*:\s*center"
+    r"|inset-inline\s*:[^;]*\bauto\b",
+    re.IGNORECASE,
+)
+# Elements whose own width is bounded for legibility rather than to make a page column.
+INLINE_LEVEL = re.compile(r"\b(img|svg|video|picture|canvas|pre|code|table|input|button)\b", re.I)
+
 # An inline script this big is a bundled library rather than page code. Used to notice the same
 # library shipped once per page, which is how five charts became twenty megabytes.
 RUNTIME_BYTES = 50_000
@@ -547,6 +574,74 @@ def check_libraries(project: Path, manifest: dict[str, object], report: Report) 
         )
 
 
+def layout_option(manifest: dict[str, object], key: str, default: object = None) -> object:
+    """One field out of the manifest's layout block."""
+    layout = manifest.get("layout")
+    return layout.get(key, default) if isinstance(layout, dict) else default
+
+
+def left_aligned(manifest: dict[str, object]) -> bool:
+    """Whether sitting against one edge was recorded as a decision."""
+    return bool(layout_option(manifest, "left_aligned", False))
+
+
+def check_viewports(
+    path: Path, parser: PageParser, manifest: dict[str, object], report: Report
+) -> None:
+    """A page that claims to respond to width has to have been looked at, at some widths.
+
+    Nothing here renders anything, and no check that reads a file ever will. So the claim moves:
+    the manifest names the widths the page has to work at, the run says what it saw at each, and
+    this refuses a responsive page with no observations rather than passing it in silence. It
+    cannot tell a real observation from an invented one, exactly as the receipt cannot; what it
+    removes is the option of skipping the look without anybody noticing.
+    """
+    css = "\n".join(parser.styles)
+    if not css.strip() or not RESPONSIVE.search(css):
+        return
+
+    declared = layout_option(manifest, "viewports")
+    widths = (
+        [int(w) for w in declared if isinstance(w, (int, float))]
+        if isinstance(declared, list)
+        else []
+    )
+    report.checked += 1
+    if not widths:
+        report.error(
+            "layout/no-viewports-declared",
+            "the page responds to width and 'layout.viewports' names none. Declare the widths it "
+            "has to work at; 375, 768 and 1440 is the usual set, and the narrow one is where "
+            "labels rotate and text starts overlapping",
+            str(path),
+        )
+        return
+
+    observed = layout_option(manifest, "observed")
+    seen: dict[int, str] = {}
+    if isinstance(observed, list):
+        for item in observed:
+            if isinstance(item, dict) and isinstance(item.get("width"), (int, float)):
+                seen[int(item["width"])] = str(item.get("note", "")).strip()
+
+    for width in widths:
+        report.checked += 1
+        if width not in seen:
+            report.error(
+                "layout/not-observed",
+                f"{width}px is declared and nothing says what the page looked like there. Open it "
+                "at that width, then record what you saw in 'layout.observed'",
+                str(path),
+            )
+        elif not seen[width]:
+            report.error(
+                "layout/observation-empty",
+                f"the observation for {width}px says nothing. 'Fine' is not an observation; name "
+                "what you checked, such as whether any label rotated or any text overlapped",
+                str(path),
+            )
+
+
 def check_reading_order(
     path: Path, parser: PageParser, manifest: dict[str, object], figures: int, report: Report
 ) -> None:
@@ -637,7 +732,9 @@ def check_categories(path: Path, manifest: dict[str, object], report: Report) ->
         seen[value] = str(name)
 
 
-def check_layout(path: Path, parser: PageParser, report: Report) -> None:
+def check_layout(
+    path: Path, parser: PageParser, report: Report, *, allow_left: bool = False
+) -> None:
     """Three things a page laid out for one screen is missing, all of them binary.
 
     The layout skill asks for weights, flow and narrow-viewport behaviour. None of that can be
@@ -675,6 +772,22 @@ def check_layout(path: Path, parser: PageParser, report: Report) -> None:
             "Name the page after the question it answers",
             str(path),
         )
+
+    if allow_left:
+        return
+    for selector, body in CSS_RULE.findall(css):
+        name = selector.strip()
+        if not name or name.startswith("@") or INLINE_LEVEL.search(name):
+            continue
+        if BOUNDED_WIDTH.search(body) and not CENTRED.search(body):
+            report.checked += 1
+            report.error(
+                "layout/not-centred",
+                f"'{name}' has a maximum width and nothing centring it, so it sits against one "
+                "edge with the rest of the viewport empty beside it. Add an automatic inline "
+                "margin, or record the decision as layout.left_aligned in the manifest",
+                str(path),
+            )
 
 
 def delivered_pages(project: Path) -> list[Path]:
@@ -841,7 +954,7 @@ def main() -> int:
         parsed = check_structure(path, report)
         if parsed is not None:
             pages[path] = parsed
-            check_layout(path, parsed, report)
+            check_layout(path, parsed, report, allow_left=left_aligned(manifest))
             check_categories(path, manifest, report)
     if not pages and not report.errors:
         report.error("artefact/none", "no page was checked; pass --html")
@@ -868,6 +981,7 @@ def main() -> int:
     declared_figures = len(declared_figures) if isinstance(declared_figures, list) else 0
     for page, parsed in pages.items():
         check_reading_order(page, parsed, manifest, declared_figures, report)
+        check_viewports(page, parsed, manifest, report)
 
     check_page_numbers(pages, accounted, report)
     check_aggregate_rows(connection, manifest, report)
@@ -888,11 +1002,18 @@ def main() -> int:
         "checked": report.checked,
         "errors": report.errors,
         "warnings": report.warnings,
+        "not_verified": list(NOT_VERIFIED),
         "receipt": str(receipt) if not report.errors else None,
     }
     print(json.dumps(result, indent=2, ensure_ascii=False))
     summary = f"verify-output: {report.checked} checked, {len(report.errors)} error(s)"
     print(summary, file=sys.stderr)
+    # Printed on every run, including a clean one. A green result that says nothing about its own
+    # blind spots is read as "the page is fine", and a page that passed every check here has
+    # shipped with text overlapping itself on a narrow screen.
+    print("verify-output: NOT verified by this script, because it never renders:", file=sys.stderr)
+    for item in NOT_VERIFIED:
+        print(f"  · {item}", file=sys.stderr)
     for entry in report.errors:
         location = f" {entry['where']}:{entry['line']}" if entry["where"] else ""
         print(f"  {entry['rule']}{location}: {entry['message']}", file=sys.stderr)
