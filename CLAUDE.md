@@ -1,6 +1,6 @@
 # lakehouse-agent-skills
 
-Portable data-engineering discipline skills for AI coding agents: profile before you clean, clean before you chart, persist to columnar storage, query it with SQL, pick the chart the data deserves, lay the dashboard out by widget mix, and disclose exactly what was and was not processed.
+Data-engineering discipline for AI coding agents: profile before you clean, clean before you chart, persist to columnar storage, query it with SQL, then build the dashboard by BI rules rather than by taste — the chart the data allows, colour that encodes, panels placed by what they hold — and disclose exactly what was and was not processed.
 
 > **Scope:** this file configures agents working on *this repository itself*. It is not meant to be copied into other projects or into a global agent configuration; the reusable assets are the skills in `skills/`.
 

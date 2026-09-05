@@ -47,8 +47,12 @@ counts, and read at most one or two examples that matched.
 
 In order of preference, and say which one you chose:
 
-1. **An aggregate**, when the question can be answered by counts per group and no group is small
-   enough that a count of one is itself the disclosure.
+1. **An aggregate**, when the question can be answered by counts per group — and only after
+   every group has been checked against a stated size floor. Small counts are a control of
+   their own and they apply to a single dimension: a count of two tells anybody who knows
+   their own record is in it that there is exactly one other person, with no second
+   attribute needed. "It was not cross-tabulated" is not a reason to publish it. Combining
+   adjacent groups is the cheap fix; say which ones were combined.
 2. **A profile** — names, types, ranges, distributions, synthetic examples.
 3. **A pseudonymised or masked form**, with the mapping kept inside the project. Say what the
    technique protects against; masking direct identifiers while the quasi-identifiers remain is
@@ -59,6 +63,8 @@ In order of preference, and say which one you chose:
 ## What you report
 
 - The classification table, one row per field.
+- Any group suppressed or combined for being small, with the floor that was applied and
+  whether that floor matches the one the rest of the page already uses.
 - What the free-text columns actually contain, with counts.
 - The form you are releasing, and what it costs the analysis compared with the rows.
 - Whether anything would be computed by a hosted service, named explicitly even when the answer
