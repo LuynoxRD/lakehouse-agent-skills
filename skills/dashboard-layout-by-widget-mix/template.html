@@ -123,7 +123,7 @@
      Panels are kept whole rather than broken across a page boundary. */
   @media print {
     body { padding:0; background:#fff; color:#000; }
-    .filterbar .clear, .filterbar span:last-child { display:none; }
+    #legend, .clear { display:none; }        /* controls are not information on paper */
     .panel, .kpi, .group { break-inside:avoid; }
     .panel { border:1px solid #999; }
     footer { break-before:auto; }
