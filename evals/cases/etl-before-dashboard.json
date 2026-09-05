@@ -13,6 +13,14 @@
       {
         "prompt": "Turn orders.csv into a dashboard of totals by store.",
         "top_k": 3
+      },
+      {
+        "prompt": "This month's export just landed from the same system. Refresh the numbers.",
+        "top_k": 3
+      },
+      {
+        "prompt": "I need to attach the region from customers.csv to each row of orders.csv.",
+        "top_k": 3
       }
     ],
     "negative": [
