@@ -9,7 +9,9 @@ this repository rather than written from documentation; where something was not 
 npx skills add LuynoxRD/lakehouse-agent-skills --skill '*' --agent claude-code -y
 ```
 
-Verified: thirteen skills land under `.claude/skills/<name>/`, one directory each. Add `--copy` to
+Verified: fourteen skills land under `.claude/skills/<name>/`, one directory each, and the
+three that tell you to run `verify-output.sh` bring their own copy of it under
+`scripts/`, executable. Re-measured by running the command, not by counting the catalogue. Add `--copy` to
 copy the files instead of linking them, `-g` to install for the user rather than the project, and
 `--agent '*'` to install for every agent the tool knows about.
 

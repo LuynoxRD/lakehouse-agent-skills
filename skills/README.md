@@ -7,10 +7,9 @@ the data lifecycle:
 PROFILE → CLEAN → MODEL → QUERY → VISUALIZE → ASSEMBLE → NARRATE → DISCLOSE   (+ REDACT, cross-cutting)
 ```
 
-The catalog is being built in phases. The router `using-lakehouse-skills` lands first and fixes
-the boundaries between skills; the flagship trio (`honest-data-limits-disclosure`,
-`etl-before-dashboard`, `insight-narrative-integrity`) follows; the remaining skills complete the
-lifecycle.
+The catalog is complete: fourteen skills covering every stage. `using-lakehouse-skills` routes a
+request to the one that owns it and fixes the boundaries between them, so start there when it is
+not obvious which applies.
 
 Every skill here satisfies [the anatomy](../docs/skill-anatomy.md), ships an eval case under
 `evals/cases/` and a synthetic fixture under `evals/fixtures/`, and passes
