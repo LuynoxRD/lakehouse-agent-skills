@@ -128,7 +128,14 @@ def test_a_quote_in_a_file_name_does_not_break_the_json(tmp_path: Path) -> None:
 
 
 def test_an_unusable_temporary_directory_still_exits_cleanly(tmp_path: Path) -> None:
-    """A stale TMPDIR must not turn a reminder into an error notice at every session start."""
+    """A stale TMPDIR must not turn a reminder into an error notice at every session start.
+
+    What the hook does about it is allowed to differ by platform, and does. GNU `mktemp -d` honours
+    TMPDIR and fails, so the hook degrades to saying nothing; the BSD one given no template ignores
+    TMPDIR entirely and succeeds, so the hook simply works. Asserting silence encoded one of those
+    two as the contract, and the macOS runner said so on its first run. The contract is the exit
+    code: whatever the hook decides, it never turns a reminder into an error.
+    """
     assert BASH is not None
     (tmp_path / "orders.csv").write_text("a,b\n", encoding="utf-8")
 
@@ -148,4 +155,6 @@ def test_an_unusable_temporary_directory_still_exits_cleanly(tmp_path: Path) -> 
     )
 
     assert result.returncode == 0, result.stderr
-    assert result.stdout.strip() == ""
+    if result.stdout.strip():
+        # It got a temporary directory anyway, so the reminder is the ordinary one.
+        assert message(result).startswith("This project has 1 data file(s)")
