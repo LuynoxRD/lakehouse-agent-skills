@@ -122,15 +122,20 @@ shared one. Look in `.agents/skills/`.
 
 | Component | Reaches |
 | --- | --- |
-| The 14 skills | All 77 tools above, through `.agents/skills` or the tool's own directory, and anything else that reads a `SKILL.md` |
+| The 14 skills | The installer writes them for any of the 77 names above, into `.agents/skills` or the tool's own directory. **Loading was verified only in Claude Code**; elsewhere what was measured is that the files arrive, and a file arriving is not a skill running. |
 | The 9 commands | Claude Code, as `.claude/commands/*.md`, and Gemini, as `.gemini/commands/*.toml`. Both are generated from `commands/*.toml` by `scripts/sync_commands.py`. |
 | The 3 reviewer personas | Claude Code, through the plugin's default `agents/` directory. Other tools have their own subagent mechanisms and none of them has been verified here. |
-| The session hook | Claude Code, through `hooks/hooks.json` |
+| The 2 session hooks | Claude Code, through `hooks/hooks.json` |
 
-The skills are the portable part and the pack is built that way on purpose: everything a skill
-cannot work without is inside its own `SKILL.md`, so the tools that get only the skills still get
-the discipline. The commands are a convenience for reaching a stage by name, and the personas and
-the hook are Claude Code affordances layered on top.
+The skills travel furthest and the pack is built that way on purpose: everything a skill cannot
+work without is inside its own `SKILL.md` — or, for the three that ship a script, inside their own
+directory — so a tool that gets only the skills still gets the discipline. The commands are a
+convenience for reaching a stage by name, and the personas and the hooks are Claude Code
+affordances layered on top.
+
+That last row is a gap in this repository rather than a limit of those tools. Cursor, opencode,
+Codex and Gemini CLI all have a subagent mechanism; what is missing is a generator that writes the
+persona into each one's format. It is on the list, not in the box.
 
 ## Updating
 

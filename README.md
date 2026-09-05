@@ -1,7 +1,8 @@
 # lakehouse-agent-skills
 
-Data-engineering discipline for AI coding agents, written in the portable
-[`SKILL.md`](docs/skill-anatomy.md) format.
+Data-engineering discipline for AI coding agents, written as plain
+[`SKILL.md`](docs/skill-anatomy.md) directories — no build step and no runtime, so one source
+installs into more than one tool.
 
 Profile before you clean. Clean before you chart. Persist before you query. Say what the run did
 not cover. Fourteen skills that make an agent do those in that order, because the order is what
@@ -90,6 +91,19 @@ npx skills add LuynoxRD/lakehouse-agent-skills --skill etl-before-dashboard --ag
 
 The commands, personas and hooks come with the plugin route instead.
 [docs/installing.md](docs/installing.md) has all three, with what each one was measured to deliver.
+
+**How far that actually reaches, stated precisely.** The installer accepts 77 agent names and
+writes each skill into the directory that tool expects: `.claude/skills/` for one, `.windsurf/`
+for another, a shared `.agents/skills/` for several including Cursor, opencode and Codex. What has
+been verified end to end — installed, loaded, and observed firing — is **Claude Code**. Everywhere
+else, what we measured is that the files land. Whether a given tool then loads them is that tool's
+business, and a file arriving is not a skill running, so we do not count it as support until
+somebody has watched it work.
+
+The rest of the pack travels less far, and the difference is worth knowing before you install:
+the nine commands reach two tools, and the three personas and two hooks are Claude Code only. That
+is a gap in our packaging rather than a limit of those tools — every major agent has a subagent
+mechanism — and it is written down as work, not as a feature.
 
 ## How we know it works
 
