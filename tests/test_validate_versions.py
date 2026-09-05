@@ -60,14 +60,16 @@ def test_missing_and_unreadable_manifests(repo: Layout) -> None:
 def test_declared_paths_must_exist(repo: Layout) -> None:
     document = json.loads((repo.root / ".claude-plugin" / "plugin.json").read_text())
     document["commands"] = ["./commands", "./.claude/commands", "./nowhere"]
-    document["hooks"] = "./hooks/hooks.json"
+    # Not the standard hooks/hooks.json: that path is refused for a different reason now, and
+    # this test is about a declared path that is simply not there.
+    document["hooks"] = "./hooks/absent.json"
     write(repo.root / ".claude-plugin" / "plugin.json", json.dumps(document))
     messages = [
         f.message for f in validate_versions.validate(repo).findings if f.rule == "manifest/path"
     ]
     assert len(messages) == 2
     assert any("./nowhere" in m for m in messages)
-    assert any("./hooks/hooks.json" in m for m in messages)
+    assert any("./hooks/absent.json" in m for m in messages)
 
 
 def test_marketplace_source_path_must_exist(repo: Layout) -> None:
@@ -86,3 +88,32 @@ def test_required_fields(repo: Layout) -> None:
         json.dumps({"name": "lakehouse-agent-skills", "version": "0.1.0"}),
     )
     assert "manifest/required" in rules(repo)
+
+
+def test_a_hooks_field_pointing_at_the_standard_file_is_refused(
+    repo: Layout, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Declared, it installs clean, validates strict, reports two hooks, and fails to load."""
+    path = repo.root / ".claude-plugin" / "plugin.json"
+    document = json.loads(path.read_text(encoding="utf-8"))
+    document["hooks"] = "./hooks/hooks.json"
+    write(path, json.dumps(document, indent=2) + "\n")
+
+    assert validate_versions.main(["--root", str(repo.root)]) == 1
+    out = capsys.readouterr().out
+    assert "manifest/conventional-path" in out
+    assert "already loads by convention" in out
+
+
+def test_a_hooks_field_pointing_somewhere_else_is_allowed(
+    repo: Layout, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The field exists to point at additional hook files, so that use must keep working."""
+    write(repo.hooks / "extra.json", '{"hooks": {}}\n')
+    path = repo.root / ".claude-plugin" / "plugin.json"
+    document = json.loads(path.read_text(encoding="utf-8"))
+    document["hooks"] = "./hooks/extra.json"
+    write(path, json.dumps(document, indent=2) + "\n")
+
+    assert validate_versions.main(["--root", str(repo.root)]) == 0
+    assert "conventional-path" not in capsys.readouterr().out

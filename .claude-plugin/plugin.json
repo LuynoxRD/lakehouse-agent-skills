@@ -20,6 +20,5 @@
     "dashboards"
   ],
   "skills": "./skills",
-  "commands": "./.claude/commands",
-  "hooks": "./hooks/hooks.json"
+  "commands": "./.claude/commands"
 }
