@@ -430,3 +430,82 @@ def test_the_receipt_records_the_bytes_that_were_checked(tmp_path: Path) -> None
     html.write_text(CLEAN_PAGE.replace("25.50", "99.99"), encoding="utf-8", newline="\n")
 
     assert hashlib.sha256(html.read_bytes()).hexdigest() != digest
+
+
+RUNTIME = "<script>" + ("// a bundled library\n" * 4000) + "</script>"
+
+
+def test_several_delivered_pages_with_no_stated_reason_are_refused(tmp_path: Path) -> None:
+    """Five files of one chart each are five charts; the reader does the assembling."""
+    note, html = project(tmp_path, CLEAN_PAGE)
+    for index in range(2, 5):
+        (tmp_path / f"chart_{index}.html").write_text(CLEAN_PAGE, encoding="utf-8", newline="\n")
+
+    code, report = run_with_project(note, html, tmp_path)
+
+    assert code == 1
+    assert "delivery/many-pages" in rules(report)
+    assert "chart_2.html" in messages(report)
+
+
+def test_several_pages_with_a_stated_reason_pass(tmp_path: Path) -> None:
+    """Splitting is allowed. Splitting without deciding is not."""
+    table = tmp_path / "orders.csv"
+    document = manifest(table)
+    document["pages_reason"] = "one page per region, agreed with the team"
+    note, html = project(tmp_path, CLEAN_PAGE, document)
+    (tmp_path / "second.html").write_text(CLEAN_PAGE, encoding="utf-8", newline="\n")
+
+    _code, report = run_with_project(note, html, tmp_path)
+
+    assert "delivery/many-pages" not in rules(report)
+
+
+def test_one_page_is_never_questioned(tmp_path: Path) -> None:
+    note, html = project(tmp_path, CLEAN_PAGE)
+
+    _code, report = run_with_project(note, html, tmp_path)
+
+    assert "delivery/many-pages" not in rules(report)
+
+
+def test_the_same_library_embedded_in_every_page_is_refused(tmp_path: Path) -> None:
+    """A real run shipped five files of four megabytes that were the same library five times."""
+    table = tmp_path / "orders.csv"
+    document = manifest(table)
+    document["pages_reason"] = "one page per chart, deliberately"
+    note, html = project(tmp_path, CLEAN_PAGE.replace("</body>", RUNTIME + "</body>"), document)
+    (tmp_path / "second.html").write_text(
+        CLEAN_PAGE.replace("</body>", RUNTIME + "</body>"), encoding="utf-8", newline="\n"
+    )
+
+    code, report = run_with_project(note, html, tmp_path)
+
+    assert code == 1
+    assert "delivery/duplicated-runtime" in rules(report)
+    assert "2 pages" in messages(report)
+
+
+def test_a_library_loaded_by_reference_is_not_a_duplicate(tmp_path: Path) -> None:
+    """One load shared by every panel is the shape the skills ask for."""
+    table = tmp_path / "orders.csv"
+    document = manifest(table)
+    document["pages_reason"] = "one page per chart, deliberately"
+    linked = CLEAN_PAGE.replace("</head>", '<script src="./lib.js"></script></head>')
+    note, html = project(tmp_path, linked, document)
+    (tmp_path / "second.html").write_text(linked, encoding="utf-8", newline="\n")
+
+    _code, report = run_with_project(note, html, tmp_path)
+
+    assert "delivery/duplicated-runtime" not in rules(report)
+
+
+def test_pages_are_found_rather_than_taken_from_the_arguments(tmp_path: Path) -> None:
+    """A run that produced five files can pass one, so the check looks instead of trusting."""
+    note, html = project(tmp_path, CLEAN_PAGE)
+    (tmp_path / "not_passed.html").write_text(CLEAN_PAGE, encoding="utf-8", newline="\n")
+
+    code, report = run_with_project(note, html, tmp_path)
+
+    assert code == 1
+    assert "not_passed.html" in messages(report)
