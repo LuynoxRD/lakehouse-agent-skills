@@ -602,6 +602,33 @@ def test_a_destination_outside_the_two_is_refused(tmp_path: Path) -> None:
     assert "layout/no-destination" in rules(report)
 
 
+def test_a_page_with_a_size_per_element_is_refused(tmp_path: Path) -> None:
+    """Found by measuring two real deliveries, one of them from a capable model.
+
+    That one carried eight distinct sizes, at which point nothing on the page is the figure and
+    nothing is the label. Three roles is what the starting template resolves text through, and the
+    count is the one structural decision a run cannot fake by naming the skill in a comment.
+    """
+    scale = "".join(f".s{n} {{ font-size: {n}rem; }}" for n in range(1, 9))
+    note, html = project(tmp_path, CLEAN_PAGE.replace("<style>", "<style>" + scale))
+
+    code, report = run(note, html)
+
+    assert code == 1
+    assert "layout/type-scale" in rules(report)
+    assert "8 distinct font sizes" in messages(report)
+
+
+def test_three_roles_resolved_through_tokens_pass(tmp_path: Path) -> None:
+    """What the starting template itself does, so the rule has to accept it."""
+    scale = ".a{font-size:var(--t-figure)}.b{font-size:var(--t-body)}.c{font-size:var(--t-label)}"
+    note, html = project(tmp_path, CLEAN_PAGE.replace("<style>", "<style>" + scale))
+
+    _code, report = run(note, html)
+
+    assert "layout/type-scale" not in rules(report)
+
+
 def test_a_failing_run_removes_a_receipt_that_was_there(tmp_path: Path) -> None:
     """A receipt from an earlier green run must not vouch for a page that now fails."""
     note, html = project(tmp_path, NESTED_PAGE)

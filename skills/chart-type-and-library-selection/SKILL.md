@@ -257,7 +257,7 @@ will not travel with it.
 | "The skill showed this library, so this is the library." | The example is there to make the shape concrete, and it says so. A form gets chosen by naming what the data ruled out; a library gets chosen the same way. A name lifted out of a code block is a decision nobody made. |
 | "Filters can be added later; the charts are the hard part." | Filtering decides which library can do the job, so adding it later means rewriting the charts. It is the first decision, not the last. |
 | "Linked filtering needs a framework." | It needs one library load, the rows in one place, and one redraw. A build step between the code and the artefact is a compile that has to be verified blind by anything without a live preview. |
-| "The charts are clickable, so the filter is discoverable." | Nothing about a chart says it is clickable. Without a pointer, a hover state or a line of text, the reader sees a picture and the interaction exists only for whoever wrote it. |
+| "The charts are clickable, so the filter is discoverable." | Nothing about a chart says it is clickable. The fix is a control that is one — a real button carries its own affordance, its own keyboard and its own state — not a line of text explaining how to work the page. A page that needs a manual has the wrong control. |
 | "A dashboard is a set of charts on a page." | That is a report. A dashboard is a page someone interrogates; if there is nothing to interrogate it with, build the report deliberately and say that is what it is. |
 | "It is just an exploratory chart." | Exploratory charts are the ones that get pasted into messages, where nothing says they were exploratory. |
 
@@ -279,8 +279,9 @@ Stop when any of these is true:
 - The library in the answer is the one the example in this skill happens to use, and the
   reasons given are the example's rather than this page's.
 - A chart carries no units, no period and no source table.
-- A panel filters the page and nothing on it says so: no pointer, no hover, no line of
-  text, and no mark showing which one is selected.
+- A panel filters the page and the only way to discover that is a sentence telling the reader
+  to click. Instructions for working the page are a symptom: the control should say what it
+  is by being one.
 - Each chart was written to its own file. Panels in separate files cannot filter each
   other, cannot be compared side by side, and each carries its own copy of the library.
 - A second charting library appears in the project's declared dependencies and nothing states
@@ -307,7 +308,8 @@ Stop when any of these is true:
 - [ ] At least one other library that could have rendered this is named, with the specific thing
       that ruled it out, in the same form Step 2 requires for the chart's shape.
 - [ ] Where filtering exists, the active selection is visible and can be cleared in one action,
-      the panel that drives it says it can be clicked, and the clicked mark shows it is selected.
+      the filter is reachable as a real control rather than only as a mark to click, and the
+      current selection is shown on that control rather than explained in a sentence.
 - [ ] Every panel reads the same category-to-colour map, so a category is one colour on the page.
 - [ ] The library is named together with the destination and the interaction it has to support,
       and any new dependency is stated as one.

@@ -139,8 +139,9 @@
        stage name (PROFILE, CLEAN, ...), a row count excluded in cleaning, or a build date. That
        detail goes in the reply that hands the page over, or in docs/data/*.md. -->
   <h1><!-- FILL: the question, e.g. "Which channel carries revenue, and is that changing?" --></h1>
-  <p class="sub"><!-- FILL: population and source, e.g. "42,318 orders, Jan–Dec 2025, from
-       data/curated/orders.parquet" --></p>
+  <p class="sub"><!-- FILL: who and what, in a business sentence, e.g. "42,318 orders across
+       five channels, Jan-Dec 2025." NOT the build date, the source filename or the row
+       counts of the cleaning: that is the answer's business, not the page's. --></p>
 
   <!-- FILTER — delete only if the page truly answers one question.
 
@@ -209,8 +210,10 @@
        (cleaning-log.md, figures.json, verify-output.sh...) and unprompted redact justifications
        go in the reply that hands the page over, or in docs/data/*.md — not here. -->
   <footer>
-    <!-- FILL: inputs processed of inputs present, rows read of rows present,each failure with its
-         reason, and when the figures were last recomputed against the curated table. -->
+    <!-- FILL: ONE line. The period, the population, and where the full accounting lives, e.g.
+         "Jan-Dec 2025, all 42,318 delivered orders. Coverage and exclusions:
+         docs/data/disclosure.md." The counts of what failed and what was removed go in the answer
+         and in that file, not here -- a reader came for the business, not for the run. -->
   </footer>
 
 </div>
