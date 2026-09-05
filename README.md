@@ -6,11 +6,45 @@ and say plainly what it did not cover.
 
 ## What you get
 
-- **Numbers you can trace.** Every figure on a delivered page has a query behind it and a
-  population it covers. A number typed by hand fails the check.
-- **A page, not a pile of files.** One self-contained HTML file, laid out by what its panels are,
-  with filters that move every panel at once.
-- **The chart the data allows**, not the one that was easiest to reach.
+**A working data architecture in your project, not an answer in a chat.**
+
+**The pipeline**
+
+- **Three layers and a trail.** The file that arrived is never written to. Cleaning happens in its
+  own layer, every rule logged with the number of rows it touched. What survives is persisted as
+  Parquet under `data/curated/`, and everything downstream reads from there.
+- **SQL over Parquet at local speed.** DuckDB queries the curated table directly — no server, no
+  load step, and a plan you can read. Grouping, ranking, joins and window functions stop being
+  loops.
+- **Row work at spreadsheet scale.** A worksheet stops at 1,048,576 rows; Polars handles that
+  range in memory on an ordinary laptop, with a schema that is declared rather than guessed from
+  whichever rows it saw first. If your project already has a dataframe library, the skills tell the
+  agent to use that one rather than add a second.
+- **Workbooks that survive the round trip.** Formulas, number formats, named ranges, merged
+  regions and validation rules are named before anything is written back — because a library
+  returns the last value the spreadsheet computed, not the formula that computed it.
+
+**The output**
+
+- **One page, not a pile of files.** A single self-contained HTML file, with linked filters that
+  move every panel at once — no bundler, no build step, nothing to compile. Five files each
+  carrying their own copy of the drawing library is five charts, not a dashboard.
+- **Charts chosen by a rule with an author.** Cleveland and McGill measured how accurately people
+  read visual encodings: position, then length, then angle, then area, and colour last. The skill
+  applies that order instead of a preference, which is why nine slices in a pie get refused.
+- **A dashboard that starts from your question.** Before any layout, the agent writes down the one
+  question the page answers and what the reader must be able to do with it. Panels are ranked
+  against that question, and anything answering no part of it is a candidate for removal.
+
+**The guardrails**
+
+- **Three reviewers that cannot edit what they review.** One separates what was *verified* from
+  what was *asserted*. One audits a finding against its arithmetic — the base of every percentage,
+  whether an average is weighted, whether a comparison reverses once the groups are pooled. One
+  classifies every field before anything leaves the project. They run when the result leaves your
+  machine or somebody will act on it, and stay out of the way when it is a first look.
+- **Numbers you can trace.** Every figure on the page has a query behind it and a population it
+  covers. A number typed by hand fails the check.
 - **A written record of what was skipped** — rows, sheets, files, in counts rather than adjectives.
 - **Nothing personal leaves the project** without somebody deciding it should.
 
