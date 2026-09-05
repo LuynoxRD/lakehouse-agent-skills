@@ -805,3 +805,38 @@ def test_a_page_that_does_not_respond_to_width_is_not_asked_for_observations(
 
     assert "layout/no-viewports-declared" not in rules(report)
     assert "layout/not-responsive" in rules(report)
+
+
+def test_centring_by_a_transform_counts(tmp_path: Path) -> None:
+    """A translate is centring, and the rule should not ask for a margin as well."""
+    page = CLEAN_PAGE.replace(
+        ".board {", ".board { max-width: 1280px; left: 50%; transform: translateX(-50%);"
+    )
+    note, html = project(tmp_path, page)
+
+    _code, report = run(note, html)
+
+    assert "layout/not-centred" not in rules(report)
+
+
+def test_centring_from_a_parent_is_a_known_limit_with_a_recorded_way_out(tmp_path: Path) -> None:
+    """This is documented rather than fixed, because fixing it needs the document tree.
+
+    A flex or grid ancestor with `justify-content: center` centres a bounded child without any
+    declaration appearing in the child's own rule. Reading one rule at a time cannot see that, so
+    the check flags it and the manifest carries the decision instead.
+    """
+    page = CLEAN_PAGE.replace(
+        ".board {",
+        "body { display: flex; justify-content: center; }\n.board { max-width: 1280px;",
+    )
+    note, html = project(tmp_path, page)
+
+    _code, report = run(note, html)
+    assert "layout/not-centred" in rules(report)
+    assert "layout.left_aligned" in messages(report)
+
+    document = with_layout(tmp_path, left_aligned=True)
+    note, html = project(tmp_path, page, document)
+    _code, report = run(note, html)
+    assert "layout/not-centred" not in rules(report)

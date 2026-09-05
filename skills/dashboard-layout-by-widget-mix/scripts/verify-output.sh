@@ -161,12 +161,19 @@ NOT_VERIFIED = (
 # A container with a maximum width and nothing centring it sits against the left edge with the
 # remaining space beside it. Real, and found in a delivered page: `max-width: 1280px` in a 1600px
 # viewport left roughly 300px of nothing on the right.
+#
+# Known limit, and the reason the manifest has an opt-out rather than this having a cleverer
+# regex: centring can come from the parent. A flex or grid ancestor with `justify-content: center`
+# centres this element without any declaration appearing in its own rule, and no amount of reading
+# one rule at a time can see that, because resolving it needs the document tree and the cascade.
+# So this catches the common shape, and `layout.left_aligned` records the other one as a decision.
 CSS_RULE = re.compile(r"([^{}]+)\{([^{}]*)\}", re.S)
 BOUNDED_WIDTH = re.compile(r"max-width\s*:\s*[\d.]+\s*(px|rem|em|ch|pt|cm|in)\b", re.IGNORECASE)
 CENTRED = re.compile(
-    r"margin\s*:[^;]*\bauto\b|margin-inline\s*:[^;]*\bauto\b|margin-left\s*:\s*auto"
+    r"margin\s*:[^;]*\bauto\b|margin-inline\s*:[^;]*\bauto\b"
+    r"|margin-left\s*:\s*auto|margin-right\s*:\s*auto"
     r"|justify-self\s*:\s*center|place-self\s*:[^;]*center|align-self\s*:\s*center"
-    r"|inset-inline\s*:[^;]*\bauto\b",
+    r"|inset-inline\s*:[^;]*\bauto\b|translate\s*:|transform\s*:[^;]*translate",
     re.IGNORECASE,
 )
 # Elements whose own width is bounded for legibility rather than to make a page column.
@@ -783,9 +790,11 @@ def check_layout(
             report.checked += 1
             report.error(
                 "layout/not-centred",
-                f"'{name}' has a maximum width and nothing centring it, so it sits against one "
-                "edge with the rest of the viewport empty beside it. Add an automatic inline "
-                "margin, or record the decision as layout.left_aligned in the manifest",
+                f"'{name}' has a maximum width and its own rule does nothing to centre it, so it "
+                "sits against one edge with the rest of the viewport empty beside it. Add an "
+                "automatic inline margin. If it is centred by a flex or grid parent, which is "
+                "not readable from one rule, or if it is left-aligned on purpose, record that as "
+                "layout.left_aligned in the manifest",
                 str(path),
             )
 
