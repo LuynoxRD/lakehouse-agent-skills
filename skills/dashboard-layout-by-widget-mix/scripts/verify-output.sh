@@ -557,11 +557,14 @@ def check_pipeline_jargon(
     exceptions = {str(item).lower() for item in exceptions} if isinstance(exceptions, list) else set()
 
     for path, parser in pages.items():
+        # Once per page, like every other family. Counting each text chunk made the total scale
+        # with how much prose a page happens to carry, so two runs could not be compared and the
+        # number the receipt records stopped meaning anything.
+        report.checked += 1
         for line, chunk in parser.text:
             stripped = chunk.strip()
             if not stripped:
                 continue
-            report.checked += 1
 
             for match in STAGE_WORD.finditer(stripped):
                 token = match.group(1)
