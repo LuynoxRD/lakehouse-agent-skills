@@ -36,7 +36,7 @@ sense on its own, that is a defect in the skill, not in the installer.
 The repository is also a plugin with a marketplace manifest at
 `.claude-plugin/marketplace.json`, so a local checkout can be added as a marketplace and the
 plugin installed from it. That route brings the skills, the nine commands, the three reviewer
-personas and the session hook together, rather than the skills alone.
+personas and the two session hooks together, rather than the skills alone.
 
 ```bash
 claude plugin marketplace add /path/to/lakehouse-agent-skills

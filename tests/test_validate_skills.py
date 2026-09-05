@@ -105,6 +105,27 @@ def test_step_references_need_headings(repo: Layout) -> None:
     assert {f.severity.value for f in warnings} == {"warning"}
 
 
+def test_a_step_belonging_to_another_skill_is_not_a_missing_heading(repo: Layout) -> None:
+    """A catalogue of skills that point at each other cannot have this rule punish the pointing.
+
+    Found by our own linter warning about `using-lakehouse-skills`, which cites Step 4 of the
+    chart skill. The reference wrapped across two lines, so a line-by-line scan saw a bare
+    "Step 4" and reported a heading this file was never supposed to have.
+    """
+    path = repo.skills / SKILL_A / "SKILL.md"
+    wrapped = (
+        "which is the thing Step 4 of the\n`" + SKILL_B + "` skill refuses for the same reason."
+    )
+    write(
+        path,
+        skill_markdown(SKILL_A, DESCRIPTION_A).replace("Step 1 always precedes Step 2.", wrapped),
+    )
+
+    findings = [f for f in lint_catalog(repo).findings if f.rule == "skill/step-heading"]
+
+    assert findings == []
+
+
 def test_cross_reference_to_missing_skill_warns(repo: Layout) -> None:
     path = repo.skills / SKILL_A / "SKILL.md"
     text = skill_markdown(SKILL_A, DESCRIPTION_A).replace(

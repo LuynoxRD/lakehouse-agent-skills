@@ -12,7 +12,8 @@ skills/<name>/
 ├── SKILL.md            # required; the only file most skills need
 ├── references/         # optional, files used by this skill only
 ├── scripts/            # optional, bash scripts with the header contract below
-├── assets/             # optional, templates or images the skill fills in
+├── assets/             # optional, templates or images the skill fills in; a page a skill
+│                       #   tells the reader to generate from lives here
 └── examples/           # optional, worked examples
 ```
 
