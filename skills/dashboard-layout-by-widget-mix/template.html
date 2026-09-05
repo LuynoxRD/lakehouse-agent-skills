@@ -86,10 +86,16 @@
   .filterbar { display:flex; align-items:center; gap:8px; margin-bottom:var(--gap-in);
                font-size:var(--t-label); color:var(--muted); }
   .chip { border:1px solid var(--line); border-radius:999px; padding:3px 10px; color:var(--ink); }
-  .clear { border:1px solid var(--line); border-radius:999px; padding:3px 10px; cursor:pointer;
-           background:none; color:var(--ink); font:inherit; }
-  .clear:focus-visible, .panel:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
-  [data-clickable] { cursor:pointer; }
+  #legend { display:flex; flex-wrap:wrap; gap:6px; }
+  .clear, .swatch { border:1px solid var(--line); border-radius:999px; padding:3px 10px;
+                    cursor:pointer; background:none; color:var(--ink); font:inherit;
+                    font-size:var(--t-label); }
+  /* The dot is the legend; the pressed state is not colour alone, because colour alone is an
+     encoding the colour skill refuses. Pressed also thickens the border and sets aria-pressed. */
+  .swatch::before { content:""; display:inline-block; width:9px; height:9px; border-radius:50%;
+                    margin-right:6px; vertical-align:baseline; background:var(--swatch,currentColor); }
+  .swatch[aria-pressed="true"] { border-color:var(--ink); border-width:2px; padding:2px 9px; }
+  .clear:focus-visible, .swatch:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 
   table { border-collapse:collapse; width:100%; font-size:var(--t-body); }
   th,td { border-bottom:1px solid var(--line); padding:8px 10px; text-align:left; }
@@ -136,12 +142,18 @@
   <p class="sub"><!-- FILL: population and source, e.g. "42,318 orders, Jan–Dec 2025, from
        data/curated/orders.parquet" --></p>
 
-  <!-- FILTER BAR — delete only if the page truly answers one question. If it filters, the active
-       selection shows here and clears in one action. -->
+  <!-- FILTER — delete only if the page truly answers one question.
+
+       These are real buttons, generated from the colour map, and they are the control: the chart
+       marks are an enhancement on top. A chart is drawn by a library into a canvas or a tree of
+       shapes nobody here governs, so a filter that exists only as "click the bar" is a filter
+       some readers cannot reach and no screen reader can announce. Buttons carry their own
+       keyboard behaviour, their own focus ring and their own pressed state, so none of that has
+       to be rebuilt, and the swatch doubles as the legend. -->
   <div class="filterbar">
     <span id="chip" class="chip">All <!-- FILL: dimension, e.g. "channels" --></span>
-    <button id="clear" class="clear" hidden>Clear filter</button>
-    <span>Click a bar to filter every panel.</span>
+    <div id="legend" role="group" aria-label="Filter every panel by category"></div>
+    <button id="clear" type="button" class="clear" hidden>Clear filter</button>
   </div>
 
   <!-- HEADLINE — the answer, first, because this is where the reader lands. Three to six KPIs. -->
@@ -165,7 +177,7 @@
         <h3><!-- FILL: what this chart compares, in one phrase --></h3>
         <div id="trend" class="chart"></div>
       </div>
-      <div class="panel ranked" data-clickable tabindex="0">
+      <div class="panel ranked">
         <h3><!-- FILL --></h3>
         <div id="ranked" class="chart"></div>
       </div>
@@ -234,31 +246,40 @@
     // FILL: repaint the table body from `rows`.
 
     // Filter state stays visible, clearable, and in the URL so a filtered view can be handed on.
+    // It is announced as well as shown: aria-pressed is the state, not the border.
     document.getElementById("chip").textContent = active ? active : "All";
     document.getElementById("clear").hidden = !active;
+    for (const button of legend.querySelectorAll(".swatch")) {
+      button.setAttribute("aria-pressed", String(button.dataset.category === active));
+    }
     const url = new URL(location);
     active ? url.searchParams.set("filter", active) : url.searchParams.delete("filter");
     history.replaceState(null, "", url);
   }
 
-  // Clicking a mark filters; clicking the same one again clears.
+  // Selecting a category filters; selecting the same one again clears.
   function toggle(category) { active = active === category ? null : category; render(); }
 
-  // FILL: wire the driving panel's click to toggle(). The call belongs to whichever library drew
-  // it — a click handler on the chart's own event, not on the container — so it is left here
-  // rather than guessed. Example shape: chart.on("click", e => toggle(e.category)).
+  // The control, built from the colour map so filling COLOUR fills this too. These are real
+  // buttons: Enter and Space already work, focus already works, and `aria-pressed` is what tells
+  // a screen reader this is a control with a state rather than some text you can tab to.
+  const legend = document.getElementById("legend");
+  for (const category of CATEGORIES) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "swatch";
+    button.dataset.category = category;
+    button.style.setProperty("--swatch", COLOUR[category]);
+    button.textContent = category;
+    button.setAttribute("aria-pressed", "false");
+    button.onclick = () => toggle(category);
+    legend.append(button);
+  }
 
-  // Keyboard, wired here because it does not depend on the library and is the half that gets
-  // forgotten: a control reachable only by mouse is a control some readers do not have. The panel
-  // carries tabindex="0", so Enter and Space have to do what a click does.
-  document.querySelectorAll("[data-clickable]").forEach(panel => {
-    panel.addEventListener("keydown", event => {
-      if (event.key !== "Enter" && event.key !== " ") return;
-      event.preventDefault();          // Space scrolls the page otherwise
-      // FILL: the category this panel currently has focused, from the same source the click uses.
-      // toggle(focusedCategory);
-    });
-  });
+  // FILL, and optional: wire the chart's own marks to toggle() as well, so a mouse user can click
+  // the bar. It belongs to whichever library drew it — its click event, not the container's — so
+  // it is left here rather than guessed. Shape: chart.on("click", e => toggle(e.category)).
+  // Nothing above depends on this: the buttons are the control, the marks are a shortcut.
 
   document.getElementById("clear").onclick = () => { active = null; render(); };
 
