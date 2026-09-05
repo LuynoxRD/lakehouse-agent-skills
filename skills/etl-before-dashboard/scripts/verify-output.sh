@@ -27,7 +27,10 @@ set -euo pipefail
 #   6. Was the page laid out for      A missing viewport meta, a stylesheet with no responsive
 #      more than one screen?           mechanism, or a blank title: three absences that say the
 #                                      page was built at one width and never named.
-#   7. Is the deliverable one page,   Several files each holding one chart are several charts, and
+#   7. Does the reader land on the    The ranking a page was supposed to have leaves no trace in
+#      panel that answers first?      the styling, so it is declared and then checked against
+#                                     document order, which is also what a screen reader follows.
+#   8. Is the deliverable one page,   Several files each holding one chart are several charts, and
 #      with one copy of the library?  the reader does the assembling. Pages are found in the
 #                                     project rather than taken from the arguments, and an inline
 #                                     script repeated across them is a library shipped N times.
@@ -185,6 +188,7 @@ class PageParser(HTMLParser):
         self.styles: list[str] = []
         self.title = ""
         self.viewports: list[int] = []
+        self.ids: list[tuple[str, int]] = []  # element ids, in document order
         self.inside = ""  # style or title, whose text is collected separately
 
     @property
@@ -205,6 +209,9 @@ class PageParser(HTMLParser):
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if tag in self.roots:
             self.roots[tag].append(self.line)
+        for name, value in attrs:
+            if name.lower() == "id" and value:
+                self.ids.append((value, self.line))
         if tag == "meta":
             self._meta(attrs)
         if tag in ("style", "title"):
@@ -540,6 +547,96 @@ def check_libraries(project: Path, manifest: dict[str, object], report: Report) 
         )
 
 
+def check_reading_order(
+    path: Path, parser: PageParser, manifest: dict[str, object], figures: int, report: Report
+) -> None:
+    """The ranking a page was supposed to have, checked against the order it actually has.
+
+    Ranking the panels by how directly they answer the page's question is the one layout decision
+    that leaves no trace in the styling, so it has always been a box somebody ticks. Declaring the
+    order makes it checkable: the panels have to appear in the document in the order they were
+    ranked, headline answer first.
+
+    Document order rather than visual order, deliberately. It is what a screen reader announces
+    and what the tab key follows, so a page whose headline is visually first and last in the
+    markup reads correctly for one audience and not the other.
+    """
+    layout = manifest.get("layout")
+    layout = layout if isinstance(layout, dict) else {}
+    declared = layout.get("panels")
+    declared = [str(item) for item in declared] if isinstance(declared, list) else []
+
+    if not declared:
+        if figures >= 2:
+            report.checked += 1
+            report.error(
+                "layout/no-reading-order",
+                f"{figures} figures are published and 'layout.panels' does not say which one the "
+                "reader should land on. Rank them by how directly they answer the page's "
+                "question, headline answer first, and name their element ids in that order",
+                str(path),
+            )
+        return
+
+    positions = {name: index for index, (name, _line) in enumerate(parser.ids)}
+    missing = [name for name in declared if name not in positions]
+    report.checked += 1
+    if missing:
+        report.error(
+            "layout/panel-missing",
+            f"'layout.panels' names {', '.join(missing)}, which no element on the page carries "
+            "as an id",
+            str(path),
+        )
+        return
+
+    for earlier, later in zip(declared, declared[1:]):
+        report.checked += 1
+        if positions[earlier] > positions[later]:
+            report.error(
+                "layout/reading-order",
+                f"'{later}' comes before '{earlier}' in the document, and the declared ranking "
+                f"puts '{earlier}' first. The reader lands on whatever is first",
+                str(path),
+                parser.ids[positions[later]][1],
+            )
+            return
+
+
+def check_categories(path: Path, manifest: dict[str, object], report: Report) -> None:
+    """One category, one colour, on every panel that shows it.
+
+    A category is an identity, and colour is how a reader carries that identity from one panel to
+    the next. When each panel picks its own palette, the same name is two colours on one screen
+    and the reader has no way to know they are the same thing. It is the colour form of the
+    disagreement this whole check exists to find.
+
+    What a file can be checked for here is narrow, and worth stating rather than overselling: the
+    colours a chart draws with live inside the drawing library's own payload, so nothing outside
+    it can confirm which category got which. What is checkable is that the map exists in one place
+    and that no two categories were handed the same colour, which makes them indistinguishable
+    wherever they appear together. The rest is the skill's rule and the reviewer's eye.
+    """
+    layout = manifest.get("layout")
+    layout = layout if isinstance(layout, dict) else {}
+    categories = layout.get("categories")
+    if not isinstance(categories, dict) or not categories:
+        return
+
+    seen: dict[str, str] = {}
+    for name, colour in categories.items():
+        report.checked += 1
+        value = str(colour).strip().lower()
+        if value in seen:
+            report.error(
+                "categories/shared-colour",
+                f"'{name}' and '{seen[value]}' are both {value}, so the two are indistinguishable "
+                "wherever they appear together",
+                str(path),
+            )
+        seen[value] = str(name)
+
+
 def check_layout(path: Path, parser: PageParser, report: Report) -> None:
     """Three things a page laid out for one screen is missing, all of them binary.
 
@@ -587,16 +684,16 @@ def delivered_pages(project: Path) -> list[Path]:
     one and be told it is fine. This looks instead.
     """
     skip = {".git", "node_modules", ".venv", "venv", "__pycache__", "dist", "build", ".next"}
-    found: list[Path] = []
-    for depth in ("*", "*/*"):
-        for pattern in (".html", ".htm"):
-            found += [
-                path
-                for path in sorted(project.glob(depth))
-                if path.is_file()
-                and path.suffix.lower() == pattern
-                and not any(part in skip for part in path.relative_to(project).parts)
-            ]
+    # Walked to the bottom rather than to a fixed depth: a run that writes its page to
+    # output/2026/sales.html is not hiding it, and a check that stops two levels up reports a
+    # clean delivery it never looked at.
+    found = [
+        path
+        for path in project.rglob("*")
+        if path.is_file()
+        and path.suffix.lower() in (".html", ".htm")
+        and not any(part in skip for part in path.relative_to(project).parts)
+    ]
     return sorted(set(found))
 
 
@@ -745,6 +842,7 @@ def main() -> int:
         if parsed is not None:
             pages[path] = parsed
             check_layout(path, parsed, report)
+            check_categories(path, manifest, report)
     if not pages and not report.errors:
         report.error("artefact/none", "no page was checked; pass --html")
 
@@ -765,6 +863,11 @@ def main() -> int:
                         "page with no origin is the shape of an invented one",
                     )
                 accounted.append(float(constant["value"]))
+
+    declared_figures = manifest.get("figures")
+    declared_figures = len(declared_figures) if isinstance(declared_figures, list) else 0
+    for page, parsed in pages.items():
+        check_reading_order(page, parsed, manifest, declared_figures, report)
 
     check_page_numbers(pages, accounted, report)
     check_aggregate_rows(connection, manifest, report)

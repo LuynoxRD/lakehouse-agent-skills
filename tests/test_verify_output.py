@@ -585,3 +585,106 @@ def test_a_page_with_no_stylesheet_of_its_own_is_not_asked_for_media_queries(
     _code, report = run(note, html)
 
     assert "layout/not-responsive" not in rules(report)
+
+
+RANKED = LAID_OUT.replace(
+    "<body><p>",
+    '<body><section id="hero"></section><section id="trend"></section>'
+    '<section id="context"></section><p>',
+)
+
+
+def with_layout(tmp_path: Path, **layout: object) -> dict[str, object]:
+    document = manifest(tmp_path / "orders.csv")
+    document["layout"] = layout
+    return document
+
+
+def test_several_figures_with_no_declared_reading_order_are_refused(tmp_path: Path) -> None:
+    """The one layout decision that leaves no trace in the styling."""
+    document = manifest(tmp_path / "orders.csv")
+    figures = document["figures"]
+    assert isinstance(figures, list)
+    figures.append(dict(figures[0], label="Orders"))
+    note, html = project(tmp_path, RANKED, document)
+
+    code, report = run(note, html)
+
+    assert code == 1
+    assert "layout/no-reading-order" in rules(report)
+
+
+def test_one_figure_needs_no_declared_order(tmp_path: Path) -> None:
+    note, html = project(tmp_path, RANKED)
+
+    _code, report = run(note, html)
+
+    assert "layout/no-reading-order" not in rules(report)
+
+
+def test_panels_out_of_the_declared_order_are_refused(tmp_path: Path) -> None:
+    """The reader lands on whatever is first, whatever the ranking said."""
+    document = with_layout(tmp_path, panels=["trend", "hero", "context"])
+    note, html = project(tmp_path, RANKED, document)
+
+    code, report = run(note, html)
+
+    assert code == 1
+    assert "layout/reading-order" in rules(report)
+    assert "'hero' comes before 'trend'" in messages(report) or "'trend'" in messages(report)
+
+
+def test_panels_in_the_declared_order_pass(tmp_path: Path) -> None:
+    document = with_layout(tmp_path, panels=["hero", "trend", "context"])
+    note, html = project(tmp_path, RANKED, document)
+
+    _code, report = run(note, html)
+
+    assert not [rule for rule in rules(report) if rule.startswith("layout/")]
+
+
+def test_a_declared_panel_the_page_does_not_carry_is_refused(tmp_path: Path) -> None:
+    document = with_layout(tmp_path, panels=["hero", "absent-panel"])
+    note, html = project(tmp_path, RANKED, document)
+
+    code, report = run(note, html)
+
+    assert code == 1
+    assert "layout/panel-missing" in rules(report)
+
+
+def test_two_categories_on_the_same_colour_are_refused(tmp_path: Path) -> None:
+    """Two things a reader cannot tell apart wherever they appear together."""
+    document = with_layout(
+        tmp_path, panels=["hero"], categories={"Online": "#2E86AB", "Retail": "#2e86ab"}
+    )
+    note, html = project(tmp_path, RANKED, document)
+
+    code, report = run(note, html)
+
+    assert code == 1
+    assert "categories/shared-colour" in rules(report)
+
+
+def test_a_distinct_category_map_passes(tmp_path: Path) -> None:
+    document = with_layout(
+        tmp_path, panels=["hero"], categories={"Online": "#2E86AB", "Retail": "#A23B72"}
+    )
+    note, html = project(tmp_path, RANKED, document)
+
+    _code, report = run(note, html)
+
+    assert "categories/shared-colour" not in rules(report)
+
+
+def test_a_page_nested_three_levels_deep_is_still_found(tmp_path: Path) -> None:
+    """A run that writes to output/2026/sales.html is not hiding it."""
+    note, html = project(tmp_path, CLEAN_PAGE)
+    deep = tmp_path / "output" / "2026"
+    deep.mkdir(parents=True)
+    (deep / "sales.html").write_text(CLEAN_PAGE, encoding="utf-8", newline="\n")
+
+    code, report = run_with_project(note, html, tmp_path)
+
+    assert code == 1
+    assert "sales.html" in messages(report)

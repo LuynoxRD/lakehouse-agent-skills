@@ -140,29 +140,51 @@ like it needs a framework. It does not, and reaching for one has a cost worth na
 puts a compile step between the code and the artefact, and an agent with no live preview has to
 verify that step blind. A script that writes a file either wrote it or did not.
 
-The shape is four things in one document:
+The shape is six things in one document:
 
 1. **One load of the library, for every panel.** Not one per chart. Five files each embedding
    their own copy is the same page five times over, and the `dashboard-layout-by-widget-mix`
    skill refuses it.
 2. **The rows embedded once**, with each panel a view computed from them rather than a separate
    extract. Two panels aggregating from two extracts is how they come to disagree.
-3. **One redraw that recomputes every panel from the current filter**, so no panel can be stale.
-4. **The active filter visible, clearable in one action, and in the URL** so a filtered view can
+3. **One map from category to colour**, read by every panel, so a category is the same colour
+   wherever it appears. The `dashboard-color-and-visual-hierarchy` skill owns why.
+4. **One redraw that recomputes every panel from the current filter**, so no panel can be stale.
+5. **The active filter visible, clearable in one action, and in the URL** so a filtered view can
    be handed to somebody.
+6. **Something on the page that says the panel can be clicked**, and the clicked mark showing
+   that it is the selected one. A filter nobody knows is there is a feature that exists only in
+   the source: the reader sees a static chart, and the one affordance a mouse gives them is a
+   cursor that never changes shape.
 
 ```html
+<style>
+  /* The affordance. Without it the page looks static and nobody ever clicks. */
+  #by-channel .bars .point path { cursor: pointer; }
+  #by-channel:hover { outline: 1px solid var(--accent); outline-offset: 4px; }
+</style>
+<p id="hint">Click a channel to filter every panel. Click it again to clear.</p>
+
 <script src="…the charting library, loaded once…"></script>
 <script>
   const ROWS = [ /* the curated rows, embedded once */ ];
+  const COLOUR = { Online: "#2E86AB", Retail: "#A23B72", Partner: "#F18F01" }; // one map, every panel
+  const CHANNELS = Object.keys(COLOUR); // the canonical order, so a filter cannot reassign it
   let active = new URL(location).searchParams.get("channel");
 
   const visible = () => (active ? ROWS.filter((r) => r.channel === active) : ROWS);
+  const colours = (names) => names.map((name) => COLOUR[name]);
 
   function draw() {
     const rows = visible();
-    Plotly.react("by-category", [byCategory(rows)], categoryLayout);
-    Plotly.react("by-month", [byMonth(rows)], monthLayout);
+    Plotly.react("by-category", [byCategory(rows, COLOUR)], categoryLayout);
+    Plotly.react("by-month", [byMonth(rows, COLOUR)], monthLayout);
+
+    // The clicked panel shows which mark is selected: everything else goes quiet.
+    Plotly.restyle("by-channel", {
+      "marker.color": [CHANNELS.map((c) => (!active || c === active ? COLOUR[c] : "#D9DDE3"))],
+    });
+
     document.getElementById("chip").textContent = active ? `Channel: ${active}` : "All channels";
     document.getElementById("clear").hidden = !active;
     const url = new URL(location);
@@ -181,8 +203,8 @@ The shape is four things in one document:
 ```
 
 `react` takes new data and diffs it against what is drawn, which is what a changed aggregation
-needs; `restyle` changes attributes of traces already drawn and is the cheaper call for something
-like highlighting the selected bar. Every panel that shares the grain goes inside `draw`. A panel
+needs; `restyle` changes attributes of traces already drawn, which is why the selected bar is
+highlighted with it rather than by redrawing the panel that was just clicked. Every panel that shares the grain goes inside `draw`. A panel
 left outside it is the failure question 2 describes: two populations on one screen, with nothing
 saying they differ.
 
@@ -208,6 +230,7 @@ will not travel with it.
 | "The charts are interactive, so the page is." | Zooming one panel is not filtering the page. If selecting a category does not move the other panels, the reader has to hold the filter in their head while reading numbers that ignore it. |
 | "Filters can be added later; the charts are the hard part." | Filtering decides which library can do the job, so adding it later means rewriting the charts. It is the first decision, not the last. |
 | "Linked filtering needs a framework." | It needs one library load, the rows in one place, and one redraw. A build step between the code and the artefact is a compile that has to be verified blind by anything without a live preview. |
+| "The charts are clickable, so the filter is discoverable." | Nothing about a chart says it is clickable. Without a pointer, a hover state or a line of text, the reader sees a picture and the interaction exists only for whoever wrote it. |
 | "A dashboard is a set of charts on a page." | That is a report. A dashboard is a page someone interrogates; if there is nothing to interrogate it with, build the report deliberately and say that is what it is. |
 | "It is just an exploratory chart." | Exploratory charts are the ones that get pasted into messages, where nothing says they were exploratory. |
 
@@ -223,6 +246,8 @@ Stop when any of these is true:
 - A chart is being built and the sentence describing what is being compared was never written.
 - The library was chosen before the destination was named.
 - A chart carries no units, no period and no source table.
+- A panel filters the page and nothing on it says so: no pointer, no hover, no line of
+  text, and no mark showing which one is selected.
 - Each chart was written to its own file. Panels in separate files cannot filter each
   other, cannot be compared side by side, and each carries its own copy of the library.
 - A second charting library appears in the project's declared dependencies and nothing states
@@ -243,7 +268,9 @@ Stop when any of these is true:
 - [ ] What the reader must be able to do is written down before any library was named, and any
       filtering is stated as linked across the panels that share a grain, or the exceptions are
       named.
-- [ ] Where filtering exists, the active selection is visible and can be cleared in one action.
+- [ ] Where filtering exists, the active selection is visible and can be cleared in one action,
+      the panel that drives it says it can be clicked, and the clicked mark shows it is selected.
+- [ ] Every panel reads the same category-to-colour map, so a category is one colour on the page.
 - [ ] The library is named together with the destination and the interaction it has to support,
       and any new dependency is stated as one.
 - [ ] The chart carries its units, its period, the filter behind it and the table it came from.

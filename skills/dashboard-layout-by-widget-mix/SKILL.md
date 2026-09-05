@@ -65,6 +65,17 @@ Place them in reading order: the headline answer where the reader lands first, s
 next, context below. Anything that answers no part of the question is a candidate for removal, and
 removing it is a real option, not a failure to fit it in.
 
+**Write the ranking down as the panels' element ids, in order, and it becomes checkable.** This is
+the only layout decision that leaves no trace in the styling: a page can be spaced, sized and
+grouped correctly and still open on a panel nobody needed. Declared as `layout.panels`, the check
+compares the ranking against the order the panels appear in the document, and the headline answer
+being first stops being something a run reports about itself.
+
+Document order, not visual order, and that is the stronger rule rather than the weaker one. It is
+what a screen reader announces and what the tab key follows, so a page whose headline is first to
+the eye and last in the markup answers the question for one audience and buries it for another.
+Where a grid is tempting you to reorder visually, reorder the markup instead.
+
 ### Step 3: Past what fits, group; past what grouping fixes, split
 
 As the number of panels rises, the cost of finding any one of them rises with it. Shrinking them
@@ -228,6 +239,8 @@ Stop when any of these is true:
 - A figure was embedded by pasting the output of a call whose default is a whole document.
 - A count sits in a header, a subtitle or a footer without a query behind it.
 - The page was declared finished on the strength of having been opened, not read.
+- The panel a reader lands on first is not the one that answers the page's question.
+- The markup order and the visual order disagree, so the page reads differently by keyboard.
 - Every panel is a full-width block stacked on the one above it. That is the uniform grid in its
   other shape, and it means Step 1 was never applied.
 - One gap size is used everywhere, so nothing is grouped by proximity.
@@ -239,6 +252,8 @@ Stop when any of these is true:
       reflect that rather than a uniform grid.
 - [ ] The question the page answers is written in one sentence, and the panels are ordered by how
       directly they answer it.
+- [ ] That order is declared as `layout.panels` and matches the order the panels appear in the
+      document, headline answer first.
 - [ ] Panels are grouped into a small number of labelled blocks, using space and alignment before
       borders.
 - [ ] If the page still does not fit, it is split by theme into tabs or separate pages, and the
