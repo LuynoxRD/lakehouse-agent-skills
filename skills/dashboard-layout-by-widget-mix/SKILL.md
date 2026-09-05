@@ -65,6 +65,100 @@ publishing a page nothing ever checked, not by publishing.
 Assume neither. A pipeline that always writes a project file has chosen for the reader every time,
 and the reader is the one who knows whether anybody else has to open it.
 
+Record the answer as `layout.destination` in the manifest, as `project-file` or
+`published-page`. The artefact check refuses a run that declares neither, because a rule with
+no mechanism is the one a run under pressure drops — this one was skipped by a real run with
+the instruction in front of it. What the check sees is that a decision was written down; it
+cannot see whether anybody was asked, and it says so among the things it did not verify.
+
+### The page you start from
+
+Everything after this point is a procedure: inventory, rank, group, size. A procedure only helps
+somebody who runs it. In a measured run, a comment reading `# SKILL: dashboard-layout-by-widget-mix`
+sat directly above a generic call for a two-by-two subplot grid — four panels of identical size,
+which is the exact shape Step 4 refuses by name. The skill was labelled, not executed, and the page
+that shipped had no viewport meta, no width rule, a container fixed at 800×1000 pixels, a `<title>`
+inherited from the plotting library's logo, and every computed figure printed to a terminal instead
+of onto the page.
+
+That is not a smaller model deciding worse. It is a smaller model **not entering the procedure**,
+and a better procedure does not reach it. What does reach it is the shape the colour rules already
+have: `dashboard-color-and-visual-hierarchy` is a lookup — unordered categories take distinct hues,
+text takes 4.5:1 — and the same run that ignored every step here got its colours right, because
+following a lookup is reading a row rather than making a decision.
+
+So the layout arrives as a lookup too. **A template is what stops a model inventing a dashboard.**
+Given a page to fill, it fills fields; given a procedure, it emits whatever its library does by
+default and puts the skill's name in a comment above it. The floor stops being whatever the model
+can design under pressure and becomes what the file already contains, which is the difference
+between a reader getting a usable BI page and a reader getting four identical squares with no
+figures on them. A stronger model loses nothing: it starts from the floor and improves on it, and
+the layout note records what it changed.
+
+So the decisions arrive already made. **Generate the page from `template.html` in this skill
+directory**, the same folder as this file. It already carries:
+
+- a viewport meta, a `<title>` that is the page's question, and a container that is both bounded
+  and centred;
+- colour tokens for the light and dark grounds, with the status colours kept separate from the
+  accent;
+- **three type sizes by role** — figure, body, label — because a fourth distinction is a weight, a
+  colour or a letter-spacing change, and a delivered page that grew to eight sizes had no figure
+  and no label, only text;
+- the twelve-track grid, with the span and the height floor of every panel type taken from the
+  Step 1 table, and two gap sizes whose difference is the grouping;
+- a stated narrow-viewport rule that names the panel it drops and why;
+- the filter bar, visible and clearable in one action, with the selection in the URL;
+- one colour map read by every panel, and one `render()` that recomputes every panel from the
+  current filter;
+- a `note` under each figure and a `footer` for coverage, which is where each kind of caveat goes;
+- figures in `tabular-nums`, and no pixel width anywhere.
+
+Fill every `FILL`, delete the sections you do not need, keep it one file. It deliberately does not
+choose the charting library: that is Step 4 of the `chart-type-and-library-selection` skill, and
+the panels are empty containers so any library can fill them.
+
+Reaching Step 1 with that page is the floor. The steps below are how you improve on it, and every
+departure from it is named in the layout note from Step 6.
+
+Four things that template does which the failing page did not, each traceable to a rule already stated:
+
+- **It declares a width and a title.** A viewport meta, one media query, and a `<title>` that is
+  the page's question. A chart library's HTML export supplies none of these.
+- **Every panel gets its area from its type**, with a floor, and the panel that cannot be read
+  narrow is dropped on purpose rather than squeezed.
+- **The figures are on the page**, in `tabular-nums` so digits line up in a column, each with the
+  population it covers. A number computed and printed to a terminal has not been published.
+- **Nothing sets a pixel width.** The container that was `width:1000px` is the reason that page
+  overflows every phone.
+
+Three numbers the procedure below leaves open, so they are fixed here:
+
+| Decision | Default | When to move it |
+| --- | --- | --- |
+| Panels before grouping | **6** | Never up. Below six, one labelled group is still correct and costs nothing. |
+| Panels before splitting into tabs or pages | **20** | Down, when the panels answer two questions rather than one. |
+| Type sizes | **3**, by role: figure, body, label | Never. A fourth size is a weight, a colour or a letter-spacing change. |
+| Words in a panel note | **25**, about two lines at the measure above | Up only for a caveat that changes the reading, and then it moves into the body text. |
+
+**Where a caveat goes, so the page reads like a dashboard and not an audit log.** The pack requires
+that a figure carry its population and its limits, so a page with none of that is not the fix; a
+page carrying all of it inside the sentences is what reads as a report about the data rather than
+an answer.
+
+**Which kinds of caveat there are is the `insight-narrative-integrity` skill's**, because it owns
+the prose. What this skill owns is the place on the page each kind lands, and the template has a
+slot for each:
+
+| The kind that skill names | Where it goes here |
+| --- | --- |
+| Changes how this figure is read | The `note` under that figure, in label type. Never further away. |
+| Coverage or provenance | The one `footer` block, whole, stated once rather than beside every figure it touches. |
+| A definition somebody may not share | Beside its first use, once. |
+
+**Never a tooltip as the only carrier.** The `dashboard-color-and-visual-hierarchy` skill already
+refuses an encoding that exists only on hover, and a caveat is an encoding.
+
 ### Step 1: Inventory the panels by type, and give each type the area it needs
 
 Area is a property of the content, not of the grid. List every panel with its type, then size it
@@ -276,6 +370,12 @@ Stop when any of these is true:
 - The destination was asked as two bare words, with neither what each one gains nor what it gives
   up stated in the question.
 - Every panel on the page is the same size.
+- A comment names this skill above code the skill's own steps refuse. A label is not a decision,
+  and the two-by-two grid of identical panels is what the label usually sits on.
+- The page uses more than three type sizes, so nothing is the figure and nothing is the label.
+- A figure was computed and printed to a console rather than written onto the page.
+- The page sets a width or height in pixels on a container.
+- Every caveat is inside the sentence it qualifies, so the page reads as an audit log.
 - A table or a heatmap is in the same tile size as a single-figure panel.
 - The page holds more than about a dozen panels with no grouping.
 - Nobody can state in one sentence the question the page answers.
@@ -301,6 +401,14 @@ Stop when any of these is true:
 
 - [ ] Where the page goes was asked before it was written, not assumed, and the question carried
       what each destination gains and what it gives up.
+- [ ] The answer is recorded as `layout.destination` in the manifest, and `verify-output.sh`
+      passed with it there.
+- [ ] The page starts from the default above, and every departure from it is named in the layout
+      note with its reason.
+- [ ] Three type sizes, by role: figure, body, label. A fourth distinction is a weight, a colour
+      or a letter-spacing change.
+- [ ] Every caveat is placed by what it does: one that changes how a figure is read sits under
+      that figure, coverage and provenance sit in the footer, and none of them is hover-only.
 - [ ] Every panel is listed with its type and the area that type needs, and the sizes on the page
       reflect that rather than a uniform grid.
 - [ ] The question the page answers is written in one sentence, and the panels are ordered by how

@@ -79,11 +79,14 @@ def manifest(table: Path, *, value: float = 25.50) -> dict[str, object]:
 
     The layout block is here rather than in the tests that need it because a responsive page
     without it is now an error, and every fixture page is responsive: leaving it out would make
-    every unrelated test also a test of the viewport rule.
+    every unrelated test also a test of the viewport rule. The destination is here for the same
+    reason: it is required on every run, so its own test declares it missing rather than the
+    other way round.
     """
     return {
         "table": str(table),
         "layout": {
+            "destination": "project-file",
             "viewports": [375, 1440],
             "observed": [
                 {"width": 375, "note": "labels upright, nothing overlapping"},
@@ -452,6 +455,45 @@ def test_the_receipt_covers_the_notes_a_reviewer_treats_as_evidence(tmp_path: Pa
     assert receipt["absent_at_check"] == [
         str(tmp_path / name) for name in ("profile.md", "cleaning-log.md", "model.md")
     ]
+
+
+def test_a_run_that_never_recorded_where_the_page_was_going_is_refused(tmp_path: Path) -> None:
+    """The layout skill opens with that question and a real run skipped it, instruction in hand.
+
+    A rule with no mechanism is a rule a run under pressure drops, which is the whole lesson of
+    this file. What the check can see is whether a decision was recorded; that it cannot see
+    whether anybody was asked is printed with the other blind spots on every run.
+    """
+    table = tmp_path / "orders.csv"
+    table.write_text(ROWS, encoding="utf-8", newline="\n")
+    document = manifest(table)
+    layout = document["layout"]
+    assert isinstance(layout, dict)
+    del layout["destination"]
+    note, html = project(tmp_path, CLEAN_PAGE, document)
+
+    code, report = run(note, html)
+
+    assert code == 1
+    assert "layout/no-destination" in rules(report)
+    unverified = report["not_verified"]
+    assert isinstance(unverified, list)
+    assert any("recorded" in str(item) for item in unverified)
+
+
+def test_a_destination_outside_the_two_is_refused(tmp_path: Path) -> None:
+    """A free-text value would let any string count as a decision."""
+    table = tmp_path / "orders.csv"
+    table.write_text(ROWS, encoding="utf-8", newline="\n")
+    document = manifest(table)
+    layout = document["layout"]
+    assert isinstance(layout, dict)
+    layout["destination"] = "somewhere"
+    note, html = project(tmp_path, CLEAN_PAGE, document)
+
+    _code, report = run(note, html)
+
+    assert "layout/no-destination" in rules(report)
 
 
 def test_a_failing_run_removes_a_receipt_that_was_there(tmp_path: Path) -> None:
