@@ -49,6 +49,18 @@ The meta-skill `using-lakehouse-skills` routes a task to the right skill. If a t
 5. Ground every rule in the documented standard of the discipline (record linkage, visualization theory, accessibility, open table formats, the tools' own docs), never in one product's calibration.
 6. Token-conscious: if removing a section would not change agent behavior, remove it.
 
+## The one description, and its short form
+
+Six places carry the sentence that says what this pack is, and `validate_versions.py` refuses a
+tree where the four manifests disagree (`manifest/description-mismatch`). Two more carry a
+deliberately shorter form: the README's opening line and the repository's About, both of which a
+person reads at a glance and a listing truncates.
+
+**The short form is the long one with the parenthetical clause removed, and nothing else.** Same
+words, same order, one clause fewer. Rewording it instead is how two descriptions of one package
+drift into saying different things, which is what happened before the rule existed. Neither the
+README nor the About is a file any validator can compare, so this is the record of the decision.
+
 ## Vendor neutrality
 
 Skills, docs, fixtures, commands, and commit messages never promote or name a commercial product, company, or service as origin, sponsor, or recommendation, and never compare analytics or BI products. Naming a tool a skill is literally about (DuckDB, openpyxl, a charting library) is fine. CI enforces this policy.

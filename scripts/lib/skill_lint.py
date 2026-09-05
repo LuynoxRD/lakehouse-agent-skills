@@ -36,6 +36,9 @@ TRIGGER_RE = re.compile(
 FIRST_PERSON_RE = re.compile(r"^(this skill|i |we |you )", re.IGNORECASE)
 STEP_HEADING_RE = re.compile(r"^step\s+(\d+)\b")
 STEP_REFERENCE_RE = re.compile(r"\bStep\s+(\d+)\b")
+# "Step 4 of the `other-skill` skill" points somewhere else, so this file having no Step 4 is not
+# a defect. Without this, the rule punishes exactly the cross-references the catalogue depends on.
+FOREIGN_STEP_RE = re.compile(r"\bStep\s+\d+\s+of\s+(?:the\s+)?`[a-z0-9-]+`", re.IGNORECASE)
 CROSS_REFERENCE_RES: tuple[re.Pattern[str], ...] = (
     re.compile(r"`([a-z0-9]+(?:-[a-z0-9]+)+)`\s+skill\b"),
     re.compile(r"\bskills/([a-z0-9]+(?:-[a-z0-9]+)*)"),
@@ -352,7 +355,11 @@ def _check_steps(body: str, offset: int, report: Report, path: Path) -> None:
             declared.add(int(match.group(1)))
     prose = strip_code_fences(body)
     referenced: dict[int, int] = {}
-    for number, line in enumerate(prose.split("\n"), start=1):
+    # A reference to another skill's step wraps across lines as often as not, so the whole prose is
+    # cleaned at once rather than line by line. The replacement keeps whatever newlines it swallowed
+    # so the line numbers reported afterwards still point at the right place.
+    local = FOREIGN_STEP_RE.sub(lambda found: "\n" * found.group(0).count("\n"), prose)
+    for number, line in enumerate(local.split("\n"), start=1):
         for match in STEP_REFERENCE_RE.finditer(line):
             referenced.setdefault(int(match.group(1)), number)
     missing = sorted(step for step in referenced if step not in declared)
