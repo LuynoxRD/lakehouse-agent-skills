@@ -4,6 +4,9 @@ Data engineering discipline for AI coding agents. **14 skills, 9 commands and 3 
 subagents** that make an agent profile a file before it cleans it, clean it before it charts it,
 and say plainly what it did not cover.
 
+![You, the agent's code, the lakehouse pipeline and three subagents, all reading and writing one
+shared store of project files. Built on DuckDB, Polars, openpyxl and Parquet.](docs/architecture.webp)
+
 ## What you get
 
 **A working data architecture in your project, not an answer in a chat.**

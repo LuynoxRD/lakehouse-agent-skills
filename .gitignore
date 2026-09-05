@@ -19,3 +19,6 @@ evals/results/
 # Operating system noise
 .DS_Store
 Thumbs.db
+
+# Source art for docs/architecture.webp, kept locally rather than shipped.
+readme.jpg
