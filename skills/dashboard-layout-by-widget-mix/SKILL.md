@@ -65,6 +65,12 @@ publishing a page nothing ever checked, not by publishing.
 Assume neither. A pipeline that always writes a project file has chosen for the reader every time,
 and the reader is the one who knows whether anybody else has to open it.
 
+Record the answer as `layout.destination` in the manifest, as `project-file` or
+`published-page`. The artefact check refuses a run that declares neither, because a rule with
+no mechanism is the one a run under pressure drops — this one was skipped by a real run with
+the instruction in front of it. What the check sees is that a decision was written down; it
+cannot see whether anybody was asked, and it says so among the things it did not verify.
+
 ### The page you start from
 
 Everything after this point is a procedure: inventory, rank, group, size. A procedure only helps
@@ -74,6 +80,20 @@ which is the exact shape Step 4 refuses by name. The skill was labelled, not exe
 that shipped had no viewport meta, no width rule, a container fixed at 800×1000 pixels, a `<title>`
 inherited from the plotting library's logo, and every computed figure printed to a terminal instead
 of onto the page.
+
+That is not a smaller model deciding worse. It is a smaller model **not entering the procedure**,
+and a better procedure does not reach it. What does reach it is the shape the colour rules already
+have: `dashboard-color-and-visual-hierarchy` is a lookup — unordered categories take distinct hues,
+text takes 4.5:1 — and the same run that ignored every step here got its colours right, because
+following a lookup is reading a row rather than making a decision.
+
+So the layout arrives as a lookup too. **A template is what stops a model inventing a dashboard.**
+Given a page to fill, it fills fields; given a procedure, it emits whatever its library does by
+default and puts the skill's name in a comment above it. The floor stops being whatever the model
+can design under pressure and becomes what the file already contains, which is the difference
+between a reader getting a usable BI page and a reader getting four identical squares with no
+figures on them. A stronger model loses nothing: it starts from the floor and improves on it, and
+the layout note records what it changed.
 
 So the decisions arrive already made. **Generate the page from `template.html` in this skill
 directory**, the same folder as this file. It already carries:
@@ -376,6 +396,8 @@ Stop when any of these is true:
 
 - [ ] Where the page goes was asked before it was written, not assumed, and the question carried
       what each destination gains and what it gives up.
+- [ ] The answer is recorded as `layout.destination` in the manifest, and `verify-output.sh`
+      passed with it there.
 - [ ] The page starts from the default above, and every departure from it is named in the layout
       note with its reason.
 - [ ] Three type sizes, by role: figure, body, label. A fourth distinction is a weight, a colour

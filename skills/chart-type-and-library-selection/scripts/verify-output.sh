@@ -156,6 +156,7 @@ NOT_VERIFIED = (
     "how anything looks at any viewport width; no width was rendered",
     "whether a colour actually reached the category the manifest assigned it to",
     "whether a control that exists in the markup is discoverable by a reader",
+    "whether the destination was asked of a person or decided for them; only what was recorded",
 )
 
 # The notes a reviewer treats as the evidence behind a claim. They sit beside the manifest and
@@ -594,6 +595,28 @@ def layout_option(manifest: dict[str, object], key: str, default: object = None)
     return layout.get(key, default) if isinstance(layout, dict) else default
 
 
+DESTINATIONS = ("project-file", "published-page")
+
+
+def check_destination(manifest: dict[str, object], report: Report) -> None:
+    """Whether the run recorded where the page was going, before it built one.
+
+    The layout skill opens by asking that, because the answer decides what can still be verified
+    afterwards, and a real run skipped it with the instruction in front of it. Nothing here can
+    tell whether a person was asked; it can only tell whether a decision was written down, which
+    is the part a reader can then disagree with. That gap is printed with the rest.
+    """
+    report.checked += 1
+    declared = layout_option(manifest, "destination")
+    if not isinstance(declared, str) or declared not in DESTINATIONS:
+        report.error(
+            "layout/no-destination",
+            "the manifest declares no 'layout.destination'; it is one of "
+            f"{', '.join(DESTINATIONS)}, and it is a decision the reader makes because it trades "
+            "opening in one click against having these figures recomputed against the table",
+        )
+
+
 def left_aligned(manifest: dict[str, object]) -> bool:
     """Whether sitting against one edge was recorded as a decision."""
     return bool(layout_option(manifest, "left_aligned", False))
@@ -1007,6 +1030,7 @@ def main() -> int:
         check_reading_order(page, parsed, manifest, declared_figures, report)
         check_viewports(page, parsed, manifest, report)
 
+    check_destination(manifest, report)
     check_page_numbers(pages, accounted, report)
     check_aggregate_rows(connection, manifest, report)
     if args.project is not None and args.project.is_dir():
