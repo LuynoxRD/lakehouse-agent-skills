@@ -24,7 +24,10 @@ set -euo pipefail
 #   5. Did a second library of the    Two charting libraries are two visual languages; two
 #      same kind arrive unexplained?  dataframe libraries type the same table twice by different
 #                                     rules. Either is allowed, neither is allowed silently.
-#   6. Is the deliverable one page,   Several files each holding one chart are several charts, and
+#   6. Was the page laid out for      A missing viewport meta, a stylesheet with no responsive
+#      more than one screen?           mechanism, or a blank title: three absences that say the
+#                                      page was built at one width and never named.
+#   7. Is the deliverable one page,   Several files each holding one chart are several charts, and
 #      with one copy of the library?  the reader does the assembling. Pages are found in the
 #                                     project rather than taken from the arguments, and an inline
 #                                     script repeated across them is a library shipped N times.
@@ -131,6 +134,14 @@ CHART_FAMILIES: dict[str, tuple[str, ...]] = {
     "amcharts": ("@amcharts/amcharts5",),
     "uplot": ("uplot",),
 }
+# Any one of these means the page can reflow: a media query, a track that resolves against the
+# available space, or a wrapping row. A stylesheet with none of them was written for one width.
+RESPONSIVE = re.compile(
+    r"@media\b|@container\b|minmax\s*\(|clamp\s*\("
+    r"|auto-fit\b|auto-fill\b|flex-wrap\s*:\s*wrap",
+    re.IGNORECASE,
+)
+
 # An inline script this big is a bundled library rather than page code. Used to notice the same
 # library shipped once per page, which is how five charts became twenty megabytes.
 RUNTIME_BYTES = 50_000
@@ -171,6 +182,10 @@ class PageParser(HTMLParser):
         self.stray_ends: list[tuple[str, int]] = []
         self.opaque_depth = 0
         self.text: list[tuple[int, str]] = []
+        self.styles: list[str] = []
+        self.title = ""
+        self.viewports: list[int] = []
+        self.inside = ""  # style or title, whose text is collected separately
 
     @property
     def line(self) -> int:
@@ -180,21 +195,32 @@ class PageParser(HTMLParser):
         if decl.lower().startswith("doctype"):
             self.doctypes.append(self.line)
 
+    def _meta(self, attrs: list[tuple[str, str | None]]) -> None:
+        names = {name.lower(): (value or "").lower() for name, value in attrs}
+        if "charset" in names:
+            self.charsets.append(self.line)
+        if names.get("name") == "viewport":
+            self.viewports.append(self.line)
+
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if tag in self.roots:
             self.roots[tag].append(self.line)
-        if tag == "meta" and any(name.lower() == "charset" for name, _ in attrs):
-            self.charsets.append(self.line)
+        if tag == "meta":
+            self._meta(attrs)
+        if tag in ("style", "title"):
+            self.inside = tag
         if tag in OPAQUE_ELEMENTS:
             self.opaque_depth += 1
         if tag not in VOID_ELEMENTS:
             self.stack.append((tag, self.line))
 
     def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if tag == "meta" and any(name.lower() == "charset" for name, _ in attrs):
-            self.charsets.append(self.line)
+        if tag == "meta":
+            self._meta(attrs)
 
     def handle_endtag(self, tag: str) -> None:
+        if tag == self.inside:
+            self.inside = ""
         if tag in OPAQUE_ELEMENTS and self.opaque_depth:
             self.opaque_depth -= 1
         if tag in VOID_ELEMENTS:
@@ -207,6 +233,12 @@ class PageParser(HTMLParser):
         del self.stack[len(names) - 1 - names[::-1].index(tag) :]
 
     def handle_data(self, data: str) -> None:
+        if self.inside == "style":
+            self.styles.append(data)
+            return
+        if self.inside == "title":
+            self.title += data
+            return
         if self.opaque_depth == 0 and data.strip():
             self.text.append((self.line, data))
 
@@ -508,6 +540,46 @@ def check_libraries(project: Path, manifest: dict[str, object], report: Report) 
         )
 
 
+def check_layout(path: Path, parser: PageParser, report: Report) -> None:
+    """Three things a page laid out for one screen is missing, all of them binary.
+
+    The layout skill asks for weights, flow and narrow-viewport behaviour. None of that can be
+    read back out of a file, but its absence can: a page with no viewport meta is rendered by a
+    phone at a fixed wide width, which turns off every responsive rule it does have; a page whose
+    own stylesheet has no responsive mechanism at all was laid out at one size; and a page with no
+    title is the tab, the bookmark and the shared link, all blank. A real run delivered pages
+    whose title came from the drawing library's logo.
+    """
+    report.checked += 1
+    if not parser.viewports:
+        report.error(
+            "layout/no-viewport",
+            "no <meta name=\"viewport\">, so a narrow screen renders the page at a fixed wide "
+            "width and scales it down; every responsive rule below is inert there",
+            str(path),
+        )
+
+    report.checked += 1
+    css = "\n".join(parser.styles)
+    if css.strip() and not RESPONSIVE.search(css):
+        report.error(
+            "layout/not-responsive",
+            "the page's own stylesheet has no media query and no flexible track or wrapping "
+            "rule, so it was laid out at one width. State what happens as the viewport narrows, "
+            "including any panel hidden on purpose",
+            str(path),
+        )
+
+    report.checked += 1
+    if not parser.title.strip():
+        report.error(
+            "layout/no-title",
+            "no <title>, so the browser tab, the bookmark and any shared link carry nothing. "
+            "Name the page after the question it answers",
+            str(path),
+        )
+
+
 def delivered_pages(project: Path) -> list[Path]:
     """Every page sitting in the project, found rather than taken on trust.
 
@@ -672,6 +744,7 @@ def main() -> int:
         parsed = check_structure(path, report)
         if parsed is not None:
             pages[path] = parsed
+            check_layout(path, parsed, report)
     if not pages and not report.errors:
         report.error("artefact/none", "no page was checked; pass --html")
 

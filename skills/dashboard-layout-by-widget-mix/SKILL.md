@@ -112,6 +112,56 @@ Say what happens as the viewport narrows: which panels reflow, which stack, and 
 because they cannot be read below a certain size. A panel that becomes unreadable at a narrow
 width should disappear deliberately rather than shrink into illegibility.
 
+#### The shape those rules take
+
+Everything above is a decision. This is what the decision looks like written down, and it is the
+part a run most often skips: a page laid out by stacking every panel full width, one after
+another, has made none of the choices in Step 1 while looking like it did.
+
+A track-based grid is the mechanism, because it expresses **weights** rather than positions. One
+row of columns, each panel spanning as many as its content needs:
+
+```css
+:root {
+  --gap-within: 12px;   /* inside a group */
+  --gap-between: 32px;  /* between groups — visibly larger, and that difference IS the grouping */
+  --measure: 68ch;      /* a readable line length for any block of prose */
+}
+.board { display: grid; grid-template-columns: repeat(12, 1fr); gap: var(--gap-within); }
+.group + .group { margin-top: var(--gap-between); }
+
+/* Spans come from the Step 1 table: area is a property of the content. */
+.kpi    { grid-column: span 2; }                        /* a figure read at a glance */
+.trend  { grid-column: span 12; min-height: 320px; }    /* width is the time axis */
+.ranked { grid-column: span 6;  min-height: 360px; }    /* height holds the category labels */
+.matrix { grid-column: span 6;  min-height: 360px; }    /* area in both directions */
+.table  { grid-column: span 12; min-height: 420px; }
+.prose  { grid-column: span 6;  max-width: var(--measure); }
+
+@media (max-width: 800px) {
+  .board { grid-template-columns: repeat(4, 1fr); }
+  .kpi { grid-column: span 2; }                         /* two across instead of six */
+  .trend, .ranked, .table, .prose { grid-column: span 4; }
+  .matrix { display: none; }                            /* cells below this width cannot be judged */
+}
+```
+
+Four rules the shape encodes, each one traceable to a reason already stated:
+
+- **Different spans, because area is a property of the content.** Twelve equal tiles is the
+  container this skill refuses; the spans above are Step 1's table turned into numbers.
+- **Two gap sizes, not one.** Proximity is what the reader uses to tell groups apart, so the gap
+  between groups has to be visibly larger than the gap inside one. A single uniform gap groups
+  nothing.
+- **A minimum height per panel type, not a shared one.** A trend and a table fail in different
+  ways when squeezed, so they get different floors.
+- **A stated narrow-viewport behaviour, including what is hidden.** The panel dropped at a narrow
+  width is dropped on purpose, and the page says so where the panel was rather than leaving a
+  reader to wonder what they are missing.
+
+A page with a `max-width` on the container and nothing else has one width and a lot of empty
+margin either side of it; that is not a responsive layout, it is a fixed one that fits.
+
 ### Step 6: State the layout decisions next to the page
 
 Record the question the page answers, the ranking that produced the order, the grouping and why,
@@ -136,7 +186,9 @@ bash scripts/verify-output.sh --manifest docs/data/figures.json   --html <the pa
 
 It fails on more than one doctype, a repeated `<html>`, `<head>` or `<body>`, a duplicated
 charset, an unclosed or stray tag, a page that does not decode as UTF-8, and on any number in the
-page's own text that no declared figure produces. With `--project` it also **looks for the pages
+page's own text that no declared figure produces. It also reads the layout back out of the file
+in the only three ways a file can be read on that: a missing viewport meta, a stylesheet with no
+responsive mechanism at all, and a blank title. With `--project` it also **looks for the pages
 rather than trusting the ones it was handed**, and fails when several were delivered with no
 stated reason, or when the same inline script sits in more than one of them. That last one catches the fault assembly is
 uniquely prone to: a count typed into a header or a subtitle by hand, sitting a few centimetres
@@ -176,6 +228,10 @@ Stop when any of these is true:
 - A figure was embedded by pasting the output of a call whose default is a whole document.
 - A count sits in a header, a subtitle or a footer without a query behind it.
 - The page was declared finished on the strength of having been opened, not read.
+- Every panel is a full-width block stacked on the one above it. That is the uniform grid in its
+  other shape, and it means Step 1 was never applied.
+- One gap size is used everywhere, so nothing is grouped by proximity.
+- The page has a `max-width` and no other rule about width, which is a fixed layout centred.
 
 ## Verification
 
@@ -189,6 +245,12 @@ Stop when any of these is true:
       split is stated rather than left to the scrollbar.
 - [ ] The layout is expressed as weights and flow rules, with the narrow-viewport behaviour of each
       panel stated, including any that are deliberately hidden.
+- [ ] Panels of different content types have different spans and different minimum heights, and
+      each one traces to what that content needs rather than to the grid.
+- [ ] The gap between groups is larger than the gap inside a group, and both are named once
+      rather than repeated per panel.
+- [ ] The page carries a viewport meta, at least one rule that responds to width, and a title
+      naming the question it answers.
 - [ ] Anything removed from the page is named, with the reason.
 - [ ] The deliverable is one file. If it is not, the split is written down with its reason, and
       the drawing library is loaded once rather than once per page.
