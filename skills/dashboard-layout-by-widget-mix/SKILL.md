@@ -65,6 +65,120 @@ publishing a page nothing ever checked, not by publishing.
 Assume neither. A pipeline that always writes a project file has chosen for the reader every time,
 and the reader is the one who knows whether anybody else has to open it.
 
+### The page you start from
+
+Everything after this point is a procedure: inventory, rank, group, size. A procedure only helps
+somebody who runs it. In a measured run, a comment reading `# SKILL: dashboard-layout-by-widget-mix`
+sat directly above a generic call for a two-by-two subplot grid — four panels of identical size,
+which is the exact shape Step 4 refuses by name. The skill was labelled, not executed, and the page
+that shipped had no viewport meta, no width rule, a container fixed at 800×1000 pixels, a `<title>`
+inherited from the plotting library's logo, and every computed figure printed to a terminal instead
+of onto the page.
+
+So the decisions arrive already made. **Copy this, then change what your content needs and say what
+you changed in the layout note from Step 6.** Reaching Step 1 with this on the page is the floor;
+the steps below are how you improve on it, not how you get here.
+
+```html
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Revenue by channel, 2025</title>   <!-- the question, never the library's default -->
+<style>
+:root {
+  --ground:#F7F8FA; --surface:#FFF; --ink:#14181B; --muted:#5B6672; --line:#DDE2E7;
+  --accent:#1B4D5B; --good:#2F6B4F; --warn:#8A5410; --crit:#9C3126;  /* status ≠ accent */
+  --gap-in:12px; --gap-between:32px; --measure:68ch;
+  --t-figure:1.75rem; --t-body:1rem; --t-label:0.8rem;   /* three sizes. add weight, not sizes */
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#0E1315; --surface:#151B1E; --ink:#E6EBEE; --muted:#93A0AA; --line:#273136;
+}}
+body{margin:0;padding:24px;background:var(--ground);color:var(--ink);font:var(--t-body)/1.5
+     system-ui,sans-serif}
+h1{font-size:var(--t-figure);text-wrap:balance;margin:0 0 4px}
+.sub{color:var(--muted);max-width:var(--measure);margin:0 0 var(--gap-between)}
+.board{display:grid;grid-template-columns:repeat(12,1fr);gap:var(--gap-in)}
+.group + .group{margin-top:var(--gap-between)}
+.group > h2{grid-column:1/-1;font-size:var(--t-label);letter-spacing:.08em;text-transform:uppercase;
+             color:var(--muted);margin:0 0 4px}
+/* Spans and floors come from the Step 1 table: area is a property of the content. */
+.kpi{grid-column:span 2}
+.trend{grid-column:span 12;min-height:320px}
+.ranked,.matrix{grid-column:span 6;min-height:360px}
+.table{grid-column:span 12;min-height:420px;overflow-x:auto}  /* the page never scrolls sideways */
+.prose{grid-column:span 6;max-width:var(--measure)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px}
+.kpi{border:0;background:none;padding:8px 0}   /* not everything is a card */
+.kpi b{display:block;font-size:var(--t-figure);font-variant-numeric:tabular-nums}
+.kpi span,.note{font-size:var(--t-label);color:var(--muted)}
+.note{margin-top:6px}                          /* the caveat that changes the reading */
+footer{margin-top:var(--gap-between);border-top:1px solid var(--line);padding-top:12px;
+       font-size:var(--t-label);color:var(--muted);max-width:var(--measure)}
+@media (max-width:800px){
+  .board{grid-template-columns:repeat(4,1fr)}
+  .kpi{grid-column:span 2}
+  .trend,.ranked,.table,.prose{grid-column:span 4}
+  .matrix{display:none}                        /* cells below this width cannot be judged */
+}
+</style>
+
+<h1>Which channel carries revenue, and is that changing?</h1>
+<p class="sub">42,318 orders, Jan–Dec 2025, from <code>data/curated/orders.parquet</code>.</p>
+
+<section class="group"><h2>Headline</h2>
+  <div class="board">
+    <div class="kpi"><b>$1.24M</b><span>Revenue</span><p class="note">Excludes 41 refunds.</p></div>
+    <div class="kpi"><b>3,918</b><span>Orders</span></div>
+    <div class="kpi"><b>$317</b><span>Average order</span><p class="note">Weighted, not a mean of means.</p></div>
+  </div>
+</section>
+
+<section class="group"><h2>By channel</h2>
+  <div class="board">
+    <div class="panel trend" id="trend"></div>
+    <div class="panel ranked" id="ranked"></div>
+    <div class="panel matrix" id="matrix"></div>
+  </div>
+</section>
+
+<footer>Coverage: 12 of 12 monthly files read; 41 rows excluded with an unparseable date.
+        Figures recomputed against the curated table on 2025-01-14.</footer>
+```
+
+Four things that page does which the failing one did not, each traceable to a rule already stated:
+
+- **It declares a width and a title.** A viewport meta, one media query, and a `<title>` that is
+  the page's question. A chart library's HTML export supplies none of these.
+- **Every panel gets its area from its type**, with a floor, and the panel that cannot be read
+  narrow is dropped on purpose rather than squeezed.
+- **The figures are on the page**, in `tabular-nums` so digits line up in a column, each with the
+  population it covers. A number computed and printed to a terminal has not been published.
+- **Nothing sets a pixel width.** The container that was `width:1000px` is the reason that page
+  overflows every phone.
+
+Three numbers the procedure below leaves open, so they are fixed here:
+
+| Decision | Default | When to move it |
+| --- | --- | --- |
+| Panels before grouping | **6** | Never up. Below six, one labelled group is still correct and costs nothing. |
+| Panels before splitting into tabs or pages | **20** | Down, when the panels answer two questions rather than one. |
+| Type sizes | **3**, by role: figure, body, label | Never. A fourth size is a weight, a colour or a letter-spacing change. |
+| Words in a panel note | **25**, about two lines at the measure above | Up only for a caveat that changes the reading, and then it moves into the body text. |
+
+**Where a caveat goes, so the page reads like a dashboard and not an audit log.** The pack requires
+that a figure carry its population and its limits; it has not said where, so the default has been
+to put all of it in the sentence, and the result reads as a report about the data rather than an
+answer. Split it by what the caveat does:
+
+- **It changes how the figure is read** — the base is small, the period is partial, the population
+  is not what the label implies. It goes in the `note` under the figure, in label type. Never
+  further away than that.
+- **It is provenance or coverage** — which files, which sheets, what failed, when it was checked.
+  It goes in the one footer block, whole, visible without interaction.
+- **Never a tooltip as the only carrier.** The `dashboard-color-and-visual-hierarchy` skill already
+  refuses an encoding that exists only on hover, and a caveat is an encoding.
+
 ### Step 1: Inventory the panels by type, and give each type the area it needs
 
 Area is a property of the content, not of the grid. List every panel with its type, then size it
@@ -276,6 +390,12 @@ Stop when any of these is true:
 - The destination was asked as two bare words, with neither what each one gains nor what it gives
   up stated in the question.
 - Every panel on the page is the same size.
+- A comment names this skill above code the skill's own steps refuse. A label is not a decision,
+  and the two-by-two grid of identical panels is what the label usually sits on.
+- The page uses more than three type sizes, so nothing is the figure and nothing is the label.
+- A figure was computed and printed to a console rather than written onto the page.
+- The page sets a width or height in pixels on a container.
+- Every caveat is inside the sentence it qualifies, so the page reads as an audit log.
 - A table or a heatmap is in the same tile size as a single-figure panel.
 - The page holds more than about a dozen panels with no grouping.
 - Nobody can state in one sentence the question the page answers.
@@ -301,6 +421,12 @@ Stop when any of these is true:
 
 - [ ] Where the page goes was asked before it was written, not assumed, and the question carried
       what each destination gains and what it gives up.
+- [ ] The page starts from the default above, and every departure from it is named in the layout
+      note with its reason.
+- [ ] Three type sizes, by role: figure, body, label. A fourth distinction is a weight, a colour
+      or a letter-spacing change.
+- [ ] Every caveat is placed by what it does: one that changes how a figure is read sits under
+      that figure, coverage and provenance sit in the footer, and none of them is hover-only.
 - [ ] Every panel is listed with its type and the area that type needs, and the sizes on the page
       reflect that rather than a uniform grid.
 - [ ] The question the page answers is written in one sentence, and the panels are ordered by how
