@@ -26,7 +26,7 @@ PROFILE → CLEAN → MODEL → QUERY → VISUALIZE → ASSEMBLE → NARRATE →
 
 Run a command to enter a stage by name, or just describe the task and let the router pick.
 
-## Skills
+## Skills (14)
 
 | Stage | Skill | Use it when |
 | --- | --- | --- |
@@ -45,7 +45,7 @@ Run a command to enter a stage by name, or just describe the task and let the ro
 | Safety | [`data-privacy-before-llm`](skills/data-privacy-before-llm) | Rows are about to be pasted into a prompt or sent to a service |
 | | [`safe-live-database-access`](skills/safe-live-database-access) | Connecting to a database other people use |
 
-## Subagents
+## Subagents (3)
 
 Three reviewer personas. They read and report; none of them can edit the work it reviews.
 
@@ -79,15 +79,60 @@ The commands, subagents and hooks arrive together through the plugin route inste
 [docs/installing.md](docs/installing.md), which also says exactly how far each piece reaches and
 what was verified by running it rather than by reading documentation.
 
+## What it works with
+
+| Source | Handled by |
+| --- | --- |
+| Delimited text — CSV, TSV, exports and extracts | `etl-before-dashboard` |
+| Spreadsheet workbooks, read and written, through `openpyxl` | `spreadsheet-integrity` |
+| PDFs, scans and photographs of documents | `document-extraction-integrity` |
+| Records that are not all the same shape, and free text | `structured-vs-unstructured-routing` |
+| Parquet, and the point where a directory of it stops being enough | `parquet-to-open-table-format` |
+| Live databases somebody else is using | `safe-live-database-access` |
+
+Cleaned data lands as Parquet under `data/curated/`, and everything downstream reads from there
+rather than from the file that arrived.
+
+## What it runs on
+
+The skills add no dependency of their own. They are markdown, and they point at the tools a data
+project already has:
+
+- **DuckDB** for anything expressible as a query against the persisted table — grouping, ranking,
+  joins, window functions. It reads Parquet and CSV directly, needs no server, and gives you a
+  plan you can read.
+- **Polars** as the default for the row work that is not a query, because its schema is declared
+  rather than re-derived from whichever rows it happened to see. With one standing exception: **if
+  your project already uses a dataframe library, the skills tell the agent to use that one.** Two
+  libraries disagreeing about a column is the failure the rule exists to prevent.
+- **`openpyxl`** for workbooks, which is where the formatting, formulas and merged cells that a
+  dataframe silently drops actually live.
+
+`verify-output.sh` runs on Python 3 with the standard library alone, plus DuckDB when it has to
+recompute figures — and if DuckDB is missing it says so and fails, rather than reporting the
+figures as checked.
+
 ## Why
 
 An agent writes correct code. That was never the problem.
 
-The problem is that it will read one sheet and report on "the file", average a column of averages,
-chart a column whose type it never checked, and hand all of it back in a page that looks finished.
-Most data still arrives as a spreadsheet, which is a document that looks like a table: a `Total`
-row an aggregate will count twice, dates that could be read two ways, leading zeros eaten so `007`
-and `7` are now one store.
+The problem is what it cannot do, and none of it is a bug to be fixed:
+
+- **It cannot see the file's past.** How it was exported, which settings produced it, what a blank
+  cell meant to whoever typed it. It sees bytes and infers, and an inference nobody wrote down is
+  indistinguishable from a measurement.
+- **It cannot see the page it just built.** It emits markup; it does not render it. Text sitting on
+  top of other text looks identical to text that does not.
+- **Its context is finite**, so it reads part of a large file, and the part quietly becomes "the
+  file" in every sentence that follows.
+- **It starts every session blind.** Nothing carries over unless it was written down, which is why
+  each stage here leaves a note behind instead of a memory.
+- **Its output looks finished either way.** There is no visual difference between a number that was
+  computed and one that was guessed, and the whole risk of this work lives in that sentence.
+
+Meanwhile most data still arrives as a spreadsheet, which is a document that looks like a table: a
+`Total` row an aggregate will count twice, dates that could be read two ways, leading zeros eaten
+so `007` and `7` are now one store.
 
 None of that is exotic. Every one has a boring answer that data engineers have used for decades,
 and nothing in the agent's context was asking for it. These skills ask for it.
@@ -101,6 +146,20 @@ against fixtures with planted defects catches them.
 One check runs in your project rather than ours. `verify-output.sh` reads the page an agent
 delivered and recomputes every published figure against the table it came from. It reads markup and
 never renders, so it prints what it could **not** verify on every run, including a clean one.
+
+## Project structure
+
+```
+skills/       14 skills, one directory each, a SKILL.md as the only required file
+agents/       3 reviewer subagents
+commands/     9 lifecycle commands (source of truth; per-tool copies are checked for parity)
+hooks/        2 session hooks
+references/   checklists shared by more than one skill
+evals/        eval cases, synthetic fixtures, results
+scripts/      validators, the eval runner, and the script the skills ship
+tests/        pytest suite over every validator
+docs/         skill anatomy and installing
+```
 
 ## Contributing
 
