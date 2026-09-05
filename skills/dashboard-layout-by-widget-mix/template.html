@@ -109,6 +109,19 @@
     .matrix { display:none; }                        /* cells below this width cannot be judged */
   }
   @media (prefers-reduced-motion:reduce) { * { animation:none !important; transition:none !important; } }
+
+  /* ── Print ────────────────────────────────────────────────────────────────────────────────
+     Printing to PDF is how a reader takes this into a meeting, and it costs four rules. The
+     filter bar goes, because a control is not information on paper; the current selection stays,
+     because a printed page that does not say what it was filtered to is a page of wrong numbers.
+     Panels are kept whole rather than broken across a page boundary. */
+  @media print {
+    body { padding:0; background:#fff; color:#000; }
+    .filterbar .clear, .filterbar span:last-child { display:none; }
+    .panel, .kpi, .group { break-inside:avoid; }
+    .panel { border:1px solid #999; }
+    footer { break-before:auto; }
+  }
 </style>
 </head>
 <body>
@@ -219,9 +232,25 @@
     history.replaceState(null, "", url);
   }
 
-  // Clicking the driving panel filters; clicking the same mark again clears. Keyboard too — a
-  // control reachable only by mouse is a control some readers do not have.
+  // Clicking a mark filters; clicking the same one again clears.
   function toggle(category) { active = active === category ? null : category; render(); }
+
+  // FILL: wire the driving panel's click to toggle(). The call belongs to whichever library drew
+  // it — a click handler on the chart's own event, not on the container — so it is left here
+  // rather than guessed. Example shape: chart.on("click", e => toggle(e.category)).
+
+  // Keyboard, wired here because it does not depend on the library and is the half that gets
+  // forgotten: a control reachable only by mouse is a control some readers do not have. The panel
+  // carries tabindex="0", so Enter and Space have to do what a click does.
+  document.querySelectorAll("[data-clickable]").forEach(panel => {
+    panel.addEventListener("keydown", event => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();          // Space scrolls the page otherwise
+      // FILL: the category this panel currently has focused, from the same source the click uses.
+      // toggle(focusedCategory);
+    });
+  });
+
   document.getElementById("clear").onclick = () => { active = null; render(); };
 
   render();
