@@ -142,17 +142,22 @@ Three numbers the procedure below leaves open, so they are fixed here:
 | Words in a panel note | **25**, about two lines at the measure above | Up only for a caveat that changes the reading, and then it moves into the body text. |
 
 **Where a caveat goes, so the page reads like a dashboard and not an audit log.** The pack requires
-that a figure carry its population and its limits; it has not said where, so the default has been
-to put all of it in the sentence, and the result reads as a report about the data rather than an
-answer. Split it by what the caveat does:
+that a figure carry its population and its limits, so a page with none of that is not the fix; a
+page carrying all of it inside the sentences is what reads as a report about the data rather than
+an answer.
 
-- **It changes how the figure is read** — the base is small, the period is partial, the population
-  is not what the label implies. It goes in the `note` under the figure, in label type. Never
-  further away than that.
-- **It is provenance or coverage** — which files, which sheets, what failed, when it was checked.
-  It goes in the one footer block, whole, visible without interaction.
-- **Never a tooltip as the only carrier.** The `dashboard-color-and-visual-hierarchy` skill already
-  refuses an encoding that exists only on hover, and a caveat is an encoding.
+**Which kinds of caveat there are is the `insight-narrative-integrity` skill's**, because it owns
+the prose. What this skill owns is the place on the page each kind lands, and the template has a
+slot for each:
+
+| The kind that skill names | Where it goes here |
+| --- | --- |
+| Changes how this figure is read | The `note` under that figure, in label type. Never further away. |
+| Coverage or provenance | The one `footer` block, whole, stated once rather than beside every figure it touches. |
+| A definition somebody may not share | Beside its first use, once. |
+
+**Never a tooltip as the only carrier.** The `dashboard-color-and-visual-hierarchy` skill already
+refuses an encoding that exists only on hover, and a caveat is an encoding.
 
 ### Step 1: Inventory the panels by type, and give each type the area it needs
 
