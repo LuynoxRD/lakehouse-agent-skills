@@ -44,8 +44,8 @@ claude plugin details lakehouse-agent-skills
 
 Verified end to end in a throwaway project. The inventory that comes back is **23 skills**, which
 is the fourteen skills plus the nine commands, since commands load through the same mechanism;
-**3 agents**; and **1 SessionStart hook**. The pack costs about **2,535 tokens always-on**, and
-each skill costs its own text again only when it fires.
+**3 agents**; and **2 hooks**, one on `SessionStart` and one on `Stop`. The pack costs about
+**2,794 tokens always-on**, and each skill costs its own text again only when it fires.
 
 The manifest declares:
 
@@ -54,7 +54,7 @@ The manifest declares:
 | `skills` | `./skills` | One directory per skill, each with its `SKILL.md` |
 | `commands` | `./.claude/commands` | The generated markdown copies, not the TOML sources |
 | `agents` | **not declared** | See below. The default `agents/` directory is what works. |
-| `hooks` | `./hooks/hooks.json` | The field takes a JSON configuration file, never a directory of scripts |
+| `hooks` | **not declared** | `hooks/hooks.json` is loaded by convention. Declaring it makes the plugin fail to load as a duplicate. |
 
 ### The agents field, and why it is absent
 

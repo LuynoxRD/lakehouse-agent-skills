@@ -208,6 +208,23 @@ from a computed tile that disagrees with it.
 When the figure writer offers it, ask for a fragment rather than a document, and check the
 resulting file rather than assuming the option took effect.
 
+**A green result is not the page being fine, and the check says so on every run.** It reads the
+file; it never renders it. Clipped text, two labels sitting on top of each other, a chart whose
+own axis labels rotate onto their side when the container narrows, a board pinned against one
+edge with the viewport empty beside it: none of that is visible to anything that parses markup.
+A real page passed every check here and shipped with two of those.
+
+So the last act is to open it, at named widths, and write down what you saw:
+
+- Declare the widths the page has to work at as `layout.viewports`. The default set is
+  **375, 768 and 1440**. The narrow one is not optional; it is where labels rotate, where a
+  segment gets too thin for the text inside it, and where both of the real failures happened.
+- Record one observation per width in `layout.observed`, saying what you looked for. The check
+  refuses a responsive page with no observations, and refuses an observation that says nothing:
+  "fine" is not an observation, "labels upright, no segment text overlapping" is.
+- At the wide end, look for the page sitting against an edge. A container with a maximum width
+  and no automatic inline margin does exactly that, and the check catches that one statically.
+
 ## Common Rationalizations
 
 | Excuse | Reality |
@@ -239,6 +256,8 @@ Stop when any of these is true:
 - A figure was embedded by pasting the output of a call whose default is a whole document.
 - A count sits in a header, a subtitle or a footer without a query behind it.
 - The page was declared finished on the strength of having been opened, not read.
+- The page was declared responsive and never opened at a narrow width.
+- A container has a maximum width and nothing centring it.
 - The panel a reader lands on first is not the one that answers the page's question.
 - The markup order and the visual order disagree, so the page reads differently by keyboard.
 - Every panel is a full-width block stacked on the one above it. That is the uniform grid in its
@@ -270,5 +289,7 @@ Stop when any of these is true:
 - [ ] The deliverable is one file. If it is not, the split is written down with its reason, and
       the drawing library is loaded once rather than once per page.
 - [ ] `scripts/verify-output.sh` was run against the assembled file with `--project`, and its
-      output is quoted showing zero errors. The assembled page is one document, and every number in its own text
+      output is quoted showing zero errors, including the list of what it did not verify.
+- [ ] The page was opened at every declared width and the observations are recorded, because
+      zero errors from a parser says nothing about what the page looks like. The assembled page is one document, and every number in its own text
       is one a declared figure produces.

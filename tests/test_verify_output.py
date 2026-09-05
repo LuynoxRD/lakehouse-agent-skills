@@ -75,9 +75,21 @@ NESTED_PAGE = f"""<!doctype html>
 
 
 def manifest(table: Path, *, value: float = 25.50) -> dict[str, object]:
-    """A manifest that declares one figure and the query behind it."""
+    """A manifest that declares one figure, the query behind it, and the widths that were looked at.
+
+    The layout block is here rather than in the tests that need it because a responsive page
+    without it is now an error, and every fixture page is responsive: leaving it out would make
+    every unrelated test also a test of the viewport rule.
+    """
     return {
         "table": str(table),
+        "layout": {
+            "viewports": [375, 1440],
+            "observed": [
+                {"width": 375, "note": "labels upright, nothing overlapping"},
+                {"width": 1440, "note": "centred, no dead space beside the board"},
+            ],
+        },
         "figures": [
             {
                 "label": "Revenue",
@@ -596,7 +608,9 @@ RANKED = LAID_OUT.replace(
 
 def with_layout(tmp_path: Path, **layout: object) -> dict[str, object]:
     document = manifest(tmp_path / "orders.csv")
-    document["layout"] = layout
+    base = document["layout"]
+    assert isinstance(base, dict)
+    document["layout"] = {**base, **layout}
     return document
 
 
@@ -688,3 +702,141 @@ def test_a_page_nested_three_levels_deep_is_still_found(tmp_path: Path) -> None:
 
     assert code == 1
     assert "sales.html" in messages(report)
+
+
+def test_every_run_says_what_it_did_not_verify(tmp_path: Path) -> None:
+    """A green result that says nothing about its blind spots is read as 'the page is fine'."""
+    note, html = project(tmp_path, CLEAN_PAGE)
+
+    _code, report = run(note, html)
+
+    unchecked = report["not_verified"]
+    assert isinstance(unchecked, list)
+    joined = " ".join(str(item) for item in unchecked)
+    assert "overlapping" in joined
+    assert "no width was rendered" in joined
+
+
+def test_a_bounded_container_with_nothing_centring_it_is_refused(tmp_path: Path) -> None:
+    """max-width and no automatic margin leaves the page against one edge. Found in a real page."""
+    page = CLEAN_PAGE.replace(".board {", ".board { max-width: 1280px;")
+    note, html = project(tmp_path, page)
+
+    code, report = run(note, html)
+
+    assert code == 1
+    assert "layout/not-centred" in rules(report)
+    assert ".board" in messages(report)
+
+
+def test_a_centred_container_passes(tmp_path: Path) -> None:
+    page = CLEAN_PAGE.replace(".board {", ".board { max-width: 1280px; margin: 0 auto;")
+    note, html = project(tmp_path, page)
+
+    _code, report = run(note, html)
+
+    assert "layout/not-centred" not in rules(report)
+
+
+def test_being_left_aligned_on_purpose_is_recorded_rather_than_refused(tmp_path: Path) -> None:
+    document = with_layout(tmp_path, left_aligned=True)
+    page = CLEAN_PAGE.replace(".board {", ".board { max-width: 1280px;")
+    note, html = project(tmp_path, page, document)
+
+    _code, report = run(note, html)
+
+    assert "layout/not-centred" not in rules(report)
+
+
+def test_an_element_bounded_for_legibility_is_not_a_page_column(tmp_path: Path) -> None:
+    """An image or a code block capped for reading is not a container sitting against an edge."""
+    page = CLEAN_PAGE.replace(".board {", "img, pre { max-width: 640px; }\n.board {")
+    note, html = project(tmp_path, page)
+
+    _code, report = run(note, html)
+
+    assert "layout/not-centred" not in rules(report)
+
+
+def test_a_responsive_page_with_no_declared_viewports_is_refused(tmp_path: Path) -> None:
+    """The page claims to respond to width and nothing says which widths it has to work at."""
+    document = manifest(tmp_path / "orders.csv")
+    del document["layout"]
+    note, html = project(tmp_path, CLEAN_PAGE, document)
+
+    code, report = run(note, html)
+
+    assert code == 1
+    assert "layout/no-viewports-declared" in rules(report)
+
+
+def test_a_declared_width_nobody_looked_at_is_refused(tmp_path: Path) -> None:
+    document = with_layout(tmp_path, viewports=[375, 768, 1440])
+    note, html = project(tmp_path, CLEAN_PAGE, document)
+
+    code, report = run(note, html)
+
+    assert code == 1
+    assert "layout/not-observed" in rules(report)
+    assert "768px" in messages(report)
+
+
+def test_an_observation_that_says_nothing_is_refused(tmp_path: Path) -> None:
+    """'Fine' is not an observation."""
+    document = with_layout(tmp_path, viewports=[375], observed=[{"width": 375, "note": "   "}])
+    note, html = project(tmp_path, CLEAN_PAGE, document)
+
+    code, report = run(note, html)
+
+    assert code == 1
+    assert "layout/observation-empty" in rules(report)
+
+
+def test_a_page_that_does_not_respond_to_width_is_not_asked_for_observations(
+    tmp_path: Path,
+) -> None:
+    """It fails the responsive rule instead; being asked for both would say the same thing twice."""
+    document = manifest(tmp_path / "orders.csv")
+    del document["layout"]
+    flat = CLEAN_PAGE.replace("repeat(auto-fit, minmax(280px, 1fr))", "1fr 1fr")
+    note, html = project(tmp_path, flat, document)
+
+    _code, report = run(note, html)
+
+    assert "layout/no-viewports-declared" not in rules(report)
+    assert "layout/not-responsive" in rules(report)
+
+
+def test_centring_by_a_transform_counts(tmp_path: Path) -> None:
+    """A translate is centring, and the rule should not ask for a margin as well."""
+    page = CLEAN_PAGE.replace(
+        ".board {", ".board { max-width: 1280px; left: 50%; transform: translateX(-50%);"
+    )
+    note, html = project(tmp_path, page)
+
+    _code, report = run(note, html)
+
+    assert "layout/not-centred" not in rules(report)
+
+
+def test_centring_from_a_parent_is_a_known_limit_with_a_recorded_way_out(tmp_path: Path) -> None:
+    """This is documented rather than fixed, because fixing it needs the document tree.
+
+    A flex or grid ancestor with `justify-content: center` centres a bounded child without any
+    declaration appearing in the child's own rule. Reading one rule at a time cannot see that, so
+    the check flags it and the manifest carries the decision instead.
+    """
+    page = CLEAN_PAGE.replace(
+        ".board {",
+        "body { display: flex; justify-content: center; }\n.board { max-width: 1280px;",
+    )
+    note, html = project(tmp_path, page)
+
+    _code, report = run(note, html)
+    assert "layout/not-centred" in rules(report)
+    assert "layout.left_aligned" in messages(report)
+
+    document = with_layout(tmp_path, left_aligned=True)
+    note, html = project(tmp_path, page, document)
+    _code, report = run(note, html)
+    assert "layout/not-centred" not in rules(report)
