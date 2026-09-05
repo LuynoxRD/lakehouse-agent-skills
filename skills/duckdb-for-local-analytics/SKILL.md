@@ -86,6 +86,18 @@ That is a change to the machine, made by a query. On a machine that is offline, 
 subject to a policy about what it downloads, name the extensions the work needs before the first
 statement runs rather than discovering them in a stack trace.
 
+**The method that collects the result decides what has to be installed, and it is chosen, not
+imposed.** The engine answers into plain Python tuples with nothing else present. Asking for the
+result as a data frame pulls in that library and its numeric stack; asking for it as an Arrow
+table pulls in Arrow. Measured on a clean interpreter with no data frame library, no Arrow and no
+numeric stack installed: fetching rows returned `[(1,)]`, while the data-frame and Arrow accessors
+each raised `ModuleNotFoundError` naming what they wanted.
+
+That matters because the failure reads like a missing requirement of the engine and it is not. An
+agent that hits it and installs a data frame library has added a dependency the task never needed,
+by reflex, and then reports the stack as though it had chosen it. Collect rows unless something
+downstream genuinely needs a frame, and when it does, ask for the one the project already uses.
+
 The engine itself may not be installed either. That is a fact to state, not to route around:
 quietly switching to a different tool and presenting the result as though the plan had been
 followed hides the substitution from the only person who could object to it. Bring the engine in
@@ -137,10 +149,14 @@ Stop when any of these is true:
 - A join was added and the row count of the result was never compared to the row count before it.
 - An extension was installed during the work and the answer does not mention it.
 - The result is being pasted between queries by hand instead of joined.
+- A dependency was installed to make a result accessor work, rather than changing the
+  accessor. The engine returns rows with nothing installed.
 
 ## Verification
 
 - [ ] Every query reads from a persisted table under `data/curated/`, not from a source file.
+- [ ] Nothing was installed to collect a result. Where a frame was genuinely needed, it is the
+      library the project already had, and the need is stated.
 - [ ] The grain of each result is stated, and a join that could fan out was checked against the
       row count before it.
 - [ ] Any claim about cost or speed quotes the engine's own plan, not an impression.
