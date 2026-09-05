@@ -87,6 +87,17 @@ from datetime import datetime, timezone
 from html.parser import HTMLParser
 from pathlib import Path
 
+# Both streams carry text taken from the page: a figure's label, the population it covers, the
+# sentence a rule quotes back. On Windows those default to the console's own code page, so a page
+# in any language with an accent in it produced bytes the reader's terminal could not decode --
+# measured here as an invalid UTF-8 sequence on stderr, and one bad label away from the same on
+# the JSON that other tools parse. Named once, before anything is written.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
+    except (AttributeError, ValueError):  # a replaced stream may not support it; not fatal
+        pass
+
 VOID_ELEMENTS = frozenset(
     {
         "area", "base", "br", "col", "embed", "hr", "img", "input",
