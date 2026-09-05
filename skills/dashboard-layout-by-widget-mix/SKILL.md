@@ -153,7 +153,7 @@ slot for each:
 | The kind that skill names | Where it goes here |
 | --- | --- |
 | Changes how this figure is read | The `note` under that figure, in label type. Never further away. |
-| Coverage or provenance | One line in the `footer`: the period, the population, and where the full accounting lives. |
+| Coverage or provenance | One line in the `footer`, in business words: the period and the population. Not a filename — the reader cannot open one — and not the pipeline's own account of itself, which goes in the reply. |
 | A definition somebody may not share | Beside its first use, once. |
 
 **Never a tooltip as the only carrier.** The `dashboard-color-and-visual-hierarchy` skill already
