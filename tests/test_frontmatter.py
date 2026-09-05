@@ -56,7 +56,9 @@ def test_comments_and_blank_lines_are_ignored() -> None:
         ("---\nname demo\n---\n", 2, "key: value"),
         ("---\nname: a\nname: b\n---\n", 3, "duplicate"),
         ("---\nname: 'open\n---\n", 2, "unterminated"),
-        ("---\ntags: [a, b]\n---\n", 2, "not supported"),
+        ("---\ntags: {a: 1}\n---\n", 2, "not supported"),
+        ("---\ntools: [Read, Grep\n---\n", 2, "unterminated inline list"),
+        ("---\ntools: [Read, [Grep]]\n---\n", 2, "scalars only"),
         ("---\nempty:\n---\n", 2, "no value"),
         ("---\nblock: |\n---\n", 2, "no content"),
         ("---\nitems:\n  - a\n    - b\n---\n", 4, "indentation"),
@@ -102,3 +104,20 @@ def test_a_colon_without_a_following_space_is_still_a_plain_value() -> None:
         "---\n\nbody\n"
     )
     assert parsed.data["description"] == "Holds text to a contrast ratio of 4.5:1 at 09:30."
+
+
+def test_an_inline_list_is_read_because_the_loader_writes_one() -> None:
+    """A persona's tool list is documented in this form, so a file the loader reads parses here."""
+    parsed = frontmatter.parse('---\ntools: ["Read", "Grep"]\nname: demo\n---\n')
+    assert parsed.data == {"tools": ["Read", "Grep"], "name": "demo"}
+
+
+def test_a_comma_inside_a_quoted_item_does_not_split_it() -> None:
+    """Splitting the whole line on commas reported `["a, b"]` as an unterminated quote."""
+    parsed = frontmatter.parse("---\ntools: [\"Read\", \"a, b\", 'it''s']\n---\n")
+    assert parsed.data == {"tools": ["Read", "a, b", "it's"]}
+
+
+def test_an_inline_list_may_be_empty_or_unquoted() -> None:
+    assert frontmatter.parse("---\ntools: []\n---\n").data == {"tools": []}
+    assert frontmatter.parse("---\ntools: [Read, Grep]\n---\n").data == {"tools": ["Read", "Grep"]}

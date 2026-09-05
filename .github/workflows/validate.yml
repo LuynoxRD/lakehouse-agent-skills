@@ -108,6 +108,8 @@ jobs:
         run: uv run --frozen python scripts/validate_skill_safety.py
       - name: Validate shipped skill scripts
         run: uv run --frozen python scripts/validate_skill_scripts.py
+      - name: Validate reviewer personas
+        run: uv run --frozen python scripts/validate_agents.py
       - name: Run evals (tier 2, trigger and routing)
         run: uv run --frozen python scripts/run_evals.py
 
