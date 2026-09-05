@@ -105,6 +105,33 @@ def _plugin_manifest(path: Path, root: Path, report: Report) -> tuple[str | None
     )
 
 
+def _description(document: dict[str, object]) -> str | None:
+    value = document.get("description")
+    return value.strip() if isinstance(value, str) and value.strip() else None
+
+
+def _collect_descriptions(path: Path, root: Path, into: dict[str, str], report: Report) -> None:
+    """Record every description this manifest holds, keyed by where it was found.
+
+    A marketplace carries two: its own, and the one on the plugin it lists. Both describe the same
+    package, so both belong in the comparison.
+    """
+    if not path.is_file():
+        return
+    document = _load_json(path, report)
+    if not isinstance(document, dict):
+        return
+    where = path.relative_to(root).as_posix()
+    described = _description(document)
+    if described:
+        into[where] = described
+    plugins = document.get("plugins")
+    if isinstance(plugins, list) and plugins and isinstance(plugins[0], dict):
+        nested = _description(plugins[0])
+        if nested:
+            into[f"{where}#plugins[0]"] = nested
+
+
 def _marketplace_manifest(path: Path, root: Path, report: Report) -> tuple[str | None, str | None]:
     document = _load_json(path, report)
     if document is None:
@@ -152,6 +179,9 @@ def validate(layout: Layout) -> Report:
     root = layout.root
     versions: dict[Path, str] = {}
     names: dict[Path, str] = {}
+    # Four fields hold the same sentence and an edit reached four of them once, which is a drift
+    # nothing here could see: the required check only asks that a description exists.
+    descriptions: dict[str, str] = {}
 
     for path in (
         root / "plugin.json",
@@ -164,9 +194,11 @@ def validate(layout: Layout) -> Report:
             names[path] = name
         if version:
             versions[path] = version
+        _collect_descriptions(path, root, descriptions, report)
 
     marketplace = root / ".claude-plugin" / "marketplace.json"
     report.checked += 1
+    _collect_descriptions(marketplace, root, descriptions, report)
     name, version = _marketplace_manifest(marketplace, root, report)
     if name:
         names[marketplace] = name
@@ -185,6 +217,16 @@ def validate(layout: Layout) -> Report:
             for path, value in sorted(versions.items())
         )
         report.error("manifest/version-mismatch", f"versions differ: {listing}")
+    report.checked += 1
+    if len(set(descriptions.values())) > 1:
+        listing = ", ".join(
+            f"{where} ({len(value)} chars)" for where, value in sorted(descriptions.items())
+        )
+        report.error(
+            "manifest/description-mismatch",
+            "every manifest describes the same package, so the description has to be the same "
+            f"sentence in all of them; they differ: {listing}",
+        )
     if len(set(names.values())) > 1:
         listing = ", ".join(
             f"{path.relative_to(root).as_posix()}={value}" for path, value in sorted(names.items())
