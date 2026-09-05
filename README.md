@@ -63,7 +63,8 @@ disclosure written, or a published page has not been checked.
 
 ## Install
 
-The universal CLI knows 77 agents. Put yours after `--agent`:
+The universal CLI installs for whichever agent you name — 77 of them when this was last
+measured. Put yours after `--agent`:
 
 ```bash
 npx skills add LuynoxRD/lakehouse-agent-skills --skill '*' --agent claude-code -y
