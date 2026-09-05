@@ -100,8 +100,14 @@ are, and it eliminates more libraries than the form does, so it comes first.
 Answer these four, in order, and write the answers down:
 
 1. **Does the reader answer one question here, or the same question about different slices?**
-   One question needs no controls at all; controls on a page that answers one question are
-   furniture. Several slices means filtering, and filtering is a commitment, not a feature.
+   "One question" is the answer that removes the most work, which is why it is the one that gets
+   given, so it has to be demonstrated rather than asserted. Read the table the page is built on:
+   **a table with a time dimension and two or more categorical dimensions is not one question.**
+   To call it one anyway, write the question down and say, for each of those dimensions, why no
+   reader would want to hold it fixed while reading the rest. If that cannot be said, it is
+   several slices, and filtering is a commitment, not a feature. Controls on a page that really
+   does answer one question are furniture; declaring one question to avoid the controls is the
+   same page with the work left out.
 2. **If there is filtering, does it apply to every panel that shares the grain?** A control that
    filters one panel while its neighbours keep showing everything puts two different populations
    side by side with nothing saying they differ. That is worse than no filter, because the page
@@ -133,7 +139,20 @@ Only then the library, decided by where the chart has to work:
 Name what the reader must be able to do, then the destination, then the library, then why. "It
 is what I know" is the answer this step exists to replace.
 
-#### Linked filtering in one file, with no build step
+Then name what was ruled out. Step 2 does not allow a chart form to be chosen without stating the
+forms the data disqualified, and a library is chosen the same way: write down at least one other
+library that could plausibly have rendered this, and the specific thing that ruled it out — a
+destination it cannot reach, an interaction it has no mechanism for, a point count it cannot
+draw. A library that appears alone was not chosen. It was reached for, and the most common thing
+within reach is whatever code was in front of you.
+
+#### One instantiation of that shape: linked filtering in one file, with no build step
+
+**The code below is one way to satisfy the six points, not a recommendation of the library in
+it.** Several libraries can do all six. This one is named so the shape is concrete, and lifting
+the name out of it instead of running the decision above is precisely the shortcut this step
+exists to prevent: a library that arrives by being the only concrete example anybody saw is a
+library nobody chose.
 
 Question 2 is the one that gets abandoned, because "make the panels filter each other" sounds
 like it needs a framework. It does not, and reaching for one has a cost worth naming: a bundler
@@ -208,6 +227,12 @@ highlighted with it rather than by redrawing the panel that was just clicked. Ev
 left outside it is the failure question 2 describes: two populations on one screen, with nothing
 saying they differ.
 
+Those two calls belong to the library in the example. Every library that can satisfy point 4 has
+an equivalent pair — one that replaces a panel's data, one that changes the appearance of marks
+already drawn — and that pair is the thing to look for when the decision above lands somewhere
+else. If a candidate has no way to change a drawn mark without redrawing the panel, that is a
+disqualification worth writing down, which is what the step above is asking for.
+
 ### Step 5: Label so the chart survives being separated from its context
 
 Every chart travels: it gets screenshotted, pasted, and shown without whatever was said next to
@@ -228,6 +253,8 @@ will not travel with it.
 | "The library is the one I always use." | Then the destination never entered the decision, and the chart will be checked against it later by somebody else. |
 | "Interactivity makes it richer." | Interaction that carries values is useful. Interaction that carries motion is a delay the reader pays for every time. |
 | "The charts are interactive, so the page is." | Zooming one panel is not filtering the page. If selecting a category does not move the other panels, the reader has to hold the filter in their head while reading numbers that ignore it. |
+| "The page answers one question, so it needs no controls." | That is the conclusion, not the evidence for it. A table carrying a period and two categories offers a reader at least three things to hold fixed, and a page that names none of them has asserted the cheap answer rather than tested it. |
+| "The skill showed this library, so this is the library." | The example is there to make the shape concrete, and it says so. A form gets chosen by naming what the data ruled out; a library gets chosen the same way. A name lifted out of a code block is a decision nobody made. |
 | "Filters can be added later; the charts are the hard part." | Filtering decides which library can do the job, so adding it later means rewriting the charts. It is the first decision, not the last. |
 | "Linked filtering needs a framework." | It needs one library load, the rows in one place, and one redraw. A build step between the code and the artefact is a compile that has to be verified blind by anything without a live preview. |
 | "The charts are clickable, so the filter is discoverable." | Nothing about a chart says it is clickable. Without a pointer, a hover state or a line of text, the reader sees a picture and the interaction exists only for whoever wrote it. |
@@ -244,7 +271,13 @@ Stop when any of these is true:
 - A line joins points that are not ordered by the axis variable.
 - A stacked chart's segments do not sum to something meaningful.
 - A chart is being built and the sentence describing what is being compared was never written.
+- The page is declared to answer one question, and the table behind it has a date column and two
+  or more categorical columns, with nothing said about why neither is a slice.
 - The library was chosen before the destination was named.
+- A library is named in the answer and nothing says what else could have rendered this, or what
+  ruled that alternative out.
+- The library in the answer is the one the example in this skill happens to use, and the
+  reasons given are the example's rather than this page's.
 - A chart carries no units, no period and no source table.
 - A panel filters the page and nothing on it says so: no pointer, no hover, no line of
   text, and no mark showing which one is selected.
@@ -268,6 +301,11 @@ Stop when any of these is true:
 - [ ] What the reader must be able to do is written down before any library was named, and any
       filtering is stated as linked across the panels that share a grain, or the exceptions are
       named.
+- [ ] If the page is declared to answer one question, the dimensions of the table behind it are
+      listed, each with the reason no reader would hold it fixed. A time dimension plus two or
+      more categorical ones is several slices until that is written down.
+- [ ] At least one other library that could have rendered this is named, with the specific thing
+      that ruled it out, in the same form Step 2 requires for the chart's shape.
 - [ ] Where filtering exists, the active selection is visible and can be cleared in one action,
       the panel that drives it says it can be clicked, and the clicked mark shows it is selected.
 - [ ] Every panel reads the same category-to-colour map, so a category is one colour on the page.

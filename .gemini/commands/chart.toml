@@ -8,6 +8,10 @@ choosing a form, let the shape of the data rule forms out, and name the destinat
 the library. If the requested form is one the shape rules out, build the form that works rather
 than only recommending it.
 
+Name what was ruled out on both decisions, not just the form: at least one other library that
+could have rendered this and the specific thing that disqualified it. The code example in the
+skill is one instantiation of the shape it teaches, not the library to use.
+
 Then invoke the `dashboard-color-and-visual-hierarchy` skill for anything the chart encodes in
 colour: the palette matches the variable's type, colour never carries meaning alone, and contrast
 is computed against the ground the chart will actually be shown on.

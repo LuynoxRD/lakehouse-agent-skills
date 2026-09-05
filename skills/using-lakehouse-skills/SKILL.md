@@ -16,6 +16,38 @@ here removes one of those failures. This page decides which one applies.
 produces the confident output without the check that made the output trustworthy. Reading the
 skill and then doing something else is the failure mode this pack exists to prevent.
 
+## How much runs is decided by what is at stake, not by how big the data is
+
+The stages below are cheap. What is not cheap is the machinery built around them: a reviewer
+persona opening a dozen artefacts, a full disclosure with its counts, a second pass over the
+arithmetic. That machinery earns its cost on a result somebody acts on, and it is pure waste on a
+look taken to decide whether the work is worth continuing at all.
+
+Two questions about the request settle it, answered before the work starts:
+
+1. **Does the result leave the project?** A file sent, a page shared, a figure pasted into a
+   message or a document somebody else reads.
+2. **Will somebody act on it?** A decision, a price, a message to a customer, a change to a
+   system that is running.
+
+**Either one is yes:** the reviewer personas run, the disclosure is complete with its counts, and
+every published figure is recomputed against the table it came from.
+
+**Both are no:** the personas do not run and the disclosure is a paragraph rather than a document.
+A paragraph still carries its counts — what shrinks is the writing, never the numbers, and a
+short disclosure made of adjectives is the one thing the `honest-data-limits-disclosure` skill
+refuses outright. The answer then says which of the two was skipped, because a first look is one
+forwarded message away from being the thing that ships, and whoever forwards it has to be able to
+see that nobody reviewed it.
+
+The gate is the stakes, never the size. A ten-row table that sets a price is the expensive case; a
+million rows nobody will act on is the cheap one. Reading the request answers this in a sentence.
+Measuring the file does not, and a threshold in rows would wave the expensive case straight
+through.
+
+What never scales down is the order. Profiling a file before charting it costs one pass over it,
+and skipping it is what produces the confident wrong answer this pack exists to prevent.
+
 ## The lifecycle
 
 Data work runs in one direction. Each stage assumes the one before it happened.
@@ -109,6 +141,10 @@ dataset is being turned into an answer.
 ## Verification
 
 - [ ] The stage this request belongs to is named before any work starts.
+- [ ] Whether the result leaves the project, and whether somebody will act on it, were both
+      answered from the request before the work started, not from the size of the file.
+- [ ] If the reviewers and the full disclosure were skipped because both answers were no, the
+      answer says so in the words a reader would need to know it was not reviewed.
 - [ ] Every applicable skill was invoked in full, not summarized.
 - [ ] No stage was skipped, or the skip is stated in the answer with its reason.
 - [ ] Every skill named in the answer exists in this catalog. If a request needs something the
