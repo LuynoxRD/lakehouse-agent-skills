@@ -24,6 +24,20 @@ SEMVER_RE = re.compile(
 REQUIRED_PLUGIN_FIELDS = ("name", "version", "description")
 PATH_FIELDS = ("skills", "commands", "agents", "hooks")
 
+# Paths the plugin loader finds on its own. Declaring one of these is not a harmless duplicate:
+# the loader refuses the plugin outright, because the file is already loaded by convention and
+# the manifest field exists to point at *additional* ones.
+#
+# This is the third time a manifest field has been wrong in a way nothing here noticed. An
+# `agents` array validated and loaded zero. `hooks` pointing at the standard file installed
+# clean, validated with --strict, reported two hooks in the component inventory, and still failed
+# to load in a session on a newer release than the one this was developed against. So the rule is
+# static rather than observed: a version that has not shipped yet cannot be interrogated, and the
+# convention it enforces is documented.
+CONVENTIONAL_PATHS = {
+    "hooks": ("./hooks/hooks.json", "hooks/hooks.json"),
+}
+
 
 def _load_json(path: Path, report: Report) -> dict[str, object] | None:
     if not path.is_file():
@@ -59,6 +73,15 @@ def _check_paths(document: dict[str, object], root: Path, path: Path, report: Re
         for entry in entries:
             if not isinstance(entry, str):
                 report.error("manifest/path", f"'{field}' entries must be strings", path)
+                continue
+            if entry in CONVENTIONAL_PATHS.get(field, ()):
+                report.error(
+                    "manifest/conventional-path",
+                    f"'{field}' points at '{entry}', which the loader already loads by "
+                    "convention; declaring it makes the plugin fail to load as a duplicate. "
+                    "Remove the field: the directory or file is found without it",
+                    path,
+                )
                 continue
             target = root / entry
             if not target.exists():
