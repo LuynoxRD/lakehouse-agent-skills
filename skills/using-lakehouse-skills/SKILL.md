@@ -40,6 +40,25 @@ refuses outright. The answer then says which of the two was skipped, because a f
 forwarded message away from being the thing that ships, and whoever forwards it has to be able to
 see that nobody reviewed it.
 
+**"No" is a claim, and it is the one to doubt.** It is the answer that removes the most work,
+which is exactly why it cannot be asserted. Quote the words in the request that support it —
+"just checking whether this is worth digging into", "before I take it to the team" — and put them
+next to the decision, in the answer. A "no" with nothing quoted is a budget decision wearing the
+clothes of a scope decision, and the run that produced this rule was a run under exactly that
+pressure.
+
+**When the request says neither, the answer is yes.** The two errors are not the same size.
+Reviewing something that turned out not to matter costs a few minutes of reading. Not reviewing
+something that did is the failure this whole pack exists to prevent, and it is discovered by the
+person who acted on it. So the gate is deliberately not symmetric: silence resolves upward, and
+only stated words resolve it down.
+
+None of this skips a stage or applies a skill halfway. **The one rule above has no exceptions.**
+What this gate decides is whether the reviewer personas run and how long the disclosure is —
+never whether the file gets profiled, whether the cleaning gets logged, or whether the published
+figures get recomputed. Those cost one pass each and they are not what made an audited run
+expensive.
+
 The gate is the stakes, never the size. A ten-row table that sets a price is the expensive case; a
 million rows nobody will act on is the cheap one. Reading the request answers this in a sentence.
 Measuring the file does not, and a threshold in rows would wave the expensive case straight
@@ -143,8 +162,14 @@ dataset is being turned into an answer.
 - [ ] The stage this request belongs to is named before any work starts.
 - [ ] Whether the result leaves the project, and whether somebody will act on it, were both
       answered from the request before the work started, not from the size of the file.
+- [ ] If both answers were no, the words in the request that support that are quoted next to the
+      decision. An unsupported no is the cheap answer asserted, which is the thing Step 4 of the
+      `chart-type-and-library-selection` skill refuses for the same reason.
 - [ ] If the reviewers and the full disclosure were skipped because both answers were no, the
       answer says so in the words a reader would need to know it was not reviewed.
+- [ ] Nothing was skipped beyond the reviewers and the length of the disclosure. Every stage ran
+      and every skill that applied was invoked in full, because the gate is about the machinery
+      around the stages and never about the stages.
 - [ ] Every applicable skill was invoked in full, not summarized.
 - [ ] No stage was skipped, or the skip is stated in the answer with its reason.
 - [ ] Every skill named in the answer exists in this catalog. If a request needs something the
