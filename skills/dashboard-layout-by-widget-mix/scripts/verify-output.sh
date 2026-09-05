@@ -216,6 +216,14 @@ INLINE_LEVEL = re.compile(r"\b(img|svg|video|picture|canvas|pre|code|table|input
 # An inline script this big is a bundled library rather than page code. Used to notice the same
 # library shipped once per page, which is how five charts became twenty megabytes.
 RUNTIME_BYTES = 50_000
+
+# A page built from the starting template resolves its text sizes through three tokens. A page
+# written from scratch grows one size per element that needed to look a bit different: a real
+# delivery from a capable model carried eight, at which point nothing on the page is the figure
+# and nothing is the label. Counting distinct declared sizes is the cheapest way to tell those
+# apart, and it is the one structural decision a run cannot fake by naming the skill in a comment.
+FONT_SIZE = re.compile(r"font-size\s*:\s*([^;}!]+)", re.IGNORECASE)
+MAX_TYPE_SIZES = 3
 FRAME_FAMILIES: dict[str, tuple[str, ...]] = {
     "pandas": ("pandas", "geopandas", "modin"),
     "polars": ("polars",),
@@ -887,6 +895,22 @@ def check_layout(
             "the page's own stylesheet has no media query and no flexible track or wrapping "
             "rule, so it was laid out at one width. State what happens as the viewport narrows, "
             "including any panel hidden on purpose",
+            str(path),
+        )
+
+    report.checked += 1
+    # Only the page's own styles: a vendored library ships hundreds of sizes and none of them is a
+    # decision anybody here made.
+    own = "\n".join(block for block in parser.styles if len(block) < RUNTIME_BYTES)
+    sizes = {" ".join(found.split()).lower() for found in FONT_SIZE.findall(own)}
+    if len(sizes) > MAX_TYPE_SIZES:
+        report.error(
+            "layout/type-scale",
+            f"the page declares {len(sizes)} distinct font sizes ({', '.join(sorted(sizes)[:6])}"
+            f"{', …' if len(sizes) > 6 else ''}); the starting template resolves text through "
+            f"three roles — figure, body and label — and a fourth distinction is a weight, a "
+            f"colour or a letter-spacing change. A page that grew one size per element has no "
+            f"figure and no label, only text of assorted sizes",
             str(path),
         )
 
