@@ -316,6 +316,7 @@ lakehouse-agent-skills/
 ├── .opencode/agent/                        #   generated personas, edits denied by permission
 ├── .cursor/agents/                         #   generated personas, readonly
 ├── .gemini/agents/                         #   generated personas, tools allowlisted
+├── .codex/agents/                          #   generated personas, as TOML, sandboxed read-only
 ├── hooks/                                  # 2 session hooks; one blocks a turn with no disclosure
 ├── references/                             # 3 checklists shared by more than one skill
 ├── evals/                                  # cases, synthetic fixtures, results

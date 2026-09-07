@@ -124,7 +124,7 @@ shared one. Look in `.agents/skills/`.
 | --- | --- |
 | The 15 skills | The installer writes them for any of the 77 names above, into `.agents/skills` or the tool's own directory. **Loading was verified only in Claude Code**; elsewhere what was measured is that the files arrive, and a file arriving is not a skill running. |
 | The 9 commands | Claude Code, as `.claude/commands/*.md`, and Gemini, as `.gemini/commands/*.toml`. Both are generated from `commands/*.toml` by `scripts/sync_commands.py`. |
-| The 4 reviewer personas | Claude Code from `agents/`, opencode from `.opencode/agent/`, Cursor from `.cursor/agents/`, Gemini CLI from `.gemini/agents/`. The three copies are generated from `agents/` by `scripts/sync_agents.py` and checked for drift by `scripts/validate_agent_copies.py`. **Only the Claude Code and opencode personas have been verified loading**; the other two are files in the documented place, and a file arriving is not an agent running. Codex has no agent component in its plugin specification, so nothing is generated for it. |
+| The 4 reviewer personas | Claude Code from `agents/`, opencode from `.opencode/agent/`, Cursor from `.cursor/agents/`, Gemini CLI from `.gemini/agents/`, Codex from `.codex/agents/`. The four copies are generated from `agents/` by `scripts/sync_agents.py` and checked for drift by `scripts/validate_agent_copies.py`. **Only the Claude Code and opencode personas have been verified loading**; the other three are files in the documented place, and a file arriving is not an agent running. |
 | The 2 session hooks | Claude Code, through `hooks/hooks.json` |
 
 ### One promise, four different fields
@@ -139,6 +139,7 @@ worth knowing before you trust it:
 | opencode | `permission.edit: deny` | Edits. It has **no `tools` field at all**, and an unrecognised key is routed into `options` in silence — a copy carrying `tools` would look right and restrict nothing. |
 | Cursor | `readonly: true` | File edits **and state-changing shell commands**. Stronger than the source claims for itself; the personas understate what Cursor enforces. |
 | Gemini CLI | an allowlist of `read_file`, `grep_search`, `run_shell_command` | Everything not listed. Only identifiers confirmed in its own documentation are used; a name for globbing is deliberately absent rather than guessed, because an allowlist entry that does not exist removes a tool instead of granting one. |
+| Codex | `sandbox_mode = "read-only"` | Every write, the shell included. **The strongest of the five**, because it is the only one that is a sandbox rather than a list of tools, so it closes the hole the personas name in their own text. Codex agents are TOML, not markdown, and the protocol travels inside `developer_instructions` rather than as the body of the file. |
 
 The skills travel furthest and the pack is built that way on purpose: everything a skill cannot
 work without is inside its own `SKILL.md` — or, for the three that ship a script, inside their own

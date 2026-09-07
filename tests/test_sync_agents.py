@@ -9,6 +9,7 @@ reviewer that quietly regained write access raises nothing when it does.
 
 from __future__ import annotations
 
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -39,7 +40,8 @@ def staffed(repo: Layout) -> Layout:
 
 
 def copy(layout: Layout, tool: str) -> Path:
-    return layout.root.joinpath(*sync.TARGETS[tool].directory) / f"{NAME}.md"
+    target = sync.TARGETS[tool]
+    return layout.root.joinpath(*target.directory) / (NAME + target.suffix)
 
 
 def test_one_persona_reaches_every_supported_tool(staffed: Layout) -> None:
@@ -87,12 +89,50 @@ def test_the_gemini_copy_grants_only_confirmed_tool_names(staffed: Layout) -> No
         assert absent not in front
 
 
+def test_the_codex_copy_is_toml_and_sandboxed_read_only(staffed: Layout) -> None:
+    """Codex is not markdown at all, and its restriction is a sandbox rather than a tool list.
+
+    That makes it the strongest of the four: `read-only` covers the shell, which is the hole every
+    other format leaves open and which these personas name in their own text.
+    """
+    sync.main(["--root", str(staffed.root)])
+    document = tomllib.loads(copy(staffed, "codex").read_text(encoding="utf-8"))
+
+    assert document["sandbox_mode"] == "read-only"
+    assert document["name"] == NAME
+    assert document["description"] == DESCRIPTION
+    assert "You review data work that is already done." in document["developer_instructions"]
+
+
 def test_the_protocol_itself_is_carried_across_unchanged(staffed: Layout) -> None:
-    """Only the frontmatter is translated. A persona that reviews differently per tool is two."""
+    """Only the wrapper is translated. A persona that reviews differently per tool is two."""
     sync.main(["--root", str(staffed.root)])
 
-    for tool in sync.TARGETS:
-        assert copy(staffed, tool).read_text(encoding="utf-8").endswith(BODY), tool
+    for tool, target in sync.TARGETS.items():
+        text = copy(staffed, tool).read_text(encoding="utf-8")
+        if target.suffix == ".toml":
+            assert BODY.strip() in tomllib.loads(text)["developer_instructions"], tool
+        else:
+            assert text.endswith(BODY), tool
+
+
+def test_a_protocol_that_would_close_the_toml_string_is_refused(
+    staffed: Layout, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The Codex copy carries the protocol inside a literal string, so one sequence cannot appear.
+
+    Escaping it would silently change the text a reviewer is given. Refusing it asks for one line
+    to be rewritten instead, which is the only outcome where all five copies still say the same.
+    """
+    source = staffed.agents / f"{NAME}.md"
+    source.write_text(
+        source.read_text(encoding="utf-8") + f"\nA fence {sync.TOML_FENCE} in the prose.\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    assert sync.main(["--root", str(staffed.root)]) == 1
+    assert "agents/unquotable" in capsys.readouterr().out
 
 
 def test_a_missing_copy_fails_the_check(
