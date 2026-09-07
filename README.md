@@ -1,6 +1,6 @@
 # Lakehouse Agent Skills
 
-Data engineering discipline for AI coding agents. **15 skills, 9 commands and 3 reviewer
+Data engineering discipline for AI coding agents. **15 skills, 9 commands and 4 reviewer
 subagents** that make an agent profile a file before it cleans it, clean it before it charts it,
 build the dashboard by BI rules rather than by taste, and say plainly what it did not cover.
 
@@ -53,11 +53,12 @@ Run a command to enter a stage by name, or just describe the task and let the ro
 
 **The guardrails**
 
-- **Three reviewers that cannot edit what they review.** One separates what was *verified* from
+- **Four reviewers that cannot edit what they review.** One separates what was *verified* from
   what was *asserted*. One audits a finding against its arithmetic — the base of every percentage,
   whether an average is weighted, whether a comparison reverses once the groups are pooled. One
-  classifies every field before anything leaves the project. They run when the result leaves your
-  machine or somebody will act on it, and stay out of the way when it is a first look.
+  classifies every field before anything leaves the project. One names the craft decisions a page
+  never made, and says plainly that it did not render the page. They run when the result leaves
+  your machine or somebody will act on it, and stay out of the way when it is a first look.
 - **Numbers you can trace.** Every figure on the page has a query behind it and a population it
   covers. A number typed by hand fails the check.
 - **A written record of what was skipped** — rows, sheets, files, in counts rather than adjectives.
@@ -83,15 +84,16 @@ Run a command to enter a stage by name, or just describe the task and let the ro
 | Safety | [`data-privacy-before-llm`](skills/data-privacy-before-llm) | Rows are about to be pasted into a prompt or sent to a service |
 | | [`safe-live-database-access`](skills/safe-live-database-access) | Connecting to a database other people use |
 
-## Subagents (3)
+## Subagents (4)
 
-Three reviewer personas. They read and report; none of them can edit the work it reviews.
+Four reviewer personas. They read and report; none of them can edit the work it reviews.
 
 | Persona | What it does |
 | --- | --- |
 | [`data-work-reviewer`](agents/data-work-reviewer.md) | Separates what was **verified** from what was **asserted**, and says which claims have evidence behind them |
 | [`claim-auditor`](agents/claim-auditor.md) | Audits a written finding against its arithmetic: the base of every percentage, whether an average is weighted, whether a comparison reverses once groups are pooled |
 | [`outbound-data-gate`](agents/outbound-data-gate.md) | Classifies every field that would leave the project and decides what may go, in what form |
+| [`design-reviewer`](agents/design-reviewer.md) | Names the craft decisions a page never made, each with the value from the file, and says plainly that it did not render the page |
 
 They run when the result leaves the project or somebody will act on it. For a first look that
 stays on your machine, they stay out of the way.
@@ -306,7 +308,7 @@ lakehouse-agent-skills/
 │   ├── insight-narrative-integrity/        #   Output: does the sentence survive its arithmetic
 │   ├── data-privacy-before-llm/            #   Safety: what may leave the project
 │   └── safe-live-database-access/          #   Safety: connections and writes others share
-├── agents/                                 # 3 reviewer subagents, none able to edit what it reviews
+├── agents/                                 # 4 reviewer subagents, none able to edit what it reviews
 ├── commands/                               # 9 lifecycle commands, as TOML — the source of truth
 ├── .claude/commands/                       #   generated copy, checked for parity
 ├── .gemini/commands/                       #   generated copy, checked for parity
