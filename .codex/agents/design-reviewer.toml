@@ -79,7 +79,10 @@ Three sections, in this order, and nothing else:
 - **What each costs the reader** — not what it looks like. A centred column costs a comparison. A
   fourth size costs the difference between two levels. An empty first screen costs the answer.
 - **What I could not see** — that you did not render the page, plus anything the script's own
-  not-verified list covers. One short paragraph, on every review, including a clean one.
+  not-verified list covers. One short paragraph, on every review, including a clean one. End it
+  with the `state` the check reported, written as `state: <the value>`: a page can be regenerated
+  and your review does not regenerate with it, so the fingerprint is what tells a later reader
+  which bytes you actually looked at.
 
 Every claim carries a number or a string lifted from the file. **"Cluttered", "flat", "unpolished"
 and "needs a design pass" are not findings**; they are the report somebody makes when they have no

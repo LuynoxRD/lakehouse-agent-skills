@@ -832,6 +832,142 @@ def test_this_pack_s_own_filenames_are_billed_once(tmp_path: Path) -> None:
     assert "page/delivery-path" not in rules(report)
 
 
+OLD_STATE = "0" * 64
+
+
+def delivered(tmp_path: Path) -> tuple[Path, Path, Path]:
+    """A clean delivery with a docs directory, which is where a review would be recorded."""
+    note, html = project(tmp_path, CLEAN_PAGE)
+    docs = tmp_path / "docs"
+    docs.mkdir(exist_ok=True)
+    (docs / "disclosure.md").write_text(
+        "# Coverage\n\nAll 3 rows read, none skipped.\n", encoding="utf-8", newline="\n"
+    )
+    return note, html, docs
+
+
+@pytest.mark.skipif(not HAS_DUCKDB, reason="the figure check needs the DuckDB package")
+def test_a_run_reports_the_state_it_read(tmp_path: Path) -> None:
+    """The fingerprint a review names. Without it there is nothing to be stale against."""
+    note, html, docs = delivered(tmp_path)
+
+    code, report = run(note, html, docs)
+
+    assert code == 0
+    state = report["state"]
+    assert isinstance(state, str)
+    assert len(state) == 64
+
+
+@pytest.mark.skipif(not HAS_DUCKDB, reason="the figure check needs the DuckDB package")
+def test_notes_that_record_no_review_are_never_asked_for_one(tmp_path: Path) -> None:
+    """Recording a review stays optional. What is refused is a recorded one that is not true."""
+    note, html, docs = delivered(tmp_path)
+
+    code, report = run(note, html, docs)
+
+    assert code == 0
+    assert "review/superseded" not in rules(report)
+
+
+@pytest.mark.skipif(not HAS_DUCKDB, reason="the figure check needs the DuckDB package")
+def test_a_review_recorded_against_older_bytes_is_refused(tmp_path: Path) -> None:
+    """The failure that looks like diligence.
+
+    A note carrying "reviewed" and a date reads as a standing property of the work. It is not: it
+    was true about the bytes in front of the reviewer that day, and every artefact here can be
+    regenerated without the review regenerating with it.
+    """
+    note, html, docs = delivered(tmp_path)
+    (docs / "disclosure.md").write_text(
+        f"# Coverage\n\nReviewed by the data reviewer, state: {OLD_STATE}\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    code, report = run(note, html, docs)
+
+    assert code == 1
+    assert "review/superseded" in rules(report)
+    assert OLD_STATE[:12] in messages(report)
+
+
+@pytest.mark.skipif(not HAS_DUCKDB, reason="the figure check needs the DuckDB package")
+def test_a_review_that_names_the_current_state_passes(tmp_path: Path) -> None:
+    note, html, docs = delivered(tmp_path)
+    _code, first = run(note, html, docs)
+    state = first["state"]
+    (docs / "disclosure.md").write_text(
+        f"# Coverage\n\nReviewed by the data reviewer, state: {state}\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    code, report = run(note, html, docs)
+
+    assert code == 0, messages(report)
+    assert "review/superseded" not in rules(report)
+
+
+@pytest.mark.skipif(not HAS_DUCKDB, reason="the figure check needs the DuckDB package")
+def test_the_history_may_stay_when_a_current_review_is_there_too(tmp_path: Path) -> None:
+    """Keeping the older entries is often the point. A history with no current entry is not."""
+    note, html, docs = delivered(tmp_path)
+    _code, first = run(note, html, docs)
+    (docs / "disclosure.md").write_text(
+        f"# Coverage\n\n- 2026-09-01, state: {OLD_STATE}\n- today, state: {first['state']}\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    code, report = run(note, html, docs)
+
+    assert code == 0, messages(report)
+
+
+@pytest.mark.skipif(not HAS_DUCKDB, reason="the figure check needs the DuckDB package")
+def test_a_bare_digest_in_a_note_is_not_read_as_a_review(tmp_path: Path) -> None:
+    """Only a labelled fingerprint counts, so a note quoting a file's own hash is left alone."""
+    note, html, docs = delivered(tmp_path)
+    (docs / "disclosure.md").write_text(
+        f"# Coverage\n\nThe source arrived with sha256 {OLD_STATE} per the sender.\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    code, report = run(note, html, docs)
+
+    assert code == 0, messages(report)
+    assert "review/superseded" not in rules(report)
+
+
+@pytest.mark.skipif(not HAS_DUCKDB, reason="the figure check needs the DuckDB package")
+def test_the_state_does_not_move_when_nothing_did(tmp_path: Path) -> None:
+    """A fingerprint that changed on its own would make every recorded review stale by noon."""
+    note, html, docs = delivered(tmp_path)
+
+    _code, first = run(note, html, docs)
+    _code, second = run(note, html, docs)
+
+    assert first["state"] == second["state"]
+
+
+@pytest.mark.skipif(not HAS_DUCKDB, reason="the figure check needs the DuckDB package")
+def test_the_state_moves_when_a_delivered_byte_does(tmp_path: Path) -> None:
+    """The whole point. A review names a state, and the state is what changing the work breaks."""
+    note, html, docs = delivered(tmp_path)
+    _code, before = run(note, html, docs)
+    html.write_text(
+        CLEAN_PAGE.replace("<h1>Sales</h1>", "<h1>Sales by month</h1>"),
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    _code, after = run(note, html, docs)
+
+    assert before["state"] != after["state"]
+
+
 def test_a_failing_run_removes_a_receipt_that_was_there(tmp_path: Path) -> None:
     """A receipt from an earlier green run must not vouch for a page that now fails."""
     note, html = project(tmp_path, NESTED_PAGE)
