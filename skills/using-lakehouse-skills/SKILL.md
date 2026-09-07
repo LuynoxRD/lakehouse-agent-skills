@@ -1,6 +1,6 @@
 ---
 name: using-lakehouse-skills
-description: Routes a data request to the skill that owns it and states the order the stages have to run in. Use when starting work on a dataset and it is not obvious which skill applies, when a request jumps straight to a chart or a conclusion, or when work spans more than one stage of the data lifecycle.
+description: Routes a data request to the skill that owns it and states the order the stages have to run in. Use when starting work on a dataset and it is not obvious which skill applies, when a request jumps straight to a chart or a conclusion, when work spans more than one stage of the data lifecycle, or when a request names an action rather than a stage and what the work will write has to decide which stages are in play.
 ---
 
 # Using lakehouse skills
@@ -148,6 +148,50 @@ When two apply, they compose in lifecycle order. A request to chart a very large
 `honest-data-limits-disclosure` for the pre-flight, then `etl-before-dashboard` for the work,
 then `honest-data-limits-disclosure` again for what the run left out.
 
+## Artifact to skill
+
+The table above keys on how a request sounds, and a request does not always sound like its stage.
+"Re-run it", "just verify this", "small fix to the page", "refresh the numbers" each describe an
+action taken on code or on time. None of them names a stage, and a router that only reads phrasing
+finds nothing and concludes there is nothing to find. **What decides the stage is the artefact the
+work will write or change; the verb the request used decides nothing.**
+
+So there is a second lookup, and it is not a fallback for when the first one fails. Read the
+column heading above it: **Start with**. That table names where to begin, so a request that
+matched it has been told its first skill and nothing about the rest. This one names everything
+that is in play, which is a question the first table never answers — and when the phrasing matched
+nothing at all, it is the only one that answers anything. Consult it on every request, and read it
+against what the work will produce, never against what happens to exist already.
+
+It is the lifecycle table read backwards, which is the direction routing actually needs, and it
+carries the skills that sit outside the stages as well.
+
+| If the work will write or change | The stage is | Which means these apply |
+| --- | --- | --- |
+| Text or rows pulled off a PDF, a scan or a photograph | before PROFILE | `document-extraction-integrity` skill |
+| A decision about what shape the source is in at all | before PROFILE | `structured-vs-unstructured-routing` skill |
+| `docs/data/profile.md`, or a source in hand with no section in it | PROFILE | `etl-before-dashboard` skill, from its arrival step |
+| Anything under `data/clean/` or `data/curated/` | CLEAN, MODEL | `etl-before-dashboard` skill |
+| The storage layout itself: a new column, a second writer, rows to correct | — | `parquet-to-open-table-format` skill |
+| A query, a group-by, a join that runs | QUERY | `duckdb-for-local-analytics` skill |
+| A chart, a plot, a figure specification | VISUALIZE | `chart-type-and-library-selection` skill, then `dashboard-color-and-visual-hierarchy` skill |
+| A page, a dashboard, a document somebody opens | ASSEMBLE | `dashboard-layout-by-widget-mix` skill, plus the two above for what it holds |
+| A sentence stating a finding, a headline, a takeaway | NARRATE | `insight-narrative-integrity` skill |
+| `docs/data/disclosure.md`, or an answer that says what was covered | DISCLOSE | `honest-data-limits-disclosure` skill |
+| Rows leaving the project: a prompt, a request body, an attachment | REDACT | `data-privacy-before-llm` skill |
+| A workbook written back to disk | crosses CLEAN | `spreadsheet-integrity` skill |
+| A connection or a write to a system other people use | before PROFILE | `safe-live-database-access` skill |
+| **A script that produces any of the above** | **the stage of its output** | **the skills of that stage, and the existing-code step of `etl-before-dashboard` skill** |
+
+An artefact that is only read, and is neither changed nor handed to anybody, is not a stage; that
+is the case the last section covers.
+
+**Two things this table does not do.** It does not decide how much runs: that is the stakes gate
+above, which sets whether the reviewer personas run and how long the disclosure is, and never
+whether a stage happens. And it does not let a stage be satisfied by a check. A green artefact
+check is evidence about the numbers it recomputed, and the skills in the third column above own
+things the check states, in its own output, that it never read.
+
 ## How they divide the ground
 
 These boundaries are what keep the skills from overlapping. Read them before deciding.
@@ -194,6 +238,10 @@ dataset is being turned into an answer.
 ## Verification
 
 - [ ] The stage this request belongs to is named before any work starts.
+- [ ] The artefacts this work will write or change are listed before it starts, and each one names
+      the stage it belongs to.
+- [ ] Where the request's verb — re-run, verify, fix, refresh — differs from what the work will
+      actually write, the artefact decided the stage and the verb did not.
 - [ ] If this source has arrived before, the new profile was compared against the recorded one
       and the differences are written down, including the overlap on the key.
 - [ ] Everything the reader reads is in the reader's language, with nothing left in another,
