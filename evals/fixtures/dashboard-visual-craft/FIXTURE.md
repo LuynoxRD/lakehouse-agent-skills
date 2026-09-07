@@ -12,9 +12,23 @@ in deliberately, and each one has been seen in a delivered page. The numbers are
 internally consistent enough that a reader is not distracted by arithmetic while judging the
 craft — the four region figures sum to the headline total.
 
-The page is deliberately *not* broken in the ways other skills own. Its colours are legible on
-their ground, its chart form suits the comparison, and its panels are in a defensible order. A
-run that reports those instead of the faults below has routed to the wrong skill.
+The page is deliberately *not* broken in the ways other skills own: its chart form suits the
+comparison, its panels are in a defensible order, and its colours are legible on the ground each
+one actually sits on. That last claim is measured rather than asserted, because it was wrong once.
+Every text colour against its own ground, at the ratio the `dashboard-color-and-visual-hierarchy`
+skill requires:
+
+| Element | Colour on ground | Ratio |
+| --- | --- | --- |
+| Body, headings | `#18181b` on `#f4f4f5` | 16.12:1 |
+| `.figure`, `.legend`, table cells | `#18181b` on `#ffffff` | 17.72:1 |
+| `.caption` | `#52525b` on `#ffffff` | 7.73:1 |
+| `.note` | `#6b6b74` on `#f4f4f5` | 4.80:1 |
+
+The note is the lowest and it clears 4.5:1. It was `#71717a` and measured **4.40:1** — a real
+contrast failure, found by an audit that computed the ratio instead of reading the sentence above
+it. **The note is a trap because of its size, never its colour.** A run that reports the palette
+here has routed to the wrong skill, and the fixture must not give it a reason to.
 
 ## Traps
 
