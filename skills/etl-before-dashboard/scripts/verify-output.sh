@@ -138,6 +138,7 @@ PIPELINE_ARTEFACT_NAMES = (
     "profile.md",
     "model.md",
     "disclosure.md",
+    "reviews.md",
     "insights.md",
     "figures.json",
     "verification.json",
@@ -285,7 +286,20 @@ NOT_VERIFIED = (
     "whether markers of more than one of the six it knows sit in the same page text",
     "any language whose markers it does not carry, and anything inside <code>, <pre> or the "
     "<title>, none of which is read for language or for paths",
+    "whether a review that names the current state was any good, or happened at all; the "
+    "state says which bytes a review covered, never what the reviewer did with them",
 )
+
+# How a recorded review names the bytes it was made against. Only a labelled fingerprint is
+# read, never a bare digest, so a note that quotes a file's own sha256 for some other reason
+# is not mistaken for a review claim.
+REVIEW_STATE = re.compile(r"\bstate[:=]\s*([0-9a-f]{64})\b", re.IGNORECASE)
+
+# Where a review belongs, and the reason it cannot be anywhere else. The four notes below are
+# hashed into the state, so a review written inside one of them changes the state it just
+# named: it is stale the moment it is saved, and correcting it moves the target again. This
+# file is deliberately outside the hashed set, which is what lets a recorded review settle.
+REVIEW_NOTE = "reviews.md"
 
 # The notes a reviewer treats as the evidence behind a claim. They sit beside the manifest and
 # this script never parses them, but it does hash them, because the receipt is read as the index
@@ -1238,7 +1252,105 @@ def check_docs(directory: Path, report: Report) -> None:
             )
 
 
-def write_receipt(path: Path, inputs: list[Path], report: Report, absent: list[str]) -> None:
+def input_digests(inputs: list[Path]) -> list[dict[str, str]]:
+    """Hash everything this run read, in the order it was given."""
+    digests: list[dict[str, str]] = []
+    for item in inputs:
+        try:
+            digests.append(
+                {"path": str(item), "sha256": hashlib.sha256(item.read_bytes()).hexdigest()}
+            )
+        except OSError:  # noqa: PERF203 - an unreadable input is recorded by its absence
+            continue
+    return digests
+
+
+def state_of(digests: list[dict[str, str]]) -> str:
+    """One fingerprint over everything the run read, so a review can name what it covered.
+
+    Built from the file names and their digests rather than their full paths, so moving the
+    checkout does not by itself make every recorded review stale. That only goes as far as the
+    bytes do: a manifest that writes an absolute path to its table carries that path inside
+    itself, and the fingerprint moves with it. Which is a property of what was written down
+    rather than of this function, and one more reason for a manifest to record a relative path.
+    """
+    canonical = "".join(
+        f"{Path(entry['path']).name}\t{entry['sha256']}\n"
+        for entry in sorted(digests, key=lambda entry: Path(entry["path"]).name)
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def check_review_state(
+    directory: Path | None, state: str, hashed: set[Path], report: Report
+) -> None:
+    """A recorded review covers the bytes it was made against, and nothing later.
+
+    This is the failure that looks like diligence. A note carrying "reviewed" and a date reads as
+    a standing property of the work, and it is not: it was true about the bytes in front of the
+    reviewer that day. Every artefact this pack produces can be regenerated, and the review does
+    not regenerate with them.
+
+    Nothing here requires a review to be recorded. What it requires is that a recorded one be
+    honest: if any note names a state, one of them has to be the state this run just read. Keeping
+    the older entries is fine and is often the point -- what is refused is a history with no
+    current entry, which is the shape that reads as covered while covering nothing.
+    """
+    if directory is None or not directory.is_dir():
+        return
+    found: list[tuple[Path, int, str]] = []
+    for path in sorted(directory.rglob("*.md")):
+        try:
+            note = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        for number, line in enumerate(note.splitlines(), 1):
+            for match in REVIEW_STATE.finditer(line):
+                found.append((path, number, match.group(1).lower()))
+    if not found:
+        return
+
+    report.checked += 1
+    usable: list[tuple[Path, int, str]] = []
+    told: set[Path] = set()
+    for path, number, named in found:
+        try:
+            inside = path.resolve() in hashed
+        except OSError:
+            inside = False
+        if not inside:
+            usable.append((path, number, named))
+            continue
+        if path not in told:
+            told.add(path)
+            report.error(
+                "review/self-defeating",
+                f"the state is computed over this note, so a review recorded inside it changes "
+                f"the state it names and can never be the current one; correcting it moves the "
+                f"target again. Put the review in {REVIEW_NOTE} beside this file, which the "
+                "state is deliberately not computed over, and leave this note to what it is for",
+                str(path),
+                number,
+            )
+    if not usable:
+        return
+    if any(named == state for _, _, named in usable):
+        return
+    where, number, named = usable[-1]
+    report.error(
+        "review/superseded",
+        f"a review recorded here names state {named[:12]} and this run read state "
+        f"{state[:12]}, so the bytes changed after that review and it does not cover what is "
+        "being delivered now. Review it again and record the new state, or say in the note that "
+        "the recorded review no longer applies",
+        str(where),
+        number,
+    )
+
+
+def write_receipt(
+    path: Path, digests: list[dict[str, str]], report: Report, absent: list[str], state: str
+) -> None:
     """Leave proof on disk that this ran green, or remove the proof that it did not.
 
     A checklist box saying "run the check and paste the output" is worth exactly the honesty of
@@ -1260,19 +1372,14 @@ def write_receipt(path: Path, inputs: list[Path], report: Report, absent: list[s
         except OSError:
             pass
         return
-    digests = []
-    for item in inputs:
-        try:
-            digests.append({"path": str(item), "sha256": hashlib.sha256(item.read_bytes()).hexdigest()})
-        except OSError:  # noqa: PERF203 - an unreadable input is recorded by its absence
-            continue
     payload = {
         "checked_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "ok": True,
         "checked": report.checked,
         "inputs": digests,
         "absent_at_check": absent,
-        "proves": "a green run over exactly these bytes; nothing about a file not listed here",
+        "state": state,
+        "proves": "a green run over exactly these bytes; nothing about a file not listed here, and nothing about a review that names a different state",
     }
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -1367,13 +1474,19 @@ def main() -> int:
     notes = [args.manifest.parent / name for name in RECORDED_NOTES]
     inputs.extend(note for note in notes if note.is_file())
     absent = [str(note) for note in notes if not note.is_file()]
-    write_receipt(receipt, inputs, report, absent)
+    digests = input_digests(inputs)
+    state = state_of(digests)
+    hashed = {path for path in (Path(entry["path"]) for entry in digests)}
+    hashed = {path.resolve() for path in hashed}
+    check_review_state(args.docs, state, hashed, report)
+    write_receipt(receipt, digests, report, absent, state)
 
     result = {
         "ok": not report.errors,
         "checked": report.checked,
         "errors": report.errors,
         "warnings": report.warnings,
+        "state": state,
         "not_verified": list(NOT_VERIFIED),
         "receipt": str(receipt) if not report.errors else None,
     }

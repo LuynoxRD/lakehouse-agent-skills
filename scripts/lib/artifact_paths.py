@@ -19,6 +19,11 @@ NOTE_FILES: tuple[str, ...] = (
     "cleaning-log.md",
     "model.md",
     "disclosure.md",
+    # Where a completed review is written down, and the one note the artefact check deliberately
+    # does not hash into its state fingerprint. The four notes above are hashed, so a review
+    # recorded inside one of them changes the state it just named and is stale the moment it is
+    # saved; this file is what lets such a record settle.
+    "reviews.md",
     "figures.json",
     "verification.json",
 )

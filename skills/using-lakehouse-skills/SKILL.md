@@ -33,6 +33,12 @@ Two questions about the request settle it, answered before the work starts:
 **Either one is yes:** the reviewer personas run, the disclosure is complete with its counts, and
 every published figure is recomputed against the table it came from.
 
+**When they run, write the outcome into `docs/data/reviews.md` with the `state` the artefact check
+reported.** A review that leaves no trace is indistinguishable from one that never happened, and a
+trace without the state is indistinguishable from one that still applies. The persona cannot write
+that file — several of the tools that load it withhold the editing tools outright — so recording
+it belongs to whoever invoked it.
+
 **Both are no:** the personas do not run and the disclosure is a paragraph rather than a document.
 A paragraph still carries its counts — what shrinks is the writing, never the numbers, and a
 short disclosure made of adjectives is the one thing the `honest-data-limits-disclosure` skill

@@ -60,6 +60,26 @@ Four of those five rows say the same thing, and it is the thing worth noticing: 
 not reading it. The receipt can tell you nobody edited the disclosure after the check passed. Only
 you can tell whether the disclosure was honest when it was written.
 
+### Your own review goes stale, and it says so with a number
+
+The receipt carries a `state`: one fingerprint over every file the run read. **A review covers the
+state it was made against and nothing later.** That matters because everything here can be
+regenerated, and your review does not regenerate with it — a note saying "reviewed" and a date
+reads as a standing property of the work, and it never was one.
+
+So two things. **Read the `state` before you start**, and if a note already records a review
+against a different one, that recorded review does not cover what is in front of you: say so
+rather than counting it. And **end your report with the state you reviewed**, written as
+`state: <the value>`, so that whoever reads it later can tell what it covered without asking you.
+The artefact check refuses a note whose only recorded review names a state the current run did not
+produce, which is the mechanism behind this rather than a habit you are being asked to keep.
+
+**You do not write that record yourself.** Several of the tools that load you withhold the editing
+tools outright, so the review is saved by whoever invoked you — into `docs/data/reviews.md`, which
+is the one note the state is deliberately not computed over. Say so at the end of your report. A
+review recorded inside `profile.md`, `cleaning-log.md`, `model.md` or `disclosure.md` changes the
+state it names and is stale the moment it is saved; the check refuses that placement by name.
+
 Then read the answer that was given, and compare the two.
 
 Say in your report how many files you opened. A review that read three and answered is worth more
