@@ -156,13 +156,21 @@ action taken on code or on time. None of them names a stage, and a router that o
 finds nothing and concludes there is nothing to find. **What decides the stage is the artefact the
 work will write or change; the verb the request used decides nothing.**
 
-So there is a second lookup, and it is the one to use whenever the first comes back empty. It is
-the lifecycle table read backwards, which is the direction routing actually needs, and it also
-carries the skills that sit outside the stages.
+So there is a second lookup, and it is not a fallback for when the first one fails. Read the
+column heading above it: **Start with**. That table names where to begin, so a request that
+matched it has been told its first skill and nothing about the rest. This one names everything
+that is in play, which is a question the first table never answers — and when the phrasing matched
+nothing at all, it is the only one that answers anything. Consult it on every request, and read it
+against what the work will produce, never against what happens to exist already.
+
+It is the lifecycle table read backwards, which is the direction routing actually needs, and it
+carries the skills that sit outside the stages as well.
 
 | If the work will write or change | The stage is | Which means these apply |
 | --- | --- | --- |
-| A file landing in `data/raw/` | PROFILE | `etl-before-dashboard` skill, from its arrival step |
+| Text or rows pulled off a PDF, a scan or a photograph | before PROFILE | `document-extraction-integrity` skill |
+| A decision about what shape the source is in at all | before PROFILE | `structured-vs-unstructured-routing` skill |
+| `docs/data/profile.md`, or a source in hand with no section in it | PROFILE | `etl-before-dashboard` skill, from its arrival step |
 | Anything under `data/clean/` or `data/curated/` | CLEAN, MODEL | `etl-before-dashboard` skill |
 | The storage layout itself: a new column, a second writer, rows to correct | — | `parquet-to-open-table-format` skill |
 | A query, a group-by, a join that runs | QUERY | `duckdb-for-local-analytics` skill |
@@ -175,9 +183,8 @@ carries the skills that sit outside the stages.
 | A connection or a write to a system other people use | before PROFILE | `safe-live-database-access` skill |
 | **A script that produces any of the above** | **the stage of its output** | **the skills of that stage, and the existing-code step of `etl-before-dashboard` skill** |
 
-Read the rows against what the work will produce, never against what happens to exist already. An
-artefact that is only read, and is neither changed nor handed to anybody, is not a stage; that is
-the case the last section covers.
+An artefact that is only read, and is neither changed nor handed to anybody, is not a stage; that
+is the case the last section covers.
 
 **Two things this table does not do.** It does not decide how much runs: that is the stakes gate
 above, which sets whether the reviewer personas run and how long the disclosure is, and never
