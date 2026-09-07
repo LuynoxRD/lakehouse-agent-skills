@@ -1,6 +1,6 @@
 # Lakehouse Agent Skills
 
-Data engineering discipline for AI coding agents. **14 skills, 9 commands and 3 reviewer
+Data engineering discipline for AI coding agents. **15 skills, 9 commands and 3 reviewer
 subagents** that make an agent profile a file before it cleans it, clean it before it charts it,
 build the dashboard by BI rules rather than by taste, and say plainly what it did not cover.
 
@@ -63,7 +63,7 @@ Run a command to enter a stage by name, or just describe the task and let the ro
 - **A written record of what was skipped** — rows, sheets, files, in counts rather than adjectives.
 - **Nothing personal leaves the project** without somebody deciding it should.
 
-## Skills (14)
+## Skills (15)
 
 | Stage | Skill | Use it when |
 | --- | --- | --- |
@@ -78,6 +78,7 @@ Run a command to enter a stage by name, or just describe the task and let the ro
 | Output | [`chart-type-and-library-selection`](skills/chart-type-and-library-selection) | Pie or bar, and which library the destination needs |
 | | [`dashboard-color-and-visual-hierarchy`](skills/dashboard-color-and-visual-hierarchy) | Choosing colours, or checking they read on both backgrounds |
 | | [`dashboard-layout-by-widget-mix`](skills/dashboard-layout-by-widget-mix) | A page has more panels than fit, or is a grid of equal tiles |
+| | [`dashboard-visual-craft`](skills/dashboard-visual-craft) | The page is styled and nothing on it ranks: one size, one gap, centred numbers, an empty first state |
 | | [`insight-narrative-integrity`](skills/insight-narrative-integrity) | Writing takeaways, a ranking, a growth figure or a cause |
 | Safety | [`data-privacy-before-llm`](skills/data-privacy-before-llm) | Rows are about to be pasted into a prompt or sent to a service |
 | | [`safe-live-database-access`](skills/safe-live-database-access) | Connecting to a database other people use |
@@ -290,7 +291,7 @@ never renders, so it prints what it could **not** verify on every run, including
 
 ```
 lakehouse-agent-skills/
-├── skills/                                 # 14 skills, a SKILL.md the only required file
+├── skills/                                 # 15 skills, a SKILL.md the only required file
 │   ├── using-lakehouse-skills/             #   Route: which skill owns this, and how much review
 │   ├── structured-vs-unstructured-routing/ #   Shape: is this even a table
 │   ├── document-extraction-integrity/      #   Shape: getting numbers off a page

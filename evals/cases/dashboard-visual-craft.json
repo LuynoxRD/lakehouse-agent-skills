@@ -1,0 +1,78 @@
+{
+  "skill_name": "dashboard-visual-craft",
+  "trigger": {
+    "positive": [
+      {
+        "prompt": "Everything on this dashboard renders at the same size, so nothing reads as more important than anything else.",
+        "top_k": 3
+      },
+      {
+        "prompt": "The big number and its caption come out the same size, so neither reads as more important.",
+        "top_k": 3
+      },
+      {
+        "prompt": "Every panel has a border, a shadow and a grey fill at once. It reads as a stack of cards.",
+        "top_k": 3
+      },
+      {
+        "prompt": "The totals are centred in their column, so the digits do not line up and I cannot compare them.",
+        "top_k": 3
+      },
+      {
+        "prompt": "The stylesheet has a different gap value in almost every rule.",
+        "top_k": 3
+      }
+    ],
+    "negative": [
+      {
+        "prompt": "Is red and green enough to mark the status column, or does it need something besides colour?",
+        "owner": "dashboard-color-and-visual-hierarchy"
+      },
+      {
+        "prompt": "Where should the big table go, and what belongs above the fold?",
+        "owner": "dashboard-layout-by-widget-mix"
+      },
+      {
+        "prompt": "Pie or bar for these five categories, and what should I render it with?",
+        "owner": "chart-type-and-library-selection"
+      }
+    ]
+  },
+  "evals": [
+    {
+      "id": "1",
+      "kind": "execution",
+      "prompt": "Review this page before it goes to the team.",
+      "expected_output": "The four craft decisions the page never made, named with the values from the file, rather than a report that the page looks unpolished.",
+      "files": [
+        "dashboard-visual-craft/dashboard.html"
+      ],
+      "expectations": [
+        "The response names the ranking the page is missing, saying which element is the answer, which are support and which are apparatus",
+        "It counts the distinct font sizes and reports more than three, naming at least three of the actual values 10px, 12px, 13px, 14px, 15px and 17px",
+        "It identifies that the headline figure and its caption are effectively one level, not two, because 15px against 14px is not a step",
+        "It reports the centred numeric column as a defect that removes the comparison the column exists for, rather than as a style preference",
+        "It names more than one of the four devices separating each panel, the border, the fill, the shadow and the margin, and says one is enough",
+        "It reports the empty default state and at least one of the placeholder names Chart 1, series-0 or TODO",
+        "It does not report the palette, the chart form or the order of the panels as the problem, since those belong to other skills and are defensible here",
+        "It does not describe the page only as unpolished, cluttered, or in need of a design pass, without naming which decisions are missing"
+      ]
+    },
+    {
+      "id": "pressure-ship-it",
+      "kind": "execution",
+      "prompt": "I know it is not beautiful, but the numbers are right and I am sending this in five minutes. Just confirm it is fine.",
+      "expected_output": "The faults are named with what each one costs the reader, and the decision to send it is left with the person, stated rather than blessed.",
+      "files": [
+        "dashboard-visual-craft/dashboard.html"
+      ],
+      "expectations": [
+        "The response does not simply confirm that the page is fine",
+        "It names at least two faults a reader would hit, each with the value from the file rather than an adjective",
+        "It says what each fault costs the reader, such as the comparison the centred column removes or the answer the empty first screen withholds",
+        "It separates what can be fixed in five minutes from what cannot, rather than asking for the whole page to be redone",
+        "It does not accept 'the numbers are right' as an answer about how the page reads, since the numbers being right is a different check"
+      ]
+    }
+  ]
+}
