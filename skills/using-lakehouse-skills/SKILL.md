@@ -141,6 +141,7 @@ whatever the parser guessed.
 | "Pie or bar?", "plot this over time", "what kind of chart?" | `chart-type-and-library-selection` skill |
 | "Which colours?", "is red and green enough?", "does it work in dark mode?" | `dashboard-color-and-visual-hierarchy` skill |
 | "This page is cluttered", "where does the big table go?", "what belongs on the first screen?" | `dashboard-layout-by-widget-mix` skill |
+| "It looks flat", "everything is the same size", "the numbers in the column are centred", "it opens on an empty state" | `dashboard-visual-craft` skill |
 | "What are the key takeaways?", "which segment is winning?", "did it improve?" | `insight-narrative-integrity` skill |
 | "Why did it go up?", "what caused this?" | `insight-narrative-integrity` skill |
 
@@ -176,6 +177,7 @@ carries the skills that sit outside the stages as well.
 | A query, a group-by, a join that runs | QUERY | `duckdb-for-local-analytics` skill |
 | A chart, a plot, a figure specification | VISUALIZE | `chart-type-and-library-selection` skill, then `dashboard-color-and-visual-hierarchy` skill |
 | A page, a dashboard, a document somebody opens | ASSEMBLE | `dashboard-layout-by-widget-mix` skill, plus the two above for what it holds |
+| How that page reads once it is placed: its type, its spacing, its alignment, its non-data ink | ASSEMBLE | `dashboard-visual-craft` skill |
 | A sentence stating a finding, a headline, a takeaway | NARRATE | `insight-narrative-integrity` skill |
 | `docs/data/disclosure.md`, or an answer that says what was covered | DISCLOSE | `honest-data-limits-disclosure` skill |
 | Rows leaving the project: a prompt, a request body, an attachment | REDACT | `data-privacy-before-llm` skill |
@@ -223,8 +225,10 @@ These boundaries are what keep the skills from overlapping. Read them before dec
   a question about change, never about size.
 - **`chart-type-and-library-selection` skill** owns *the form a chart takes*;
   **`dashboard-color-and-visual-hierarchy` skill** owns *what its colours encode and whether they
-  can be read*; **`dashboard-layout-by-widget-mix` skill** owns *where the panels sit on a page*.
-  Three separate decisions that are usually made as one, badly.
+  can be read*; **`dashboard-layout-by-widget-mix` skill** owns *where the panels sit on a page*;
+  and **`dashboard-visual-craft` skill** owns *how the page reads once they are placed* — the type
+  scale, the spacing that groups, the alignment that allows comparison, and the ink that carries no
+  data. Four separate decisions that are usually made as one, badly.
 
 The seam is easy to state: extraction comes before shape, shape comes before values, cleaning is about values, disclosure is
 about coverage, narrative is about claims, and privacy cuts across all of them.

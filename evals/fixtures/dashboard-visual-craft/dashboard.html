@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Which region grew last quarter</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; background: #f4f4f5; color: #18181b; }
+  .wrap { padding: 13px; }
+  .row { display: flex; gap: 11px; flex-wrap: wrap; }
+  .stack { display: flex; flex-direction: column; gap: 11px; }
+  .panel {
+    background: #ffffff;
+    border: 1px solid #d4d4d8;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+    border-radius: 6px;
+    padding: 9px;
+    margin: 7px;
+    flex: 1 1 260px;
+  }
+  h1 { font-size: 17px; margin: 18px 0 21px 0; }
+  h2 { font-size: 15px; margin: 0 0 9px 0; }
+  .figure { font-size: 15px; font-weight: 600; }
+  .caption { font-size: 14px; color: #52525b; margin-top: 7px; }
+  .note { font-size: 10px; color: #6b6b74; margin-top: 21px; }
+  .legend { font-size: 12px; margin-top: 13px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { border: 1px solid #e4e4e7; padding: 7px; text-align: center; }
+  .bar {
+    height: 15px;
+    background: linear-gradient(180deg, #60a5fa 0%, #1d4ed8 100%);
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.35);
+    border-radius: 3px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Which region grew last quarter</h1>
+
+  <div class="panel">
+    <h2>Chart 1</h2>
+    <p class="figure">Select a region to begin</p>
+    <p class="caption">No region selected</p>
+  </div>
+
+  <div class="row">
+    <div class="panel">
+      <h2>Revenue</h2>
+      <p class="figure">128450.75</p>
+      <p class="caption">Total across all regions</p>
+    </div>
+    <div class="panel">
+      <h2>Orders</h2>
+      <p class="figure">3162</p>
+      <p class="caption">Total across all regions</p>
+    </div>
+    <div class="panel">
+      <h2>Regions</h2>
+      <p class="figure">4</p>
+      <p class="caption">Total across all regions</p>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Revenue by region</h2>
+    <table>
+      <tr><th>Region</th><th>Revenue</th><th>Orders</th><th>Share</th></tr>
+      <tr><td>North</td><td>48210.50 EUR</td><td>1042 orders</td><td>37.5 %</td></tr>
+      <tr><td>South</td><td>9875.25 EUR</td><td>604 orders</td><td>7.7 %</td></tr>
+      <tr><td>East</td><td>51204.00 EUR</td><td>1183 orders</td><td>39.9 %</td></tr>
+      <tr><td>West</td><td>19161.00 EUR</td><td>333 orders</td><td>14.9 %</td></tr>
+    </table>
+    <div class="stack">
+      <div class="bar" style="width: 94%"></div>
+      <div class="bar" style="width: 19%"></div>
+      <div class="bar" style="width: 100%"></div>
+      <div class="bar" style="width: 37%"></div>
+    </div>
+    <p class="legend">series-0, series-1, series-2, series-3</p>
+  </div>
+
+  <p class="note">Figures cover the four regions in the export. TODO: confirm the period.</p>
+</div>
+</body>
+</html>

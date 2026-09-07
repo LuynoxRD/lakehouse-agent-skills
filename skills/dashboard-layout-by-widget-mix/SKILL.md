@@ -37,6 +37,10 @@ Do **not** use it to choose what form each chart takes, which is the
 `dashboard-color-and-visual-hierarchy` skill. What each panel is allowed to claim belongs to the
 `insight-narrative-integrity` skill.
 
+This skill decides **where** each panel sits. How the page *reads* once they are placed — type,
+spacing, alignment, and marks that carry no data — is the `dashboard-visual-craft` skill, which
+runs after this one: a page can pass every check here and still arrive flat.
+
 ## Core Process
 
 ### Before any of it: ask where the page is going
