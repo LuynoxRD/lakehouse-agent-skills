@@ -188,6 +188,13 @@ beside the curated table, where a reader who wants that detail already knows to 
 a real business term that happens to collide with one (a product literally called Model, say),
 because the check cannot tell the two apart on its own.
 
+Two more belong to the same idea, and the same check now refuses them. **A path into the project
+printed as page text** — `data/curated/orders.parquet`, `docs/data` — is the plumbing one level
+down from an artefact filename: true, and unopenable by whoever is reading. And **a page written
+in more than one language**, which nobody decides and everybody ships: a template in one language
+filled with copy in another, leaving half the readers able to read half the page. A specimen
+inside `<code>` or `<pre>` is quoted rather than said, so neither rule reads it.
+
 ### Step 1: Inventory the panels by type, and give each type the area it needs
 
 Area is a property of the content, not of the grid. List every panel with its type, then size it
@@ -451,6 +458,10 @@ Stop when any of these is true:
 - [ ] Nothing on the page names a pipeline stage in capitals, the word "bucket", or one of this
       pack's own artefact filenames — that detail is in the reply and in `docs/data/*.md`, or it
       is named in `page_copy_exceptions` as a real business term. `verify-output.sh` checks this.
+- [ ] The page is in one language, whole, and it is the reader's. `verify-output.sh` reports a
+      second language's words sitting in the same page text.
+- [ ] No path into the project is printed as page text. The reader cannot open it, and the check
+      refuses it unless `page_copy_exceptions` says the page is genuinely about that file.
 - [ ] No paragraph on the page justifies a redact decision nobody asked about; a field that is
       not shown is simply not shown.
 - [ ] Every panel is listed with its type and the area that type needs, and the sizes on the page

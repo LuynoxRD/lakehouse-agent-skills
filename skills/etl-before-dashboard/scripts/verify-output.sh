@@ -105,6 +105,10 @@ VOID_ELEMENTS = frozenset(
     }
 )
 OPAQUE_ELEMENTS = frozenset({"script", "style"})
+# Text a page presents as a specimen rather than as its own copy. A SQL snippet in <code> is
+# meant to be read as code, so the language and path families below skip it. The structural
+# families do not: a document nested inside <pre> is still a nested document.
+VERBATIM_ELEMENTS = frozenset({"code", "pre", "samp", "kbd"})
 
 # Numbers that describe the document rather than the data: dates, clock times, and the bare years
 # that appear beside them in a title or a period. Stripped before the page's own numbers are
@@ -142,6 +146,89 @@ PIPELINE_ARTEFACT_NAMES = (
 ARTEFACT_NAME = re.compile(
     "(?:" + "|".join(re.escape(name) for name in PIPELINE_ARTEFACT_NAMES) + ")", re.IGNORECASE
 )
+
+# The six languages this can tell apart, and the words that tell them apart. Every word that any
+# two of them share has been removed, which is why the lists are short: what survives is only what
+# discriminates. Accents are part of that -- Spanish writes "tambien" as "también" and Portuguese
+# writes "também" -- so text is compared with its accents intact, which is one more reason both
+# streams are UTF-8. The sets are asserted pairwise disjoint by the test suite, because a word that
+# leaked into two of them would report every page carrying it as bilingual.
+LANGUAGE_MARKERS: dict[str, frozenset[str]] = {
+    "English": frozenset(
+        {
+            "the", "and", "with", "from", "this", "that", "these", "those", "which", "have",
+            "has", "been", "were", "they", "their", "there", "about", "after", "before",
+            "between", "during", "into", "over", "only", "other", "more", "most", "than",
+            "then", "when", "where", "while", "because", "should", "would", "could", "every",
+            "each", "both", "such", "through", "without", "within", "against",
+        }
+    ),
+    "Spanish": frozenset(
+        {
+            "los", "las", "pero", "también", "muy", "aunque", "hacia", "ellos", "nuestro",
+            "según", "siempre", "están", "estaba", "fueron", "mismo", "cualquier", "alguna",
+            "ninguna", "entonces", "desde",
+        }
+    ),
+    "Portuguese": frozenset(
+        {
+            "não", "são", "você", "mas", "muito", "então", "pelo", "pela", "porém", "também",
+            "seus", "suas", "nós", "têm", "ainda", "apenas", "mesmo", "foram",
+        }
+    ),
+    "French": frozenset(
+        {
+            "les", "des", "une", "dans", "avec", "pour", "mais", "cette", "ces", "nous",
+            "vous", "sont", "aussi", "très", "chaque", "toujours", "depuis", "alors", "leur",
+            "cela", "être", "plus",
+        }
+    ),
+    "Italian": frozenset(
+        {
+            "gli", "degli", "delle", "della", "negli", "nella", "nelle", "sono", "anche",
+            "perché", "molto", "questo", "questa", "quello", "dopo", "però", "essere",
+            "hanno", "loro", "così",
+        }
+    ),
+    "German": frozenset(
+        {
+            "der", "das", "und", "nicht", "mit", "für", "auch", "aber", "oder", "eine",
+            "einen", "sind", "wird", "werden", "durch", "über", "zwischen", "haben", "sich",
+            "noch", "schon", "wenn", "dass", "kann", "auf", "aus", "bei",
+        }
+    ),
+}
+# Two distinct markers, not one. A single foreign word on a page is a brand, a loan word or a
+# proper noun; two different function words are a sentence somebody forgot to carry over.
+MIN_LANGUAGE_MARKERS = 2
+# What <html lang> is saying, for the six above. A page that declares its language has
+# already answered which text is the leftover, and counting words to guess it can answer the
+# opposite: a Spanish page carrying two English paragraphs has more English function words in
+# it than Spanish ones, and would be reported as an English page with a Spanish accident.
+LANGUAGE_CODES = {
+    "en": "English",
+    "es": "Spanish",
+    "pt": "Portuguese",
+    "fr": "French",
+    "it": "Italian",
+    "de": "German",
+}
+WORD_TOKEN = re.compile(r"[^\W\d_]+")
+
+# A path into the project, printed where a reader can see it. The reader cannot open it, has no
+# reason to know how the folder is arranged, and did not ask for the plumbing -- the same argument
+# the stage names above rest on, one level down. Matched two ways only, so that "and/or", "24/7"
+# and an ordinary decimal stay out of it: something ending in a data extension, or something
+# starting at one of the two directories this pack writes into.
+DATA_SUFFIX = (
+    "csv|tsv|parquet|parq|xlsx|xlsm|xlsb|xls|json|jsonl|ndjson|md|db|duckdb|sqlite|feather|pkl"
+)
+DELIVERY_PATH = re.compile(
+    r"(?<![\w./-])(?:[\w.-]+/)*[\w.-]+\.(?:" + DATA_SUFFIX + r")(?![\w-])"
+    r"|(?<![\w./-])(?:data|docs)/[\w.-]+(?:/[\w.-]+)*/?",
+    re.IGNORECASE,
+)
+
 
 # Where a project declares what it depends on. Only the root is read: a lock file lists what was
 # resolved, and a transitive dependency is not a decision anybody made.
@@ -194,6 +281,10 @@ NOT_VERIFIED = (
     "whether the page reads as a business answer beyond the specific stage names, artefact "
     "filenames and the word 'bucket' this checks for; a sentence can still report on the pipeline "
     "without using any of them",
+    "which language the page is in, or whether it is the language its reader wrote in; only "
+    "whether markers of more than one of the six it knows sit in the same page text",
+    "any language whose markers it does not carry, and anything inside <code>, <pre> or the "
+    "<title>, none of which is read for language or for paths",
 )
 
 # The notes a reviewer treats as the evidence behind a claim. They sit beside the manifest and
@@ -271,9 +362,12 @@ class PageParser(HTMLParser):
         self.stack: list[tuple[str, int]] = []
         self.stray_ends: list[tuple[str, int]] = []
         self.opaque_depth = 0
+        self.verbatim_depth = 0
         self.text: list[tuple[int, str]] = []
+        self.verbatim: list[bool] = []  # one flag per chunk of self.text, in the same order
         self.styles: list[str] = []
         self.title = ""
+        self.lang = ""  # what <html lang> declares, if anything
         self.viewports: list[int] = []
         self.ids: list[tuple[str, int]] = []  # element ids, in document order
         self.inside = ""  # style or title, whose text is collected separately
@@ -296,6 +390,10 @@ class PageParser(HTMLParser):
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if tag in self.roots:
             self.roots[tag].append(self.line)
+        if tag == "html" and not self.lang:
+            for name, value in attrs:
+                if name.lower() == "lang" and value:
+                    self.lang = value
         for name, value in attrs:
             if name.lower() == "id" and value:
                 self.ids.append((value, self.line))
@@ -305,6 +403,8 @@ class PageParser(HTMLParser):
             self.inside = tag
         if tag in OPAQUE_ELEMENTS:
             self.opaque_depth += 1
+        if tag in VERBATIM_ELEMENTS:
+            self.verbatim_depth += 1
         if tag not in VOID_ELEMENTS:
             self.stack.append((tag, self.line))
 
@@ -317,6 +417,8 @@ class PageParser(HTMLParser):
             self.inside = ""
         if tag in OPAQUE_ELEMENTS and self.opaque_depth:
             self.opaque_depth -= 1
+        if tag in VERBATIM_ELEMENTS and self.verbatim_depth:
+            self.verbatim_depth -= 1
         if tag in VOID_ELEMENTS:
             self.stray_ends.append((tag, self.line))
             return
@@ -335,6 +437,18 @@ class PageParser(HTMLParser):
             return
         if self.opaque_depth == 0 and data.strip():
             self.text.append((self.line, data))
+            self.verbatim.append(self.verbatim_depth > 0)
+
+    @property
+    def prose(self) -> list[tuple[int, str]]:
+        """The page's own copy, with the specimens removed.
+
+        A path or a foreign phrase inside <code> is being quoted, not said, and a check that
+        cannot tell the difference makes an honest code sample unfixable.
+        """
+        return [
+            entry for entry, verbatim in zip(self.text, self.verbatim) if not verbatim
+        ]
 
 
 def to_number(token: str) -> float | None:
@@ -622,6 +736,87 @@ def check_pipeline_jargon(
                     str(path),
                     line,
                 )
+
+
+def check_page_language(
+    pages: dict[Path, PageParser], manifest: dict[str, object], report: Report
+) -> None:
+    """One delivery, one language, and no plumbing in the copy.
+
+    The sibling of the jargon family above, and it exists for the same reason: a page is read by
+    whoever opens it. Two languages in one delivery is not a style question, it is a page half of
+    whose readers cannot read half of -- and it happens by inference rather than by decision, when
+    a template written in one language is filled with copy written in another. A path is the same
+    failure one level down: true, and useless to somebody who cannot open the folder.
+
+    Neither is something the run can see in its own output, which is why it is here. A page
+    contaminated this way passes every other check in this script, and goes on passing it.
+    """
+    exceptions = manifest.get("page_copy_exceptions")
+    exceptions = {str(item).lower() for item in exceptions} if isinstance(exceptions, list) else set()
+    artefacts = {name.lower() for name in PIPELINE_ARTEFACT_NAMES}
+
+    for path, parser in pages.items():
+        report.checked += 1
+        seen: dict[str, dict[str, int]] = {}
+        opened: dict[str, int] = {}
+
+        for line, chunk in parser.prose:
+            for token in WORD_TOKEN.findall(chunk.lower()):
+                if token in exceptions:
+                    continue
+                for language, markers in LANGUAGE_MARKERS.items():
+                    if token in markers:
+                        counts = seen.setdefault(language, {})
+                        counts[token] = counts.get(token, 0) + 1
+                        opened.setdefault(language, line)
+
+            for match in DELIVERY_PATH.finditer(chunk):
+                token = match.group(0)
+                if token.lower() in exceptions:
+                    continue
+                # This pack's own filenames belong to the jargon family; reporting them here as
+                # well would bill one fault twice and make the totals of two runs incomparable.
+                if token.rstrip("/").rsplit("/", 1)[-1].lower() in artefacts:
+                    continue
+                report.error(
+                    "page/delivery-path",
+                    f"{token!r} is a path inside the project, printed as page text. Whoever "
+                    "opens the page cannot open it and has no reason to know how the folder is "
+                    "arranged -- put the detail in docs/data or in the reply that hands the page "
+                    "over, or name it in 'page_copy_exceptions' if the page is genuinely about "
+                    "this file",
+                    str(path),
+                    line,
+                )
+
+        present = {
+            language: counts
+            for language, counts in seen.items()
+            if len(counts) >= MIN_LANGUAGE_MARKERS
+        }
+        if len(present) < 2:
+            continue
+        declared = LANGUAGE_CODES.get(parser.lang.split("-")[0].strip().lower())
+        if declared in present:
+            dominant = declared
+            says = f'the page declares {dominant} in <html lang>'
+        else:
+            dominant = max(present, key=lambda language: sum(present[language].values()))
+            says = f'the page reads as {dominant}'
+        for language in sorted(present):
+            if language == dominant:
+                continue
+            words = ", ".join(sorted(present[language])[:4])
+            report.error(
+                "page/mixed-language",
+                f"{says} and carries {language} in the same text "
+                f"({words}). Everything a reader reads takes one language, whole: carry the "
+                "leftover over, or move it into the reply that hands the page across. A term "
+                "that is genuinely this language belongs in 'page_copy_exceptions'",
+                str(path),
+                opened[language],
+            )
 
 
 def check_aggregate_rows(connection, manifest: dict[str, object], report: Report) -> None:  # noqa: ANN001
@@ -1157,6 +1352,7 @@ def main() -> int:
     check_destination(manifest, report)
     check_page_numbers(pages, accounted, report)
     check_pipeline_jargon(pages, manifest, report)
+    check_page_language(pages, manifest, report)
     check_aggregate_rows(connection, manifest, report)
     if args.project is not None and args.project.is_dir():
         check_libraries(args.project, manifest, report)

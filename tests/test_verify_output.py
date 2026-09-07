@@ -15,6 +15,7 @@ Shell is tested by starting it.
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import importlib.util
 import json
@@ -672,6 +673,163 @@ def test_both_streams_decode_as_utf8_whatever_the_console_is(tmp_path: Path) -> 
     # as a lone 0xB7 from the console code page instead of the two bytes UTF-8 spells it with.
     assert "·".encode() in result.stderr
     result.stderr.decode("utf-8")
+
+
+# A delivery that is Spanish end to end -- manifest and page -- so that anything a test adds is
+# the only foreign text on the page and the rule has one thing to find.
+SPANISH_PAGE = """<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ventas</title>
+<style>.board {{ display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }}</style>
+</head>
+<body>
+  <h1>Ventas</h1>
+  <p>Facturación 25.50, solo los pedidos entregados, pero sin los cancelados</p>
+{extra}
+</body>
+</html>
+"""
+
+
+def spanish(tmp_path: Path, extra: str = "") -> tuple[Path, Path]:
+    """The Spanish delivery, with whatever a test wants to add to the body."""
+    table = tmp_path / "orders.csv"
+    document = manifest(table)
+    figures = document["figures"]
+    assert isinstance(figures, list)
+    figures[0]["label"] = "Facturación"
+    figures[0]["population"] = "solo los pedidos entregados"
+    return project(tmp_path, SPANISH_PAGE.format(extra=extra), document)
+
+
+def embedded_program() -> str:
+    """The Python the shell script hands its interpreter, lifted back out of the heredoc."""
+    source = SCRIPT.read_text(encoding="utf-8")
+    opening = "<<'PYTHON_PROGRAM'\n"
+    start = source.index(opening) + len(opening)
+    return source[start : source.index("\nPYTHON_PROGRAM", start)]
+
+
+def language_markers() -> dict[str, frozenset[str]]:
+    """The marker tables, read out of the script rather than run out of it."""
+    for node in ast.parse(embedded_program()).body:
+        if not isinstance(node, ast.AnnAssign) or not isinstance(node.target, ast.Name):
+            continue
+        if node.target.id != "LANGUAGE_MARKERS":
+            continue
+        assert isinstance(node.value, ast.Dict)
+        found: dict[str, frozenset[str]] = {}
+        for key, value in zip(node.value.keys, node.value.values, strict=True):
+            assert key is not None
+            assert isinstance(value, ast.Call)
+            found[str(ast.literal_eval(key))] = frozenset(ast.literal_eval(value.args[0]))
+        return found
+    raise AssertionError("the embedded program declares no LANGUAGE_MARKERS")
+
+
+def test_no_word_belongs_to_two_languages() -> None:
+    """The invariant the whole family rests on, asserted rather than trusted.
+
+    Every word in these tables is supposed to appear in exactly one of the six languages. One that
+    leaked into two would report any page carrying it as bilingual, and the page would have no way
+    to be fixed: the word is in the language it is already in.
+    """
+    markers = language_markers()
+    assert len(markers) == 6
+    for left in markers:
+        for right in markers:
+            if left < right:
+                assert not markers[left] & markers[right], (left, right)
+
+
+@pytest.mark.skipif(not HAS_DUCKDB, reason="the figure check needs the DuckDB package")
+def test_a_page_written_in_two_languages_is_refused(tmp_path: Path) -> None:
+    """Found in a delivered page: a template in one language filled with copy from another.
+
+    Nobody decided it. It is what happens when the skills' own files are read as a rule about the
+    delivery instead of a rule about the repository, and no other check in this script sees it: the
+    numbers are right, the structure is right, and half the readers can read half the page.
+    """
+    note, html = spanish(tmp_path, "  <p>Revenue grew and the margin improved</p>")
+
+    code, report = run(note, html)
+
+    assert code == 1
+    assert "page/mixed-language" in rules(report)
+    assert "declares Spanish" in messages(report)
+    assert "carries English" in messages(report)
+
+
+@pytest.mark.skipif(not HAS_DUCKDB, reason="the figure check needs the DuckDB package")
+def test_one_foreign_word_is_not_a_second_language(tmp_path: Path) -> None:
+    """A brand, a loan word or a proper noun is one word, and one word is not a sentence."""
+    note, html = spanish(tmp_path, "  <p>Ventas de la tienda The Corner</p>")
+
+    code, report = run(note, html)
+
+    assert code == 0
+    assert "page/mixed-language" not in rules(report)
+
+
+@pytest.mark.skipif(not HAS_DUCKDB, reason="the figure check needs the DuckDB package")
+def test_a_code_specimen_is_not_the_page_speaking(tmp_path: Path) -> None:
+    """A query shown as a specimen is quoted, not said, and its path is part of the quotation."""
+    specimen = (
+        "  <pre><code>-- and the other columns are dropped here\n"
+        "SELECT SUM(total) FROM 'data/curated/orders.parquet'</code></pre>"
+    )
+    note, html = spanish(tmp_path, specimen)
+
+    code, report = run(note, html)
+
+    assert code == 0
+    assert "page/mixed-language" not in rules(report)
+    assert "page/delivery-path" not in rules(report)
+
+
+@pytest.mark.skipif(not HAS_DUCKDB, reason="the figure check needs the DuckDB package")
+def test_a_path_into_the_project_is_refused(tmp_path: Path) -> None:
+    """The reader cannot open it and has no reason to know the folder is arranged that way."""
+    note, html = spanish(tmp_path, "  <p>Fuente: data/curated/orders.parquet</p>")
+
+    code, report = run(note, html)
+
+    assert code == 1
+    assert "page/delivery-path" in rules(report)
+    assert "data/curated/orders.parquet" in messages(report)
+
+
+@pytest.mark.skipif(not HAS_DUCKDB, reason="the figure check needs the DuckDB package")
+def test_a_declared_path_exception_is_not_refused(tmp_path: Path) -> None:
+    """A page that is genuinely about a file names it once, in the manifest, and is believed."""
+    table = tmp_path / "orders.csv"
+    document = manifest(table)
+    figures = document["figures"]
+    assert isinstance(figures, list)
+    figures[0]["label"] = "Facturación"
+    figures[0]["population"] = "solo los pedidos entregados"
+    document["page_copy_exceptions"] = ["data/curated/orders.parquet"]
+    page = SPANISH_PAGE.format(extra="  <p>Fuente: data/curated/orders.parquet</p>")
+    note, html = project(tmp_path, page, document)
+
+    code, report = run(note, html)
+
+    assert code == 0
+    assert "page/delivery-path" not in rules(report)
+
+
+@pytest.mark.skipif(not HAS_DUCKDB, reason="the figure check needs the DuckDB package")
+def test_this_pack_s_own_filenames_are_billed_once(tmp_path: Path) -> None:
+    """Two families can match one string. Reporting it twice makes two runs incomparable."""
+    note, html = project(tmp_path, ARTEFACT_NAME_PAGE)
+
+    code, report = run(note, html)
+
+    assert code == 1
+    assert "page/pipeline-jargon" in rules(report)
+    assert "page/delivery-path" not in rules(report)
 
 
 def test_a_failing_run_removes_a_receipt_that_was_there(tmp_path: Path) -> None:

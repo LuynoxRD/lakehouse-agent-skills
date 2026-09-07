@@ -335,8 +335,9 @@ It fails when a declared figure is not what the table answers, when a number app
 page's own text that no figure and no declared constant produces, when a figure's population is
 missing or never appears on the page, when the delivered page is more than one HTML document,
 when a summary row is still being carried as data, when the project declares a second charting or
-dataframe library and nothing says what distinguishes it from the first, or when a delivered note
-does not decode as UTF-8.
+dataframe library and nothing says what distinguishes it from the first, when the page carries
+words from more than one language in the same text, when a path into the project is printed where
+a reader can see it, or when a delivered note does not decode as UTF-8.
 
 None of those are hypothetical. Every one was found in a delivered artefact whose run had
 recorded a complete profile, a cleaning log and a model note, and had ticked every box in this
