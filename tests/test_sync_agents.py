@@ -1,7 +1,8 @@
 """Tests for the per-tool persona copies and their parity check.
 
-`agents/` is read by one tool. The other three read their own directories, in their own
-frontmatter, and each expresses the no-editing guarantee with a different field. That makes these
+`agents/` is read by one tool. The other four read their own directories, in their own format —
+one of them is not even markdown — and each expresses the no-editing guarantee with a different
+field. That makes these
 copies a translation rather than a duplication, and it makes a drifted copy the failure that
 matters: the field carrying the guarantee is exactly the field a hand edit gets wrong, and a
 reviewer that quietly regained write access raises nothing when it does.

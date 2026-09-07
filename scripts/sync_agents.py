@@ -24,7 +24,7 @@ is a translation rather than a copy.**
   `sandbox_mode = "read-only"` — a sandbox rather than a tool list, which is the strongest of the
   four, because it is the only one that also covers a shell.
 
-Two of these were verified by running the tool. The other two are files in the documented place,
+Two of these were verified by running the tool. The other three are files in the documented place,
 and `docs/installing.md` says which is which; a file arriving is not an agent running.
 
 Standard library only. It writes nothing outside the four target directories.

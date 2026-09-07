@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Fail the build when a per-tool copy of a reviewer persona is missing, extra, or drifted.
 
-The files under `.opencode/agent/`, `.cursor/agents/` and `.gemini/agents/` are what a person
+The files under `.opencode/agent/`, `.cursor/agents/`, `.gemini/agents/` and `.codex/agents/` are
+what a person
 using those tools actually loads. `agents/` is the source; `scripts/sync_agents.py` writes the
 copies. This checks them, and the three ways they disagree are each a real failure rather than
 untidiness:
@@ -12,7 +13,7 @@ untidiness:
   protocol it had before it was removed.
 * **A copy differs from what its source would generate.** Two versions of one reviewer exist and
   only one of them was corrected. Since the copies are also where the no-editing guarantee is
-  expressed, in three different fields, a drifted copy is how a reviewer quietly gets write access
+  expressed, in four different fields, a drifted copy is how a reviewer quietly gets write access
   back.
 
 Standard library only.
