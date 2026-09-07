@@ -13,6 +13,14 @@
       {
         "prompt": "This request touches cleaning, coverage and wording at once. How do these skills compose?",
         "top_k": 3
+      },
+      {
+        "prompt": "The request names an action, not a stage. How do I work out which stages this touches?",
+        "top_k": 3
+      },
+      {
+        "prompt": "What decides which skills apply, the way the request is phrased or what the work will write?",
+        "top_k": 3
       }
     ],
     "negative": [
@@ -32,12 +40,28 @@
       "kind": "execution",
       "prompt": "Build me a dashboard from signups.csv.",
       "expected_output": "A routing decision that names the lifecycle stages this file needs and their order, rather than jumping to a chart.",
-      "files": ["using-lakehouse-skills/signups.csv"],
+      "files": [
+        "using-lakehouse-skills/signups.csv"
+      ],
       "expectations": [
         "The response names the profile or clean stage as the starting point rather than producing a chart first",
         "It identifies at least two of the three signals in the file: the ambiguous day-first dates or comma decimals, the oversized Other bucket in the plan column, and the note that the export covers 3 of 8 source files",
         "It names more than one skill and states the order they apply in, rather than picking a single skill and proceeding",
         "It does not invent a skill name that does not exist in the catalog"
+      ]
+    },
+    {
+      "id": "verb-hides-the-stage",
+      "kind": "dialogue",
+      "prompt": "Nothing new arrived. Just fix the title on the dashboard, re-run the script that builds it, and confirm the totals are still fine. The check came back green last week.",
+      "expected_output": "The stages are decided from the artefacts the work will write, not from the verbs the request used, and last week's green check is refused as evidence about the page this run produces.",
+      "files": [],
+      "expectations": [
+        "The response does not treat the request as outside the lifecycle because its verbs are fix, re-run and confirm",
+        "It names the artefacts this work will write, at least the page itself and the figures the page prints, and gives each one the stage it belongs to",
+        "It names the skills that own the page's layout, its chart types and its colours, and the skill that owns the wording of a stated figure",
+        "It refuses last week's green check as evidence about the page this run writes",
+        "It does not name a skill that is absent from this catalog"
       ]
     }
   ]
