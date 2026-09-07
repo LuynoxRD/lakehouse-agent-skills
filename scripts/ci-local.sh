@@ -107,6 +107,7 @@ step "validate_fixtures"         uv run --frozen python scripts/validate_fixture
 step "validate_skill_safety"     uv run --frozen python scripts/validate_skill_safety.py
 step "validate_skill_scripts"    uv run --frozen python scripts/validate_skill_scripts.py
 step "validate_agents"           uv run --frozen python scripts/validate_agents.py
+step "validate_agent_copies"     uv run --frozen python scripts/validate_agent_copies.py
 step "run_evals (tier 2)"        uv run --frozen python scripts/run_evals.py
 
 step "gitleaks version pin" gitleaks_version_check

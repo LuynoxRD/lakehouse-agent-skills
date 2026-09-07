@@ -305,6 +305,7 @@ lakehouse-agent-skills/
 │   ├── chart-type-and-library-selection/   #   Output: the form, then the library  ← ships a script
 │   ├── dashboard-color-and-visual-hierarchy/ # Output: what colour encodes
 │   ├── dashboard-layout-by-widget-mix/     #   Output: where panels sit, one file  ← ships a script
+│   ├── dashboard-visual-craft/             #   Output: type, spacing, alignment, non-data ink
 │   ├── insight-narrative-integrity/        #   Output: does the sentence survive its arithmetic
 │   ├── data-privacy-before-llm/            #   Safety: what may leave the project
 │   └── safe-live-database-access/          #   Safety: connections and writes others share
@@ -312,6 +313,10 @@ lakehouse-agent-skills/
 ├── commands/                               # 9 lifecycle commands, as TOML — the source of truth
 ├── .claude/commands/                       #   generated copy, checked for parity
 ├── .gemini/commands/                       #   generated copy, checked for parity
+├── .opencode/agent/                        #   generated personas, edits denied by permission
+├── .cursor/agents/                         #   generated personas, readonly
+├── .gemini/agents/                         #   generated personas, tools allowlisted
+├── .codex/agents/                          #   generated personas, as TOML, sandboxed read-only
 ├── hooks/                                  # 2 session hooks; one blocks a turn with no disclosure
 ├── references/                             # 3 checklists shared by more than one skill
 ├── evals/                                  # cases, synthetic fixtures, results

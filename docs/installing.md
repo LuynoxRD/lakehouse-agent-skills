@@ -124,8 +124,28 @@ shared one. Look in `.agents/skills/`.
 | --- | --- |
 | The 15 skills | The installer writes them for any of the 77 names above, into `.agents/skills` or the tool's own directory. **Loading was verified only in Claude Code**; elsewhere what was measured is that the files arrive, and a file arriving is not a skill running. |
 | The 9 commands | Claude Code, as `.claude/commands/*.md`, and Gemini, as `.gemini/commands/*.toml`. Both are generated from `commands/*.toml` by `scripts/sync_commands.py`. |
-| The 4 reviewer personas | Claude Code, through the plugin's default `agents/` directory. Other tools have their own subagent mechanisms and none of them has been verified here. |
+| The 4 reviewer personas | Claude Code from `agents/`, opencode from `.opencode/agent/`, Cursor from `.cursor/agents/`, Gemini CLI from `.gemini/agents/`, Codex from `.codex/agents/`. The four copies are generated from `agents/` by `scripts/sync_agents.py` and checked for drift by `scripts/validate_agent_copies.py`. **Only the Claude Code and opencode personas have been verified loading**; the other three are files in the documented place, and a file arriving is not an agent running. |
 | The 2 session hooks | Claude Code, through `hooks/hooks.json` |
+
+### One promise, five different fields
+
+A reviewer that can edit what it reviews is not one, and no two of these tools say that the same
+way. The copies are a translation for exactly this reason, and what each tool actually enforces is
+worth knowing before you trust it:
+
+| Tool | How the restriction is written | What it stops |
+| --- | --- | --- |
+| Claude Code | `tools: ["Read", "Grep", "Glob", "Bash"]` | The editing tools. `Bash` remains, so a shell can still write. |
+| opencode | `permission.edit: deny` | Edits. It has **no `tools` field at all**, and an unrecognised key is routed into `options` in silence — a copy carrying `tools` would look right and restrict nothing. The shell stays open, because nothing here denies it. |
+| Cursor | `readonly: true` | File edits **and state-changing shell commands**. |
+| Gemini CLI | an allowlist of `read_file`, `grep_search`, `run_shell_command` | Everything not listed. Only identifiers confirmed in its own documentation are used; a name for globbing is deliberately absent rather than guessed, because an allowlist entry that does not exist removes a tool instead of granting one. `run_shell_command` is granted, so the shell stays open here too. |
+| Codex | `sandbox_mode = "read-only"` | Every write, the shell included. **The strongest of the five**, because it is the only one that is a sandbox rather than a list of tools. Codex agents are TOML, not markdown, and the protocol travels inside `developer_instructions` rather than as the body of the file. |
+
+**Two of the five close the shell as well; three leave it open.** That split is why the personas'
+own text says the editing tools are withheld everywhere and that how much further it goes depends
+on the loader, rather than naming a configuration only one of them has. Each one holds itself to
+the narrowest reading rather than to whichever tool it happens to be running under, so the
+guarantee a reader gets is the same in all five even though the field enforcing it is not.
 
 The skills travel furthest and the pack is built that way on purpose: everything a skill cannot
 work without is inside its own `SKILL.md` — or, for the three that ship a script, inside their own
