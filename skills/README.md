@@ -7,7 +7,7 @@ the data lifecycle:
 PROFILE → CLEAN → MODEL → QUERY → VISUALIZE → ASSEMBLE → NARRATE → DISCLOSE   (+ REDACT, cross-cutting)
 ```
 
-The catalog is complete: fourteen skills covering every stage. `using-lakehouse-skills` routes a
+The catalog is complete: fifteen skills covering every stage. `using-lakehouse-skills` routes a
 request to the one that owns it and fixes the boundaries between them, so start there when it is
 not obvious which applies.
 

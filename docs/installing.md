@@ -9,7 +9,7 @@ this repository rather than written from documentation; where something was not 
 npx skills add LuynoxRD/lakehouse-agent-skills --skill '*' --agent claude-code -y
 ```
 
-Verified: fourteen skills land under `.claude/skills/<name>/`, one directory each, and the
+Verified: fifteen skills land under `.claude/skills/<name>/`, one directory each, and the
 three that tell you to run `verify-output.sh` bring their own copy of it under
 `scripts/`, executable. Re-measured by running the command, not by counting the catalogue. Add `--copy` to
 copy the files instead of linking them, `-g` to install for the user rather than the project, and
@@ -35,7 +35,7 @@ sense on its own, that is a defect in the skill, not in the installer.
 
 The repository is also a plugin with a marketplace manifest at
 `.claude-plugin/marketplace.json`, so a local checkout can be added as a marketplace and the
-plugin installed from it. That route brings the skills, the nine commands, the three reviewer
+plugin installed from it. That route brings the skills, the nine commands, the four reviewer
 personas and the two session hooks together, rather than the skills alone.
 
 ```bash
@@ -44,10 +44,11 @@ claude plugin install lakehouse-agent-skills@lakehouse-skills
 claude plugin details lakehouse-agent-skills
 ```
 
-Verified end to end in a throwaway project. The inventory that comes back is **23 skills**, which
-is the fourteen skills plus the nine commands, since commands load through the same mechanism;
-**3 agents**; and **2 hooks**, one on `SessionStart` and one on `Stop`. The pack costs about
-**2,794 tokens always-on**, and each skill costs its own text again only when it fires.
+Verified end to end in a throwaway project, and measured again on every change that adds a
+component rather than recomputed. The inventory that comes back is **24 skills**, which is the
+fifteen skills plus the nine commands, since commands load through the same mechanism;
+**4 agents**; and **2 hooks**, one on `SessionStart` and one on `Stop`. The pack costs about
+**3,348 tokens always-on**, and each skill costs its own text again only when it fires.
 
 The manifest declares:
 
