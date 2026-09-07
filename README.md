@@ -146,8 +146,8 @@ claude plugin install lakehouse-agent-skills@lakehouse-skills
 ```
 
 That second form is the one verified end to end, in a throwaway project. The inventory that comes
-back is 23 skills — the fourteen plus the nine commands, which load through the same mechanism —
-3 agents, and 2 hooks. About **2,794 tokens always-on**; each skill costs its own text again only
+back is 24 skills — the fifteen plus the nine commands, which load through the same mechanism —
+4 agents, and 2 hooks. About **3,348 tokens always-on**; each skill costs its own text again only
 when it fires.
 
 </details>
