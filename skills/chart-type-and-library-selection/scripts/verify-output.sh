@@ -138,6 +138,7 @@ PIPELINE_ARTEFACT_NAMES = (
     "profile.md",
     "model.md",
     "disclosure.md",
+    "reviews.md",
     "insights.md",
     "figures.json",
     "verification.json",
@@ -293,6 +294,12 @@ NOT_VERIFIED = (
 # read, never a bare digest, so a note that quotes a file's own sha256 for some other reason
 # is not mistaken for a review claim.
 REVIEW_STATE = re.compile(r"\bstate[:=]\s*([0-9a-f]{64})\b", re.IGNORECASE)
+
+# Where a review belongs, and the reason it cannot be anywhere else. The four notes below are
+# hashed into the state, so a review written inside one of them changes the state it just
+# named: it is stale the moment it is saved, and correcting it moves the target again. This
+# file is deliberately outside the hashed set, which is what lets a recorded review settle.
+REVIEW_NOTE = "reviews.md"
 
 # The notes a reviewer treats as the evidence behind a claim. They sit beside the manifest and
 # this script never parses them, but it does hash them, because the receipt is read as the index
@@ -1274,7 +1281,9 @@ def state_of(digests: list[dict[str, str]]) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
-def check_review_state(directory: Path | None, state: str, report: Report) -> None:
+def check_review_state(
+    directory: Path | None, state: str, hashed: set[Path], report: Report
+) -> None:
     """A recorded review covers the bytes it was made against, and nothing later.
 
     This is the failure that looks like diligence. A note carrying "reviewed" and a date reads as
@@ -1302,9 +1311,32 @@ def check_review_state(directory: Path | None, state: str, report: Report) -> No
         return
 
     report.checked += 1
-    if any(entry[2] == state for entry in found):
+    usable: list[tuple[Path, int, str]] = []
+    told: set[Path] = set()
+    for path, number, named in found:
+        try:
+            inside = path.resolve() in hashed
+        except OSError:
+            inside = False
+        if not inside:
+            usable.append((path, number, named))
+            continue
+        if path not in told:
+            told.add(path)
+            report.error(
+                "review/self-defeating",
+                f"the state is computed over this note, so a review recorded inside it changes "
+                f"the state it names and can never be the current one; correcting it moves the "
+                f"target again. Put the review in {REVIEW_NOTE} beside this file, which the "
+                "state is deliberately not computed over, and leave this note to what it is for",
+                str(path),
+                number,
+            )
+    if not usable:
         return
-    where, number, named = found[-1]
+    if any(named == state for _, _, named in usable):
+        return
+    where, number, named = usable[-1]
     report.error(
         "review/superseded",
         f"a review recorded here names state {named[:12]} and this run read state "
@@ -1444,7 +1476,9 @@ def main() -> int:
     absent = [str(note) for note in notes if not note.is_file()]
     digests = input_digests(inputs)
     state = state_of(digests)
-    check_review_state(args.docs, state, report)
+    hashed = {path for path in (Path(entry["path"]) for entry in digests)}
+    hashed = {path.resolve() for path in hashed}
+    check_review_state(args.docs, state, hashed, report)
     write_receipt(receipt, digests, report, absent, state)
 
     result = {

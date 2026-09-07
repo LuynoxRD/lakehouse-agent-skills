@@ -968,6 +968,93 @@ def test_the_state_moves_when_a_delivered_byte_does(tmp_path: Path) -> None:
     assert before["state"] != after["state"]
 
 
+def documented(tmp_path: Path) -> tuple[Path, Path, Path]:
+    """The layout the skill actually tells people to build.
+
+    The manifest sits in `docs/data` beside the four notes, which is what makes the placement of a
+    recorded review a real question: those notes are hashed into the state, and this fixture is the
+    only one that reproduces that.
+    """
+    docs = tmp_path / "docs" / "data"
+    docs.mkdir(parents=True, exist_ok=True)
+    table = tmp_path / "orders.csv"
+    table.write_text(ROWS, encoding="utf-8", newline="\n")
+    note = docs / "figures.json"
+    note.write_text(json.dumps(manifest(table)), encoding="utf-8", newline="\n")
+    for name in ("profile.md", "cleaning-log.md", "model.md", "disclosure.md"):
+        (docs / name).write_text(f"# {name}\n\nnotes\n", encoding="utf-8", newline="\n")
+    html = tmp_path / "page.html"
+    html.write_text(CLEAN_PAGE, encoding="utf-8", newline="\n")
+    return note, html, docs
+
+
+@pytest.mark.skipif(not HAS_DUCKDB, reason="the figure check needs the DuckDB package")
+def test_a_review_recorded_in_a_hashed_note_is_refused(tmp_path: Path) -> None:
+    """Found by laying the project out the way the skill documents it, and trying to use this.
+
+    The four notes are hashed into the state, so a review written inside one of them changes the
+    state it just named: stale the moment it is saved, and correcting it moves the target again.
+    Two rounds of that were measured before this rule existed.
+    """
+    note, html, docs = documented(tmp_path)
+    _code, first = run(note, html, docs)
+    disclosure = docs / "disclosure.md"
+    disclosure.write_text(
+        disclosure.read_text(encoding="utf-8") + f"\nReviewed today, state: {first['state']}\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    code, report = run(note, html, docs)
+
+    assert code == 1
+    assert "review/self-defeating" in rules(report)
+    assert "reviews.md" in messages(report)
+
+
+@pytest.mark.skipif(not HAS_DUCKDB, reason="the figure check needs the DuckDB package")
+def test_a_review_recorded_where_the_state_is_not_computed_settles(tmp_path: Path) -> None:
+    """The round trip that makes the mechanism usable rather than merely correct.
+
+    Record the review in the note the state is deliberately not computed over, and the next run
+    agrees with it. Without this the whole family could be right in every detail and never settle.
+    """
+    note, html, docs = documented(tmp_path)
+    _code, first = run(note, html, docs)
+    (docs / "reviews.md").write_text(
+        f"# Reviews\n\n- data-work-reviewer, no contradictions, state: {first['state']}\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    code, report = run(note, html, docs)
+
+    assert code == 0, messages(report)
+    assert report["state"] == first["state"]
+
+
+@pytest.mark.skipif(not HAS_DUCKDB, reason="the figure check needs the DuckDB package")
+def test_a_review_in_the_right_note_still_goes_stale_when_the_work_changes(tmp_path: Path) -> None:
+    """Settling is not the same as never expiring, which is the point of the whole family."""
+    note, html, docs = documented(tmp_path)
+    _code, first = run(note, html, docs)
+    (docs / "reviews.md").write_text(
+        f"# Reviews\n\n- data-work-reviewer, state: {first['state']}\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    html.write_text(
+        CLEAN_PAGE.replace("<h1>Sales</h1>", "<h1>Sales by month</h1>"),
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    code, report = run(note, html, docs)
+
+    assert code == 1
+    assert "review/superseded" in rules(report)
+
+
 def test_a_failing_run_removes_a_receipt_that_was_there(tmp_path: Path) -> None:
     """A receipt from an earlier green run must not vouch for a page that now fails."""
     note, html = project(tmp_path, NESTED_PAGE)

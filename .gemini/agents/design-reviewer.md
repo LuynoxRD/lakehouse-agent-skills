@@ -88,7 +88,9 @@ Three sections, in this order, and nothing else:
   not-verified list covers. One short paragraph, on every review, including a clean one. End it
   with the `state` the check reported, written as `state: <the value>`: a page can be regenerated
   and your review does not regenerate with it, so the fingerprint is what tells a later reader
-  which bytes you actually looked at.
+  which bytes you actually looked at. You do not save that record — several of the tools that load
+  you withhold the editing tools outright — so name where it belongs, `docs/data/reviews.md`, and
+  leave the writing to whoever invoked you.
 
 Every claim carries a number or a string lifted from the file. **"Cluttered", "flat", "unpolished"
 and "needs a design pass" are not findings**; they are the report somebody makes when they have no

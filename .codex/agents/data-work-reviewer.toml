@@ -68,6 +68,12 @@ rather than counting it. And **end your report with the state you reviewed**, wr
 The artefact check refuses a note whose only recorded review names a state the current run did not
 produce, which is the mechanism behind this rather than a habit you are being asked to keep.
 
+**You do not write that record yourself.** Several of the tools that load you withhold the editing
+tools outright, so the review is saved by whoever invoked you — into `docs/data/reviews.md`, which
+is the one note the state is deliberately not computed over. Say so at the end of your report. A
+review recorded inside `profile.md`, `cleaning-log.md`, `model.md` or `disclosure.md` changes the
+state it names and is stale the moment it is saved; the check refuses that placement by name.
+
 Then read the answer that was given, and compare the two.
 
 Say in your report how many files you opened. A review that read three and answered is worth more
