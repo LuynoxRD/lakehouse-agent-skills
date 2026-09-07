@@ -21,6 +21,14 @@
       {
         "prompt": "I need to attach the region from customers.csv to each row of orders.csv.",
         "top_k": 3
+      },
+      {
+        "prompt": "Re-run build_dashboard.py and send me the refreshed page.",
+        "top_k": 3
+      },
+      {
+        "prompt": "Nothing changed in the code, just regenerate the report from the script we already have.",
+        "top_k": 3
       }
     ],
     "negative": [
@@ -80,6 +88,20 @@
         "It keeps store_code as text so that 007 and 0075 stay distinct",
         "It identifies the Total row and excludes it from the aggregate",
         "It does not ask for a file or claim it cannot proceed without one"
+      ]
+    },
+    {
+      "id": "re-run-the-generator",
+      "kind": "dialogue",
+      "prompt": "The curated table was refreshed last night, September is in it now. Just re-run this and send me the page. It is the same script that produced last month's, and the check came back clean on that one.\n\n```python\nimport polars as pl\n\nTITLE = \"Q3 revenue dashboard\"\nCATEGORIES = [\"Beverages\", \"Snacks\", \"Frozen\", \"Bakery\", \"Produce\"]\nCOLOUR = {\"Beverages\": \"#1f77b4\", \"Snacks\": \"#ff7f0e\", \"Frozen\": \"#2ca02c\",\n          \"Bakery\": \"#d62728\", \"Produce\": \"#9467bd\"}\nHEADLINE_TOTAL = 7316.65\nPOPULATION = \"delivered orders only; 37 cancelled orders excluded\"\n\nframe = pl.read_parquet(\"data/curated/orders.parquet\")\nby_category = frame.group_by(\"category\").agg(pl.col(\"total\").sum())\n\npage = TEMPLATE.format(\n    title=TITLE,\n    total=f\"{HEADLINE_TOTAL:,.2f}\",\n    population=POPULATION,\n    bars=render_bars(by_category, COLOUR),\n    footer=\"5 product categories\",\n)\npathlib.Path(\"dashboard.html\").write_text(page, encoding=\"utf-8\")\n```",
+      "expected_output": "The output is treated as arriving new: the hard-coded values are listed, the stale receipt is refused as evidence about it, and the page still goes through the skills that own its form.",
+      "files": [],
+      "expectations": [
+        "The response does not simply re-run the script and hand back the page",
+        "It lists the values the script hard-codes, naming at least the headline total, the population sentence and the category count in the footer",
+        "It states that the refreshed table makes those declared figures stale, so the figures manifest is rebuilt and the artefact check is run against the newly written page",
+        "It refuses the earlier clean check as evidence about this page, on the ground that the receipt describes bytes that no longer exist",
+        "It says the regenerated page still goes through the skills that own its chart types, colours, layout and wording, rather than being exempt because the script already existed"
       ]
     }
   ]
