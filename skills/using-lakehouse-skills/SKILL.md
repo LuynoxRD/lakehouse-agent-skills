@@ -135,6 +135,7 @@ whatever the parser guessed.
 | "Paste these rows into the model", "send this to the API", "is there anything identifying in here?" | `data-privacy-before-llm` skill |
 | "Revenue per channel", "the loop is too slow", "group and rank this" | `duckdb-for-local-analytics` skill |
 | "Here is this month's file", "the export came again", "they sent a corrected version" | `etl-before-dashboard` skill, starting from its arrival comparison |
+| "Re-run the pipeline", "regenerate the dashboard", "rebuild it with the script we already have" | `etl-before-dashboard` skill, starting from its existing-code step, then every skill that owns the form of what it wrote |
 | "Join these two files", "match the orders to the customers", "add the region from this other table" | `etl-before-dashboard` skill for whether they relate, then `duckdb-for-local-analytics` skill to run it |
 | "The new column isn't showing up", "two jobs write to the same folder", "we need to correct rows" | `parquet-to-open-table-format` skill |
 | "Pie or bar?", "plot this over time", "what kind of chart?" | `chart-type-and-library-selection` skill |

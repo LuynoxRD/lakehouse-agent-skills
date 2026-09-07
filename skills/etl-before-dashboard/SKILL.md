@@ -1,6 +1,6 @@
 ---
 name: etl-before-dashboard
-description: Enforces the profile, clean, model and persist order before anything is charted, so a visualization never renders raw ingest. Use when a request asks to chart, plot, dashboard or summarize a CSV, spreadsheet, export or extract, when a bar chart or a monthly total is being built straight from a source file, when values arrive as text, with mixed date formats, comma decimals or lost leading zeros, when the same source arrives a second time as a refreshed or corrected file, or when two tables have to be related and the key that joins them has not been established.
+description: Enforces the profile, clean, model and persist order before anything is charted, so a visualization never renders raw ingest. Use when a request asks to chart, plot, dashboard or summarize a CSV, spreadsheet, export or extract, when a bar chart or a monthly total is being built straight from a source file, when values arrive as text, with mixed date formats, comma decimals or lost leading zeros, when the same source arrives a second time as a refreshed or corrected file, when two tables have to be related and the key that joins them has not been established, or when existing code is about to be re-run to rebuild or regenerate a page, a report or a dashboard that somebody will read.
 ---
 
 # ETL before dashboard
@@ -39,6 +39,10 @@ thousands separator.
 Use it when the same data arrives again — next month's export, a corrected file, a second
 extract from the same system. That is a different job from the first arrival and it has its own
 step below, before Step 1.
+
+Use it when the work is to re-run something that already exists: rebuild the dashboard, refresh
+the report, run the pipeline again. The word "again" describes the script, never the file it is
+about to write, and that file is the whole deliverable. It has its own step below too.
 
 Do **not** use it for data that is already curated and documented, such as a table this pipeline
 produced earlier with its profile note still valid. Do not use it for streaming or event data
@@ -102,6 +106,43 @@ One part of this enforces itself. The receipt in `docs/data/verification.json` g
 moment new data lands, because the files it hashed have changed, so the check that already exists
 refuses to treat the old green run as covering the new arrival. That is the mechanism working as
 intended rather than a separate thing to remember.
+
+### Before Step 1: if the code already exists, its output still arrives new
+
+The second arrival of *code* looks nothing like the second arrival of data, which is why it gets
+waved through. A file that arrives again is visibly new. A script that is already in the project
+looks like a decision somebody already made, so re-running it feels like execution rather than
+work, and the skills that own the failures in what it prints are never opened.
+
+Two claims are being made there and only the first is true. The script existing is evidence that
+its shape was decided once, against the data it was written for. It is not evidence about the
+bytes it wrote a minute ago. **What ships is the output, and the output arrives new on every
+run.**
+
+So before re-running any generator whose result a person will read, four questions, each answered
+with a name or a count rather than a recollection:
+
+- **What the inputs did since the last run.** The generator reads the curated table. If the table
+  changed, every figure it prints changed with it, and `docs/data/figures.json` now declares
+  numbers no query would return.
+- **What the generator hard-codes.** A title, a threshold, a category list, a colour map, a
+  population sentence, a total typed into a template. Each was true about the data the script was
+  written against, and none of it moves when the data does. List them: that list is the part of
+  the output no query produced.
+- **Which of the skills that own the output have never run on it.** A script reproduces its
+  layout, its colours, its chart types and its wording exactly on every run, including the ones
+  that were wrong the first time. Re-running makes a bad page arrive faster; it does not make it
+  a different page.
+- **What the receipt actually covers.** A green `docs/data/verification.json` says the declared
+  figures match the table. It says nothing about which chart the question deserved, whether the
+  colours encode anything, where the panels sit, or what language the page is written in. Reading
+  it as "the output is fine" is the substitution this step exists to refuse.
+
+Then run it, and treat what it wrote as a first delivery: Step 6 over the file, and the skills
+that own its form — `chart-type-and-library-selection`, `dashboard-color-and-visual-hierarchy`,
+`dashboard-layout-by-widget-mix`, `insight-narrative-integrity` — over the page itself. Changing
+one line of the script does not narrow that, because the file is regenerated whole and the reader
+opens all of it.
 
 ### Step 1: Profile before touching anything
 
@@ -321,6 +362,9 @@ to expose.
 
 | Excuse | Reality |
 | --- | --- |
+| "The script already exists and it worked, so I am only re-running it." | Its existence says its shape was decided once, against the data it was written for. It says nothing about the file it wrote a minute ago, and that file is the one the reader opens. |
+| "I only changed one line, so only that part needs looking at." | The output is regenerated whole and read whole. A one-line change to a generator is a full re-delivery of everything it prints. |
+| "The check passed, so the output is fine." | It passed on the numbers. It never looked at the chart type, the colours, the layout or the language, and it prints that list on every run precisely so it is not read as more than it is. |
 | "It is the same file as last month, so the profile still holds." | It is the same shape until it is not, and the arrival that changed is the one nobody compared. One pass tells you whether this file adds rows or restates them, and that is the difference between a total and double a total. |
 | "The join runs, so the key is fine." | A join over a key that is not unique returns rows rather than an error. Fan-out is the failure that looks like success, because it looks like more data. |
 | "An inner join is the safe default." | It is a filter written as a join. It removes the rows that matched nothing, silently, and those are usually the interesting ones: the new store, the returned order, the customer who has not bought yet. |
@@ -359,6 +403,11 @@ Stop and return to Step 1 when you notice any of these:
   script. A fix applied by hand is a fix the next run does not have.
 - A distinct count in the profile equals the row count exactly. That is what a non-null count
   looks like when it has been filed under the wrong heading.
+- A generator is about to be re-run and nothing has listed the values it hard-codes.
+- An output was regenerated and the skills that own its charts, colours, layout and wording were
+  not opened, because the script predated the run.
+- A green receipt is being cited as evidence about something the check states in its own output
+  that it does not read.
 - A number appears in the output that no query produced.
 - A dataframe library is imported that the project did not already depend on, and no line says
   why the table needed a second set of type rules.
@@ -397,6 +446,10 @@ Stop and return to Step 1 when you notice any of these:
       `docs/data/model.md`, naming the key
       on each side, any normalisation it needed, the cardinality, and how many rows on each
       side match nothing.
+- [ ] If a generator produced the delivered file, the values it hard-codes are listed, and each
+      one is either declared in `docs/data/figures.json` with its source or traced to a query.
+- [ ] A regenerated output went through Step 6 and through the skills that own its form, rather
+      than being waved through because the script already existed.
 - [ ] Everything written for a reader is in the reader's language, and no column name, path or
       manifest key was translated.
 - [ ] Any ambiguity that could not be resolved appears in the output, not only in the log.
