@@ -85,6 +85,12 @@ being typed per element.
 - **Numbers in a column use figures that align.** Where the typeface offers tabular or lining
   figures, use them: proportional digits make a column of numbers ragged, which defeats the one
   comparison a column exists to support.
+- **The typeface is a decision, and it is named once.** State it as a token, `--font-body`,
+  with a second only when a second face does a job the first cannot. A system stack is a
+  legitimate choice for a file that must open anywhere with no network, and the starting page
+  uses one for exactly that reason. A web font is a network dependency: the page declares it
+  with a real fallback stack, because offline it renders in the fallback and nobody is told
+  which.
 
 State the scale once, as named tokens at the top of the file — `--t-figure`, `--t-body`,
 `--t-label` — rather than as values sprinkled through the rules. Named once, the ranking is
@@ -145,6 +151,16 @@ Applied to what actually accumulates on a generated page:
   shadow on a bar, a third dimension on a two-dimensional measure. A shadow on a bar makes the
   bar wider than its value.
 - **A border around the whole page is a boundary the window already provides.**
+- **Siblings share a shape.** Tiles in a row, label-and-value pairs down a list, badges on
+  sibling panels: the reader takes them as a set before reading any of them, because what
+  looks alike is read as alike. A set holds only while every member has the same slots — the
+  same elements, in the same place, at the same size. Whatever one member carries that its
+  siblings do not either leaves the row or goes into every member; a note that qualifies one
+  tile's finding sits under the row at full width, where it qualifies the row. The tile that
+  grew a caption is the one that gets read as the answer, whatever Step 1 decided, and a row of
+  three where one is taller is a row of two plus an odd one. `align-items: start` on the row
+  exposes the difference; `stretch` hides it without fixing it, because the extra element is
+  still the only one of its kind in the set.
 
 ### Step 6: The state the page opens in
 
@@ -203,6 +219,7 @@ decides what gets fixed. It never decides what gets reported.
 | "It is only internal." | Internal pages are the ones that get screenshotted into decisions, because nobody thinks to question a page that was not presented. |
 | "More whitespace is always better." | Uniform whitespace is the same failure as uniform type: it groups nothing. The ratio between two gaps is what carries the grouping, not the amount. |
 | "The design system handles it." | A system supplies tokens. Which token carries which level of *this* page's information is the decision it cannot make for you. |
+| "The note belongs in the tile it qualifies." | Then that tile is no longer a sibling of the other two, and it is read first because it is bigger. Put the note under the row, at full width, where it qualifies the row. |
 | "The extra border makes it clearer." | It makes it bounded. Clarity came from the space that was already separating the panel; the border added a second boundary in the same place. |
 | "Centring the numbers looks tidier." | It looks tidier and it removes the comparison. A column of numbers exists so magnitudes line up, and centring is the one alignment that guarantees they do not. |
 | "The default filter is empty so the reader can choose." | Most readers choose nothing. An empty first screen hands the reader the work the page was built to do, and they will not do it. |
@@ -221,6 +238,7 @@ decides what gets fixed. It never decides what gets reported.
 - A unit is repeated in every cell of a column instead of sitting in the header once.
 - A panel is separated by more than one of: a border, a fill, a shadow, a rule.
 - A bar or a slice carries a gradient, a bevel, a shadow or a third dimension.
+- One tile in a row carries an element its siblings do not, and stands taller than they do.
 - The first screen shows an empty state, a placeholder title, or a legend entry named by index.
 - Any reader-facing text below 12px.
 - The page was generated and nobody looked at the generated file, only at the generator.
@@ -248,6 +266,10 @@ decides what gets fixed. It never decides what gets reported.
 - [ ] Each unit appears once, in its column header.
 - [ ] Each panel boundary uses one device only, and every remaining mark survived the test of
       being removed.
+- [ ] Every repeated group — tiles in a row, pairs down a list — has the same slots in every
+      member, and nothing one member carries is missing from the others.
+- [ ] The typeface is named once as a token, and a web font, if there is one, declares the
+      stack it falls back to.
 - [ ] The first screen, before any interaction, answers the question in the page's title: no
       empty state, no placeholder name, no legend entry named by index.
 - [ ] The scale, the two spacing steps, the alignment rule and the separation device are named

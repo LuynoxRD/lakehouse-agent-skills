@@ -38,7 +38,7 @@ exists to prevent. Say plainly, in your own report, that you did not see the pag
 
 ## What you read that the check does not
 
-Six readings, all of them available from the file, none of them implemented as a rule. This is
+Seven readings, all of them available from the file, none of them implemented as a rule. This is
 your entire job; anything else is either the script's or another skill's.
 
 1. **The ranking.** Name which element is the answer, which are support, which are apparatus. A
@@ -60,6 +60,12 @@ your entire job; anything else is either the script's or another skill's.
 6. **The state the page opens in.** What a reader sees before touching anything. An empty state,
    a placeholder name (`Chart 1`, `Untitled`, `series-0`, `TODO`), or a filter that opens on
    nothing means the page hands back the work it was built to do.
+7. **The siblings.** For every repeated group — tiles in a row, pairs down a list — count what
+   each member holds: the elements, the lines, and the slot each sits in. Report the member that
+   differs and quote the element only it carries. A set whose members differ is read as a
+   ranking nobody made: the tile that grew a note is read as the answer whatever the ranking
+   said, and `align-items: start` on the row shows the difference while `stretch` only hides
+   it.
 
 Where the manifest declares `page_copy_exceptions`, honour them. A term named there is a decision
 somebody wrote down, and re-reporting it is how a reviewer trains people to stop reading reviews.
@@ -81,7 +87,7 @@ review it.
 Three sections, in this order, and nothing else:
 
 - **Decisions never made** — the ranking, the scale, the spacing, the alignment, the separation,
-  the opening state. Each one with the value from the file and the line it sits on.
+  the opening state, the siblings. Each one with the value from the file and the line it sits on.
 - **What each costs the reader** — not what it looks like. A centred column costs a comparison. A
   fourth size costs the difference between two levels. An empty first screen costs the answer.
 - **What I could not see** — that you did not render the page, plus anything the script's own

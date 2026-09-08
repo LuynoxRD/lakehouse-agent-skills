@@ -50,3 +50,28 @@ Each is a step in the `dashboard-visual-craft` skill, and each is readable from 
 
 The correct reading names the ranking that is missing, the four decisions that were never made,
 and the specific numbers above — never "it looks unpolished".
+
+## A second page: three tiles, one of them taller
+
+`kpi-row.html` is the other shape a delivered page takes: one that holds to every rule above and
+breaks the one rule the skill did not have. Three tiles across the top, and the third carries a
+note the other two do not, on a row set to `align-items: start`. Everything else is deliberately
+right — three sizes, two named gaps, one left edge, numbers right-aligned in the table, one device
+per boundary, no placeholder, a first screen that answers the title — so a run that reports any of
+those has read the wrong page. Every figure is synthetic, the regions are compass points and the
+product is a generic word.
+
+Its colours are the measured pairs from the table above and nothing else: ink and headings
+`#18181b` on `#f4f4f5`, tile text `#18181b` on `#ffffff`, the muted text and the note `#52525b` on
+`#ffffff` at 7.73:1. The accent `#1d4ed8` on `#ffffff` measures 6.70:1.
+
+| Trap | Where | What a careless read does |
+| --- | --- | --- |
+| One member of a set carries an element its siblings do not | the third `.tile` holds a `.note` | Reports "the third card is bigger" or "the row looks uneven" without naming the note |
+| The row exposes it | `.row { align-items: start }` | Proposes `stretch`, which equalises the heights and leaves the odd element in place |
+
+The correct reading names the third tile, quotes the note it alone carries, says the taller tile is
+read as the answer whatever the ranking said, and moves the note under the row at full width — or
+into every tile — rather than stretching the row to hide it. It was written after a delivered page
+did exactly this and a review of it, holding to the six readings then in the reviewer, found
+nothing, because none of the six looked across a row.
