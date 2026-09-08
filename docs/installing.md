@@ -66,7 +66,7 @@ This one cost a real defect and is worth writing down.
 A directory string, `"agents": "./agents"`, is **rejected by the manifest validator**. An array of
 file paths, `["./agents/claim-auditor.md", ...]`, **passes validation and loads nothing**: the
 inventory came back `Agents (0)` while every check was green. Omitting the field entirely, so the
-default `agents/` directory applies, loads all three.
+default `agents/` directory applies, loads all four.
 
 So the validator and the loader do not agree, and the validator is the one that says yes. The only
 way to know which shape works is to install the plugin and read the inventory, which is why that

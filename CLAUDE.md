@@ -1,6 +1,6 @@
 # lakehouse-agent-skills
 
-Data-engineering discipline for AI coding agents: profile before you clean, clean before you chart, persist to columnar storage, query it with SQL, then build the dashboard by BI rules rather than by taste — the chart the data allows, colour that encodes, panels placed by what they hold — and disclose exactly what was and was not processed.
+Data-engineering discipline for AI coding agents: profile before you clean, clean before you chart, persist to columnar storage, query it with SQL, then build the dashboard by BI rules rather than by the model's guess — the chart the data allows, colour that encodes, panels placed by what they hold — and disclose exactly what was and was not processed rather than invent it.
 
 > **Scope:** this file configures agents working on *this repository itself*. It is not meant to be copied into other projects or into a global agent configuration; the reusable assets are the skills in `skills/`.
 
@@ -51,15 +51,21 @@ The meta-skill `using-lakehouse-skills` routes a task to the right skill. If a t
 
 ## The one description, and its short form
 
-Six places carry the sentence that says what this pack is, and `validate_versions.py` refuses a
-tree where the four manifests disagree (`manifest/description-mismatch`). Two more carry a
-deliberately shorter form: the README's opening line and the repository's About, both of which a
-person reads at a glance and a listing truncates.
+Six places carry the sentence that says what this pack is — the four manifests, the first line of
+this file and the opening of `AGENTS.md` — and `validate_versions.py` refuses a tree where the four
+manifests disagree (`manifest/description-mismatch`). `.codex-plugin/plugin.json` also carries a
+`longDescription` in that store's own voice; it paraphrases the sentence and changes with it. The
+repository's About carries a deliberately shorter form, because a listing truncates it.
 
 **The short form is the long one with the parenthetical clause removed, and nothing else.** Same
 words, same order, one clause fewer. Rewording it instead is how two descriptions of one package
-drift into saying different things, which is what happened before the rule existed. Neither the
-README nor the About is a file any validator can compare, so this is the record of the decision.
+drift into saying different things, which is what happened before the rule existed. The About is
+not a file any validator can compare, so this is the record of the decision.
+
+The README opens with its own sentence: the counts of skills, commands and subagents, and what they
+make an agent do. It is the one place the claim is read by somebody deciding whether to install, so
+it says the same thing in that reader's terms rather than repeating the manifest. Change it together
+with the sentence above whenever the claim changes, never one without the other.
 
 ## Vendor neutrality
 

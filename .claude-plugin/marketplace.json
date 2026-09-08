@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
   "name": "lakehouse-skills",
-  "description": "Data-engineering discipline for AI coding agents: profile before you clean, clean before you chart, persist to columnar storage, query it with SQL, then build the dashboard by BI rules rather than by taste \u2014 the chart the data allows, colour that encodes, panels placed by what they hold \u2014 and disclose exactly what was and was not processed.",
+  "description": "Data-engineering discipline for AI coding agents: profile before you clean, clean before you chart, persist to columnar storage, query it with SQL, then build the dashboard by BI rules rather than by the model's guess \u2014 the chart the data allows, colour that encodes, panels placed by what they hold \u2014 and disclose exactly what was and was not processed rather than invent it.",
   "owner": {
     "name": "Luis Castillo",
     "url": "https://github.com/LuynoxRD"
@@ -11,7 +11,7 @@
       "name": "lakehouse-agent-skills",
       "version": "0.1.0",
       "source": "./",
-      "description": "Data-engineering discipline for AI coding agents: profile before you clean, clean before you chart, persist to columnar storage, query it with SQL, then build the dashboard by BI rules rather than by taste \u2014 the chart the data allows, colour that encodes, panels placed by what they hold \u2014 and disclose exactly what was and was not processed.",
+      "description": "Data-engineering discipline for AI coding agents: profile before you clean, clean before you chart, persist to columnar storage, query it with SQL, then build the dashboard by BI rules rather than by the model's guess \u2014 the chart the data allows, colour that encodes, panels placed by what they hold \u2014 and disclose exactly what was and was not processed rather than invent it.",
       "homepage": "https://github.com/LuynoxRD/lakehouse-agent-skills",
       "license": "MIT",
       "keywords": [

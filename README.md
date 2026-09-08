@@ -2,7 +2,8 @@
 
 Data engineering discipline for AI coding agents. **15 skills, 9 commands and 4 reviewer
 subagents** that make an agent profile a file before it cleans it, clean it before it charts it,
-build the dashboard by BI rules rather than by taste, and say plainly what it did not cover.
+build the dashboard by BI rules rather than by its own guess, and say what it did not cover instead
+of inventing it.
 
 ![You, the agent's code, the lakehouse pipeline and three subagents, all reading and writing one
 shared store of project files. Built on DuckDB, Polars, openpyxl and Parquet.](docs/architecture.webp)
@@ -127,8 +128,8 @@ Prefer a native integration, or want the commands and subagents too? Pick your t
 <details>
 <summary><b>Claude Code</b> — the whole pack: skills, commands, subagents, hooks</summary>
 
-The repository is also a plugin. This is the only route that brings the nine commands, the three
-reviewer subagents and the two session hooks along with the skills:
+The repository is also a plugin. This is the route that brings the nine commands, the four
+reviewer subagents and the two session hooks along with the skills, with nothing to copy by hand:
 
 ```bash
 claude plugin marketplace add LuynoxRD/lakehouse-agent-skills
@@ -215,10 +216,10 @@ claude plugin update lakehouse-agent-skills    # the plugin route
 ```
 
 **How far each piece reaches.** The skills go everywhere above. The nine commands reach Claude Code
-and Gemini CLI. The three subagents and two hooks are Claude Code only — a gap in this repository's
-packaging rather than a limit of those tools, since every major agent has a subagent mechanism and
-what is missing is the generator. Loading was verified end to end in Claude Code; elsewhere what
-was measured is that the files land, and a file arriving is not a skill running.
+and Gemini CLI. The four subagents are generated for Claude Code, opencode, Cursor, Gemini CLI and
+Codex from one source, each in the form that tool uses to withhold editing; the two hooks are Claude
+Code only. Loading was verified end to end in Claude Code and opencode; elsewhere what was measured
+is that the files land, and a file arriving is not a skill running.
 [docs/installing.md](docs/installing.md) has the full accounting.
 
 ## What it works with
@@ -256,21 +257,39 @@ figures as checked.
 
 ## Why Lakehouse Agent Skills?
 
-An agent writes correct code. That was never the problem.
+Do not point an agent at a spreadsheet before you know two things.
 
-The problem is what it cannot do, and none of it is a bug to be fixed:
+**A workbook is not a table. It is compressed XML.** The `.xlsx` on disk is a zip. The XML inside
+it is several times larger, and the object model a library builds from that XML is larger again —
+on this repository's own 636-row fixture, 21 KB on disk is 122 KB of XML and 1.2 MB in memory. A
+model does not read that format. To reason about the file it is flattened to text, cell by cell,
+and the structure goes first: formulas, number formats, merged regions, the second sheet.
+
+**When an agent runs out of room it does not stop. It shrinks the file and keeps going.** Its
+context is finite, so it reads part of a large file, and the part quietly becomes "the file" in
+every sentence that follows. The hosted fix — run Python in a sandbox — moves that ceiling to the
+sandbox's memory limit; it does not remove it, and nothing announces when it is hit. Either way the
+output arrives looking finished, because there is no visual difference between a number that was
+computed and one that was made up.
+
+That is the failure this pack exists to prevent: an agent that destroys the file's structure,
+invents what it could not read, and hands you a dashboard of false figures without saying so.
+**Nothing here builds a dashboard before the data is profiled and cleaned**, and every stage leaves
+a written record of what it did and did not touch.
+
+In this repository's own audited runs the model reported reading a template it never opened, named
+a skill that does not exist, and called a page verified because a parser found no errors in it.
+Each of those became a rule.
+
+The rest is what an agent cannot do, and none of it is a bug to be fixed:
 
 - **It cannot see the file's past.** How it was exported, which settings produced it, what a blank
   cell meant to whoever typed it. It sees bytes and infers, and an inference nobody wrote down is
   indistinguishable from a measurement.
 - **It cannot see the page it just built.** It emits markup; it does not render it. Text sitting on
   top of other text looks identical to text that does not.
-- **Its context is finite**, so it reads part of a large file, and the part quietly becomes "the
-  file" in every sentence that follows.
 - **It starts every session blind.** Nothing carries over unless it was written down, which is why
   each stage here leaves a note behind instead of a memory.
-- **Its output looks finished either way.** There is no visual difference between a number that was
-  computed and one that was guessed, and the whole risk of this work lives in that sentence.
 
 Meanwhile most data still arrives as a spreadsheet, which is a document that looks like a table: a
 `Total` row an aggregate will count twice, dates that could be read two ways, leading zeros eaten
@@ -282,7 +301,7 @@ and nothing in the agent's context was asking for it. These skills ask for it.
 ## How it is checked
 
 Skills are tested on three levels: that they are structurally sound, that a request reaches the
-right one (44 prompts that must, 28 that must not, currently 100% first-place), and that a real run
+right one (53 prompts that must, 31 that must not, currently 100% first-place), and that a real run
 against fixtures with planted defects catches them.
 
 One check runs in your project rather than ours. `verify-output.sh` reads the page an agent
