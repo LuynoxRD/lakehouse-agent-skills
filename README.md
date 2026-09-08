@@ -99,7 +99,8 @@ They run when the result leaves the project or somebody will act on it. For a fi
 stays on your machine, they stay out of the way.
 
 Two session hooks come with them. One refuses to end a turn while a profiled dataset has no
-disclosure written, or a published page has not been checked.
+disclosure written, a published page has not been checked, or a page was written without the
+skills that own how it reads.
 
 ## Install
 
