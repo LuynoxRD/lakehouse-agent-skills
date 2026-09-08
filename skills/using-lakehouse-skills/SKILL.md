@@ -182,8 +182,7 @@ carries the skills that sit outside the stages as well.
 | The storage layout itself: a new column, a second writer, rows to correct | — | `parquet-to-open-table-format` skill |
 | A query, a group-by, a join that runs | QUERY | `duckdb-for-local-analytics` skill |
 | A chart, a plot, a figure specification | VISUALIZE | `chart-type-and-library-selection` skill, then `dashboard-color-and-visual-hierarchy` skill |
-| A page, a dashboard, a document somebody opens | ASSEMBLE | `dashboard-layout-by-widget-mix` skill, plus the two above for what it holds |
-| How that page reads once it is placed: its type, its spacing, its alignment, its non-data ink | ASSEMBLE | `dashboard-visual-craft` skill |
+| A page, a dashboard, a document somebody opens | ASSEMBLE | all four, in this order, every time a page is written: the two above for what it holds, `dashboard-layout-by-widget-mix` skill for where the panels sit, then `dashboard-visual-craft` skill and the colour skill again **on the file that was written**, never on the plan |
 | A sentence stating a finding, a headline, a takeaway | NARRATE | `insight-narrative-integrity` skill |
 | `docs/data/disclosure.md`, or an answer that says what was covered | DISCLOSE | `honest-data-limits-disclosure` skill |
 | Rows leaving the project: a prompt, a request body, an attachment | REDACT | `data-privacy-before-llm` skill |
