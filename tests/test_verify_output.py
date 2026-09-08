@@ -209,6 +209,36 @@ def test_a_date_in_the_page_is_not_mistaken_for_a_figure(tmp_path: Path) -> None
     assert "page/undeclared-number" not in rules(report)
 
 
+def test_a_year_followed_by_sentence_punctuation_is_still_a_year(tmp_path: Path) -> None:
+    """Found in a real run. "Opened in 2025." ended a sentence, the full stop made the year a
+    figure nobody had declared, and the only way past the check was to declare a constant that
+    measured nothing. The comma is the same case, and in Spanish prose it follows a year in nearly
+    every sentence."""
+    sentence = "Opened in 2025. In 2025, every region reported; none since 2024 (2023)."
+    page = CLEAN_PAGE.replace("<h1>Sales</h1>", f"<h1>Sales</h1>\n  <p>{sentence}</p>")
+    note, html = project(tmp_path, page)
+
+    _code, report = run(note, html)
+
+    assert "page/undeclared-number" not in rules(report)
+
+
+@pytest.mark.parametrize("token", ["2025.5", "1,2025"])
+def test_a_year_that_is_part_of_a_larger_number_is_still_a_figure(
+    tmp_path: Path, token: str
+) -> None:
+    """What the punctuation exception must not swallow: the point in 2025.5 and the comma in
+    1,2025 are separators inside a number, and that number was computed by nothing."""
+    page = CLEAN_PAGE.replace("<h1>Sales</h1>", f"<h1>Sales</h1>\n  <p>{token} units</p>")
+    note, html = project(tmp_path, page)
+
+    code, report = run(note, html)
+
+    assert code == 1
+    assert "page/undeclared-number" in rules(report)
+    assert f"'{token}'" in messages(report)
+
+
 def test_a_figure_that_declares_no_population_is_refused(tmp_path: Path) -> None:
     """A total that hides an exclusion is wrong on the page, not in the notes."""
     table = tmp_path / "orders.csv"
@@ -705,11 +735,11 @@ def spanish(tmp_path: Path, extra: str = "") -> tuple[Path, Path]:
 
 
 def embedded_program() -> str:
-    """The Python the shell script hands its interpreter, lifted back out of the heredoc."""
+    """The Python the shell script hands its interpreter: everything after the marker line, which
+    is also exactly what the script's own awk extracts."""
     source = SCRIPT.read_text(encoding="utf-8")
-    opening = "<<'PYTHON_PROGRAM'\n"
-    start = source.index(opening) + len(opening)
-    return source[start : source.index("\nPYTHON_PROGRAM", start)]
+    opening = "# ---- verify-output program ----\n"
+    return source[source.index(opening) + len(opening) :]
 
 
 def language_markers() -> dict[str, frozenset[str]]:

@@ -73,7 +73,21 @@ find_python() {
 
 PYTHON="$(find_python)"
 
-"$PYTHON" - --work "$WORK" "$@" <<'PYTHON_PROGRAM'
+# The program is the rest of this file, after the marker below, and it is handed to the
+# interpreter as a file rather than as a here-document. A here-document is the obvious way to
+# ship one file, and it is how this script shipped until the program passed 64 KiB. At that size
+# bash stops passing the document through a pipe and stages it in a temporary file instead, and
+# on Windows the interpreter then never saw the end of it: 65,536 bytes ran and 65,540 hung,
+# measured on bash 5.2 (msys) with a Windows Python and with the project's own. A synthetic
+# document of the same size did not reproduce it, so the exact trigger was not pinned down;
+# nothing below depends on it any more. Bash reads a script as it runs it, so the exit before the
+# marker is what keeps it from ever parsing the Python.
+PROGRAM="$WORK/verify_output.py"
+awk 'found { print } /^# ---- verify-output program ----$/ { found = 1 }' "$0" >"$PROGRAM"
+"$PYTHON" "$PROGRAM" --work "$WORK" "$@"
+exit "$?"
+
+# ---- verify-output program ----
 """Verify a delivered artefact against the curated table it claims to describe."""
 
 from __future__ import annotations
@@ -114,9 +128,13 @@ VERBATIM_ELEMENTS = frozenset({"code", "pre", "samp", "kbd"})
 # that appear beside them in a title or a period. Stripped before the page's own numbers are
 # collected. A measure that happens to equal a year is declared like any other figure, so the
 # only thing this gives up is catching an invented number that lands in 1900-2100 unaccompanied.
+# A year stays a year when sentence punctuation follows it ("opened in 2025.", "In 2025, ...")
+# and stops being one only when the point or the comma is a separator inside a number
+# ("2025.5", "1,2025"): a real run had to declare a constant that measured nothing because the
+# full stop ending its sentence had turned the year into a figure.
 ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 CLOCK_TIME = re.compile(r"\d{1,2}:\d{2}(?::\d{2})?")
-BARE_YEAR = re.compile(r"(?<![\d.,])(?:19|20)\d{2}(?![\d.,])")
+BARE_YEAR = re.compile(r"(?<!\d)(?<!\d[.,])(?:19|20)\d{2}(?!\d)(?![.,]\d)")
 NUMBER_TOKEN = re.compile(r"\d[\d.,]*")
 SELECT_ONLY = re.compile(r"^\s*(?:WITH|SELECT)\b", re.IGNORECASE)
 AGGREGATE_LABEL = re.compile(
@@ -1507,4 +1525,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-PYTHON_PROGRAM
