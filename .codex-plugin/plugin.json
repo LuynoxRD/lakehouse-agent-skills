@@ -1,7 +1,7 @@
 {
   "name": "lakehouse-agent-skills",
   "version": "0.1.0",
-  "description": "Data-engineering discipline for AI coding agents: profile before you clean, clean before you chart, persist to columnar storage, query it with SQL, then build the dashboard by BI rules rather than by the model's guess \u2014 the chart the data allows, colour that encodes, panels placed by what they hold \u2014 and disclose exactly what was and was not processed rather than invent it.",
+  "description": "Data-engineering skills and subagents for AI coding agents: profile before you clean, clean before you chart, persist to columnar storage, query it with SQL, then build the dashboard by BI rules rather than by the model's guess, and disclose exactly what was and was not processed rather than invent it.",
   "author": {
     "name": "Luis Castillo",
     "url": "https://github.com/LuynoxRD"
@@ -12,7 +12,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Lakehouse Agent Skills",
-    "shortDescription": "Data-engineering discipline for coding agents: profile, clean, model, query, then build the dashboard by BI rules.",
+    "shortDescription": "Data-engineering skills and subagents for coding agents: profile, clean, model, query, then build the dashboard by BI rules.",
     "longDescription": "Lakehouse Agent Skills teaches coding agents to profile data before cleaning it, clean it before charting it, persist it to columnar storage, query it with SQL, build the dashboard by BI rules rather than by the model's guess, and disclose exactly what was and was not processed rather than invent it.",
     "developerName": "Luis Castillo",
     "category": "Productivity",

@@ -1,6 +1,6 @@
 # lakehouse-agent-skills
 
-Data-engineering discipline for AI coding agents: profile before you clean, clean before you chart, persist to columnar storage, query it with SQL, then build the dashboard by BI rules rather than by the model's guess — the chart the data allows, colour that encodes, panels placed by what they hold — and disclose exactly what was and was not processed rather than invent it.
+Data-engineering skills and subagents for AI coding agents: profile before you clean, clean before you chart, persist to columnar storage, query it with SQL, then build the dashboard by BI rules rather than by the model's guess, and disclose exactly what was and was not processed rather than invent it.
 
 > **Scope:** this file configures agents working on *this repository itself*. It is not meant to be copied into other projects or into a global agent configuration; the reusable assets are the skills in `skills/`.
 
@@ -49,18 +49,19 @@ The meta-skill `using-lakehouse-skills` routes a task to the right skill. If a t
 5. Ground every rule in the documented standard of the discipline (record linkage, visualization theory, accessibility, open table formats, the tools' own docs), never in one product's calibration.
 6. Token-conscious: if removing a section would not change agent behavior, remove it.
 
-## The one description, and its short form
+## The one description
 
-Six places carry the sentence that says what this pack is — the four manifests, the first line of
-this file and the opening of `AGENTS.md` — and `validate_versions.py` refuses a tree where the four
-manifests disagree (`manifest/description-mismatch`). `.codex-plugin/plugin.json` also carries a
-`longDescription` in that store's own voice; it paraphrases the sentence and changes with it. The
-repository's About carries a deliberately shorter form, because a listing truncates it.
+Seven places carry the sentence that says what this pack is — the four manifests, the first line of
+this file, the opening of `AGENTS.md` and the repository's About — and `validate_versions.py`
+refuses a tree where the four manifests disagree (`manifest/description-mismatch`).
+`.codex-plugin/plugin.json` also carries a `longDescription` in that store's own voice; it
+paraphrases the sentence and changes with it.
 
-**The short form is the long one with the parenthetical clause removed, and nothing else.** Same
-words, same order, one clause fewer. Rewording it instead is how two descriptions of one package
-drift into saying different things, which is what happened before the rule existed. The About is
-not a file any validator can compare, so this is the record of the decision.
+**It is one sentence, and every place carries it whole.** It used to have a parenthetical clause
+and a short form without it; the clause went, so there is nothing left to shorten, and rewording it
+for one place is how two descriptions of one package drift into saying different things, which is
+what happened before the rule existed. The About is not a file any validator can compare, so this
+is the record of the decision.
 
 The README opens with its own sentence: the counts of skills, commands and subagents, and what they
 make an agent do. It is the one place the claim is read by somebody deciding whether to install, so

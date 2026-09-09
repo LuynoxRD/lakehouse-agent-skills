@@ -9,10 +9,9 @@ this file is the condensed contract.
 
 ## What this repository is
 
-Data-engineering discipline for AI coding agents, in the open `SKILL.md` format: profile before
+Data-engineering skills and subagents for AI coding agents, in the open `SKILL.md` format: profile before
 you clean, clean before you chart, persist to columnar storage, query it with SQL, then build the
-dashboard by BI rules rather than by the model's guess — the chart the data allows, colour that encodes,
-panels placed by what they hold — and disclose exactly what was and was not processed rather than invent it. Everything here is vendor-neutral and written in English.
+dashboard by BI rules rather than by the model's guess, and disclose exactly what was and was not processed rather than invent it. Everything here is vendor-neutral and written in English.
 
 ## Non-negotiable rules
 
