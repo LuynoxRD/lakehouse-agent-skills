@@ -18,6 +18,11 @@ Invoke the `dashboard-color-and-visual-hierarchy` skill for the page's colours: 
 the emphasis and everything else is quiet, and every token is measured against both the light and
 the dark ground.
 
+Then, once the file exists, invoke the `dashboard-visual-craft` skill on the file that was
+written, not on the plan, and take the colour skill's measurements against that file as well. A
+palette approved on a plan is not a palette measured on a page, and a skill that only saw the
+plan has reviewed nothing the reader will open.
+
 Express the layout as weights and flow rules rather than absolute positions, say what happens on a
 narrow viewport, and name anything you would remove.
 """
