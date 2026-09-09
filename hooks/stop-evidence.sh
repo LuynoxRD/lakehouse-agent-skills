@@ -11,7 +11,8 @@ set -euo pipefail
 # can send it back, which makes it the only place in this repository where a step is enforced
 # instead of requested.
 #
-# It checks two facts on disk, both of them cheap and neither of them the model's word:
+# It checks three facts, all of them cheap and none of them the model's word — two on disk and
+# one in the transcript the event names:
 #
 #   * docs/data/profile.md exists and docs/data/disclosure.md does not. A dataset was profiled and
 #     nothing states what the run did not cover.
@@ -19,6 +20,12 @@ set -euo pipefail
 #     inputs. Figures were declared and the artefact check either never ran or ran before the
 #     files it was supposed to check. verify-output.sh writes that receipt only on a green run and
 #     deletes it on a red one.
+#   * docs/data/figures.json exists and the session's transcript, which the event names as
+#     transcript_path, carries no invocation of the skills that own how a page reads. A page was
+#     declared and nobody applied to it the rules for where its panels sit, what its colours
+#     encode, or how its type, spacing, alignment and ink rank the information. The persona that
+#     reviews the page cannot see this — a subagent starts with no view of the conversation, by
+#     the documented design — so the transcript is the only record of which skills ran.
 #
 # What the receipt proves is narrow and worth being honest about: that a green run happened over
 # the current bytes. A forged receipt would still pass, and nothing checking after the fact can
@@ -37,6 +44,7 @@ readonly PROFILE_NOTE="docs/data/profile.md"
 readonly DISCLOSURE_NOTE="docs/data/disclosure.md"
 readonly FIGURES_NOTE="docs/data/figures.json"
 readonly RECEIPT_NOTE="docs/data/verification.json"
+readonly PAGE_SKILLS="dashboard-layout-by-widget-mix dashboard-color-and-visual-hierarchy dashboard-visual-craft"
 readonly MAX_DEPTH=3
 
 project_dir="${CLAUDE_PROJECT_DIR:-$PWD}"
@@ -47,6 +55,12 @@ approve() {
 }
 
 [ -d "$project_dir" ] || approve "no project directory at $project_dir"
+
+# The event payload arrives on stdin, and is held in a variable rather than a temporary file: a
+# hook that cannot create a scratch directory must still be able to decide, and the payload is one
+# short line. Two fields are read from it with a plain pattern, so the hook does not depend on a
+# JSON tool being installed: the session identifier, and the path of the session's transcript.
+payload="$(cat 2>/dev/null || true)"
 
 missing=""
 add() {
@@ -91,14 +105,40 @@ last passed against files that have changed since. Run verify-output.sh again."
   fi
 fi
 
+# Third: a page was declared and the skills that own how a page reads never ran. The persona that
+# reviews the page cannot see this — a subagent starts with no view of the conversation, by the
+# documented design — so the transcript the event names is the only record of which skills were
+# invoked. What is matched is the tool call as the transcript serialises it, never the bare name,
+# so this hook's own reason, which reaches the transcript as a message, can never count as an
+# invocation. The transcript is written asynchronously and can lag the current turn, which is one
+# more reason to interrupt once and to let the model answer in a line.
+if [ -f "$project_dir/$FIGURES_NOTE" ]; then
+  transcript=$(printf '%s' "$payload" |
+    sed -n 's/.*"transcript_path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1 |
+    sed -e 's/\\\\/\//g' -e 's/\\/\//g')
+  if [ -n "$transcript" ] && [ -r "$transcript" ]; then
+    unseen=""
+    for skill in $PAGE_SKILLS; do
+      if ! grep -q -E "\"name\":[[:space:]]*\"Skill\".*\"skill\":[[:space:]]*\"[^\"]*$skill\"" \
+        "$transcript" 2>/dev/null; then
+        unseen="$unseen $skill"
+      fi
+    done
+    if [ -n "$unseen" ]; then
+      add "Figures are declared in $FIGURES_NOTE, so a page was written, and this session's transcript \
+shows no invocation of:$unseen. Those skills own how a page reads once it is placed — where the \
+panels sit, what the colours encode, the type scale, the spacing, the alignment and the ink that is \
+not data — and a page they never saw has been reviewed for none of it. Invoke each one on the file \
+that was written, not on the plan. If one did run and the transcript has not caught up, say so in \
+one line and finish."
+    fi
+  else
+    echo "stop-evidence: no readable transcript named in the payload; the skill check is skipped" >&2
+  fi
+fi
+
 [ -n "$missing" ] || approve "the evidence this looks for is present"
 
-# The event payload arrives on stdin, and is held in a variable rather than a temporary file: a
-# hook that cannot create a scratch directory must still be able to decide, and the payload is one
-# short line. Only the session identifier is needed, read with a plain pattern so the hook does not
-# depend on a JSON tool being installed. No identifier means no way to stop at one interruption,
-# and an unbounded interruption is worse than a missed one.
-payload="$(cat 2>/dev/null || true)"
 session_id=$(printf '%s' "$payload" |
   sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)
 [ -n "$session_id" ] || approve "no session id in the payload; declining to interrupt"

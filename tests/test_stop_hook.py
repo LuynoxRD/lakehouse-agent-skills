@@ -238,3 +238,110 @@ def test_both_omissions_are_reported_in_one_interruption(tmp_path: Path) -> None
 
     assert "docs/data/disclosure.md" in reason
     assert "docs/data/verification.json" in reason
+
+
+PAGE_SKILLS = (
+    "dashboard-layout-by-widget-mix",
+    "dashboard-color-and-visual-hierarchy",
+    "dashboard-visual-craft",
+)
+
+
+def transcript(tmp_path: Path, *skills: str) -> Path:
+    """A session transcript in the shape the tool writes: one JSON object per line, and a skill
+    invocation is a tool call named Skill whose input names the skill, namespaced by the plugin."""
+    path = tmp_path / "transcript.jsonl"
+    lines = [json.dumps({"type": "user", "message": {"role": "user", "content": "build the page"}})]
+    for skill in skills:
+        block = {
+            "type": "tool_use",
+            "id": "toolu_1",
+            "name": "Skill",
+            "input": {"skill": f"lakehouse-agent-skills:{skill}", "args": ""},
+        }
+        message = {"type": "assistant", "message": {"role": "assistant", "content": [block]}}
+        lines.append(json.dumps(message, separators=(",", ":")))
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return path
+
+
+def payload_naming(path: Path, session: str = "session-one") -> str:
+    """The event payload as the tool sends it, with the transcript path JSON-escaped."""
+    return json.dumps({"session_id": session, "transcript_path": str(path)})
+
+
+def delivered_page(project: Path) -> Path:
+    """A page declared and checked green, so every other fact the hook looks for is present."""
+    declared_figures(project)
+    receipt(project)
+    return project
+
+
+def test_a_declared_page_whose_craft_skill_never_ran_is_sent_back(tmp_path: Path) -> None:
+    """The run that produced this: a page built, checked green and reviewed, with the skill that
+    owns how it reads never invoked, and nothing anywhere able to see that."""
+    project = delivered_page(tmp_path / "project")
+    log = transcript(tmp_path, *PAGE_SKILLS[:2])
+
+    reason = blocked(run(project, tmp_path / "tmp", payload_naming(log)))
+
+    assert "no invocation of: dashboard-visual-craft." in reason
+    assert "on the file that was written" in reason
+
+
+def test_a_declared_page_with_every_skill_in_the_transcript_is_left_alone(tmp_path: Path) -> None:
+    project = delivered_page(tmp_path / "project")
+    log = transcript(tmp_path, *PAGE_SKILLS)
+
+    approved(run(project, tmp_path / "tmp", payload_naming(log)))
+
+
+def test_every_missing_skill_is_named_in_one_interruption(tmp_path: Path) -> None:
+    project = delivered_page(tmp_path / "project")
+    log = transcript(tmp_path)
+
+    reason = blocked(run(project, tmp_path / "tmp", payload_naming(log)))
+
+    for skill in PAGE_SKILLS:
+        assert skill in reason
+
+
+def test_a_payload_without_a_transcript_path_skips_the_skill_check(tmp_path: Path) -> None:
+    """A transcript the hook cannot find is not evidence that a skill did not run."""
+    project = delivered_page(tmp_path / "project")
+
+    approved(run(project, tmp_path / "tmp"))
+
+
+def test_a_transcript_that_is_not_there_skips_the_skill_check(tmp_path: Path) -> None:
+    project = delivered_page(tmp_path / "project")
+
+    approved(run(project, tmp_path / "tmp", payload_naming(tmp_path / "missing.jsonl")))
+
+
+def test_a_skill_named_in_a_message_does_not_count_as_invoked(tmp_path: Path) -> None:
+    """The hook's own reason reaches the transcript as a message naming the skills. A reminder that
+    satisfied itself on the next turn would be worse than none."""
+    project = delivered_page(tmp_path / "project")
+    log = transcript(tmp_path, *PAGE_SKILLS[:2])
+    feedback = {
+        "type": "user",
+        "message": {
+            "role": "user",
+            "content": "Stop hook feedback: shows no invocation of: dashboard-visual-craft. "
+            'The "name": "Skill" tool with "skill": "dashboard-visual-craft" was not called.',
+        },
+    }
+    log.write_text(log.read_text(encoding="utf-8") + json.dumps(feedback) + "\n", encoding="utf-8")
+
+    reason = blocked(run(project, tmp_path / "tmp", payload_naming(log)))
+
+    assert "dashboard-visual-craft" in reason
+
+
+def test_a_project_with_no_declared_figures_never_asks_about_skills(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    project.mkdir()
+    log = transcript(tmp_path)
+
+    approved(run(project, tmp_path / "tmp", payload_naming(log)))
