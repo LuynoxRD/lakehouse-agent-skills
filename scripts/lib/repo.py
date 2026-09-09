@@ -21,6 +21,15 @@ TEXT_NAMES = frozenset(
 )
 SKIPPED_DIRECTORIES = frozenset({"__pycache__", ".git", ".venv", "node_modules"})
 
+# The stage commands whose Claude Code copy runs in a forked subagent. Each of them writes its
+# result to disk — the profile note, the cleaning log and the clean table, the model note and
+# the curated table, a query and its answer — and the next stage reads it from there, so the
+# conversation that invoked them needs the artefact and not the hundreds of tool calls that
+# produced it. The copy waits for the fork (`background: false`) so the tool set stays whole and
+# the next stage cannot start before the artefact exists. Measured on a real run before it was
+# adopted; the pull request that added this line carries the numbers.
+FORKED_COMMANDS = frozenset({"profile", "clean", "model", "query"})
+
 
 @dataclass(frozen=True, slots=True)
 class Layout:

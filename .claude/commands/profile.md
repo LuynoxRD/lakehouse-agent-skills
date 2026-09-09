@@ -1,5 +1,7 @@
 ---
 description: Profile a dataset before anything is cleaned, charted or claimed about it.
+context: fork
+background: false
 ---
 
 Profile the dataset the user named, and change nothing while doing it.

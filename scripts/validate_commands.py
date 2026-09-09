@@ -15,7 +15,14 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from lib import frontmatter
-from lib.repo import Layout, add_root_argument, configure_output, read_checked, read_text
+from lib.repo import (
+    FORKED_COMMANDS,
+    Layout,
+    add_root_argument,
+    configure_output,
+    read_checked,
+    read_text,
+)
 from lib.report import Report
 from lib.skill_lint import NAME_RE
 
@@ -91,6 +98,25 @@ def check_claude_copy(name: str, fields: dict[str, str], layout: Layout, report:
         )
     if parsed.body.strip() != fields["prompt"].strip():
         report.error("command/prompt-drift", "body differs from the source prompt", copy)
+    # Which commands fork is decided in one place, lib.repo.FORKED_COMMANDS, and a copy that
+    # disagrees with it was edited by hand: a stage command that lost its fork drags every tool
+    # call of that stage back into the conversation, and a command that gained one runs without
+    # the conversation it needs.
+    declares_fork = str(parsed.data.get("context")) == "fork" and (
+        str(parsed.data.get("background")).lower() == "false"
+    )
+    if name in FORKED_COMMANDS and not declares_fork:
+        report.error(
+            "command/fork-drift",
+            "a stage command's copy must declare 'context: fork' and 'background: false'",
+            copy,
+        )
+    elif name not in FORKED_COMMANDS and ("context" in parsed.data or "background" in parsed.data):
+        report.error(
+            "command/fork-drift",
+            "only the stage commands in FORKED_COMMANDS fork; remove 'context' and 'background'",
+            copy,
+        )
 
 
 def check_gemini_copy(name: str, source: Path, layout: Layout, report: Report) -> None:

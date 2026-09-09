@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+import sync_commands
 import validate_commands
 from conftest import COMMAND_TOML, write
 from lib.repo import Layout
@@ -96,3 +97,26 @@ def test_empty_command_set_only_flags_orphans(repo: Layout) -> None:
     (repo.commands / "profile.toml").unlink()
     found = [f.rule for f in validate_commands.validate(repo).findings]
     assert found == ["command/orphan-copy", "command/orphan-copy"]
+
+
+def test_fork_drift_is_reported_in_both_directions(repo: Layout) -> None:
+    """A stage command whose copy lost its fork, and a command that gained one by hand."""
+    write(repo.commands / "chart.toml", COMMAND_TOML)
+    sync_commands.sync(repo)
+    profile = repo.claude_commands / "profile.md"
+    chart = repo.claude_commands / "chart.md"
+    profile.write_text(
+        profile.read_text(encoding="utf-8").replace("context: fork\nbackground: false\n", ""),
+        encoding="utf-8",
+    )
+    chart.write_text(
+        chart.read_text(encoding="utf-8").replace(
+            "---\n\n", "context: fork\nbackground: false\n---\n\n", 1
+        ),
+        encoding="utf-8",
+    )
+
+    findings = validate_commands.validate(repo).findings
+
+    drifted = sorted(f.path.name for f in findings if f.rule == "command/fork-drift" and f.path)
+    assert drifted == ["chart.md", "profile.md"]

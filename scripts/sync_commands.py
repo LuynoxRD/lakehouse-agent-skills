@@ -16,13 +16,21 @@ import tomllib
 from collections.abc import Sequence
 from pathlib import Path
 
-from lib.repo import Layout, add_root_argument, configure_output, read_text
+from lib.repo import FORKED_COMMANDS, Layout, add_root_argument, configure_output, read_text
 from lib.report import Report
 
 
-def claude_copy(description: str, prompt: str) -> str:
-    """The markdown form: description in frontmatter, prompt as the body."""
-    return f"---\ndescription: {description}\n---\n\n{prompt.strip()}\n"
+def claude_copy(name: str, description: str, prompt: str) -> str:
+    """The markdown form: description in frontmatter, prompt as the body.
+
+    A stage command also declares that it runs in a forked subagent and that the turn waits for
+    it, so the invoking conversation carries the artefact the stage wrote rather than the work
+    that wrote it. The Gemini copy is the source verbatim; that tool has no such switch.
+    """
+    fields = [f"description: {description}"]
+    if name in FORKED_COMMANDS:
+        fields += ["context: fork", "background: false"]
+    return "---\n" + "\n".join(fields) + "\n---\n\n" + prompt.strip() + "\n"
 
 
 def sync(layout: Layout) -> Report:
@@ -48,7 +56,7 @@ def sync(layout: Layout) -> Report:
             continue
 
         target = layout.claude_commands / f"{source.stem}.md"
-        _write(target, claude_copy(description, prompt), report)
+        _write(target, claude_copy(source.stem, description, prompt), report)
         target = layout.gemini_commands / f"{source.stem}.toml"
         _write(target, raw, report)
 

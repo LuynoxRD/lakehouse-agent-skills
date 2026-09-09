@@ -74,3 +74,19 @@ def test_a_source_that_cannot_be_parsed_is_an_error_not_a_crash(repo: Layout) ->
 def test_cli(repo: Layout, capsys: pytest.CaptureFixture[str]) -> None:
     assert sync_commands.main(["--root", str(repo.root)]) == 0
     assert "sync-commands: 1 checked" in capsys.readouterr().out
+
+
+def test_a_stage_command_forks_and_the_others_do_not(repo: Layout) -> None:
+    """profile is a stage command; a chart is not. The generator decides from one list, and the
+    validator accepts exactly what the generator wrote."""
+    write(repo.commands / "chart.toml", COMMAND_TOML)
+
+    sync_commands.sync(repo)
+
+    profile = (repo.claude_commands / "profile.md").read_text(encoding="utf-8")
+    chart = (repo.claude_commands / "chart.md").read_text(encoding="utf-8")
+    assert profile.startswith("---\ndescription: ")
+    assert "\ncontext: fork\nbackground: false\n---\n" in profile
+    assert "context:" not in chart
+    assert "background:" not in chart
+    assert validate_commands.validate(repo).findings == []

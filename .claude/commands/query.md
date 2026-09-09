@@ -1,5 +1,7 @@
 ---
 description: Answer a question with SQL over the table that was already persisted.
+context: fork
+background: false
 ---
 
 Answer the user's question with SQL.

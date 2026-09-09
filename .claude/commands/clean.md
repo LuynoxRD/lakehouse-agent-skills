@@ -1,5 +1,7 @@
 ---
 description: Clean a profiled dataset, recording every rule and the number of rows it touched.
+context: fork
+background: false
 ---
 
 Clean the dataset, working from `docs/data/profile.md`. If that file does not exist,

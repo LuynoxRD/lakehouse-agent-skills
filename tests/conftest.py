@@ -205,7 +205,8 @@ def build_repo(root: Path, *, version: str = "0.1.0") -> Layout:
     write(layout.commands / "profile.toml", COMMAND_TOML)
     write(
         layout.claude_commands / "profile.md",
-        "---\ndescription: Profile a dataset before cleaning or charting it.\n---\n\n"
+        "---\ndescription: Profile a dataset before cleaning or charting it.\n"
+        "context: fork\nbackground: false\n---\n\n"
         "Invoke the `etl-before-dashboard` skill and write `docs/data/profile.md`.\n",
     )
     write(layout.gemini_commands / "profile.toml", COMMAND_TOML)
