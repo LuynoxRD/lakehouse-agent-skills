@@ -73,6 +73,23 @@
         "It separates what can be fixed in five minutes from what cannot, rather than asking for the whole page to be redone",
         "It does not accept 'the numbers are right' as an answer about how the page reads, since the numbers being right is a different check"
       ]
+    },
+    {
+      "id": "siblings",
+      "kind": "execution",
+      "prompt": "Three tiles across the top and one of them looks bigger than the other two. Tell me what is wrong with this page before I send it.",
+      "expected_output": "The third tile is named as the member that differs, the note it alone carries is quoted, and the fix moves the note out of the row rather than stretching the tiles to hide it.",
+      "files": [
+        "dashboard-visual-craft/kpi-row.html"
+      ],
+      "expectations": [
+        "The response names the third tile as the one that differs from its siblings and quotes the note it alone carries",
+        "It says the difference reads as a ranking nobody made, with the taller tile read as the answer",
+        "It proposes moving the note under the row at full width, or into every tile, rather than only stretching the tiles to equal height",
+        "It identifies align-items: start on the row as what exposes the difference and does not present stretch as the fix",
+        "It does not report the type scale, the spacing, the alignment or the separation as faults, since the page holds to three sizes, two named gaps, one left edge and one device",
+        "It does not describe the page only as unbalanced or uneven without naming which element is the odd one"
+      ]
     }
   ]
 }

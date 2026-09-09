@@ -50,3 +50,46 @@ Each is a step in the `dashboard-visual-craft` skill, and each is readable from 
 
 The correct reading names the ranking that is missing, the four decisions that were never made,
 and the specific numbers above — never "it looks unpolished".
+
+## A second page: three tiles, one of them taller
+
+`kpi-row.html` is the other shape a delivered page takes: one that holds to every rule above and
+breaks the one rule the skill did not have. Three tiles across the top, and the third carries a
+note the other two do not, on a row set to `align-items: start`. Everything else is deliberately
+right, and this time each claim is read off the file rather than asserted:
+
+- **Three sizes, and the ranking rides on them.** The title is the answer and the only element at
+  `--t-figure`; the three tile figures are support at `--t-body`, bold; the lede, the tile
+  captions and the note are apparatus at `--t-label`. Two weights.
+- **Two named gaps.** Every margin, padding and gap is `--gap-in` (12px) or `--gap-between`
+  (32px), and the between-group value is above twice the within-group one.
+- **One left edge.** The header carries the same 12px inset as a tile's padding and a cell's
+  padding, so the title, the lede, every figure and every cell start 44px in. Numbers are
+  right-aligned in the table, headers included.
+- **One device per boundary**, the surface fill. No border, no shadow, no rule.
+- No placeholder, and a first screen that answers the title.
+
+A run that reports any of those has read the wrong page. Every figure is synthetic, the regions are
+compass points and the product is a generic word.
+
+Its colours are four measured pairs and nothing else: ink `#18181b` on the ground `#f4f4f5` at
+16.12:1 and on the surface `#ffffff` at 17.72:1; the muted text
+`#52525b` on the ground at 7.03:1 and on the surface at 7.73:1.
+There is no accent: with the tiles at one size, a coloured figure would have named one of them the
+answer, and the answer is the title.
+
+The first version of this page did not hold to two of those claims, and the first Tier 3 run said
+so: the title and the three figures shared the top size, so nothing was first, and the header
+started 12px left of everything else. Both faults were the fixture's, and both were found by the
+reader the fixture exists to test — which is the reason the list above is measured now.
+
+| Trap | Where | What a careless read does |
+| --- | --- | --- |
+| One member of a set carries an element its siblings do not | the third `.tile` holds a `.note` | Reports "the third card is bigger" or "the row looks uneven" without naming the note |
+| The row exposes it | `.row { align-items: start }` | Proposes `stretch`, which equalises the heights and leaves the odd element in place |
+
+The correct reading names the third tile, quotes the note it alone carries, says the taller tile is
+read as the answer whatever the ranking said, and moves the note under the row at full width — or
+into every tile — rather than stretching the row to hide it. It was written after a delivered page
+did exactly this and a review of it, holding to the six readings then in the reviewer, found
+nothing, because none of the six looked across a row.

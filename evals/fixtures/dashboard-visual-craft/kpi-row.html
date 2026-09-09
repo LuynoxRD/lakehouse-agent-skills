@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Refill sign-ups, third quarter</title>
+<style>
+  :root {
+    --ground: #f4f4f5; --surface: #ffffff; --ink: #18181b; --muted: #52525b;
+    --t-figure: 1.75rem; --t-body: 1rem; --t-label: 0.8rem;
+    --gap-in: 12px; --gap-between: 32px;
+    --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  body { margin: 0; padding: var(--gap-between); background: var(--ground); color: var(--ink);
+         font: var(--t-body)/1.5 var(--font-body); }
+  header { padding: 0 var(--gap-in); margin: 0 0 var(--gap-between); }
+  h1 { font-size: var(--t-figure); margin: 0 0 var(--gap-in); }
+  .lede { font-size: var(--t-label); color: var(--muted); max-width: 60ch; margin: 0; }
+  .row { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gap-in);
+         align-items: start; }
+  .tile { background: var(--surface); padding: var(--gap-in); }
+  .tile b { display: block; font-size: var(--t-body); font-weight: 700;
+            font-variant-numeric: tabular-nums; }
+  .tile span { display: block; font-size: var(--t-label); color: var(--muted); }
+  .tile .note { margin: var(--gap-in) 0 0; font-size: var(--t-label); color: var(--muted); }
+  table { border-collapse: collapse; margin-top: var(--gap-between); background: var(--surface); }
+  th, td { padding: var(--gap-in); text-align: left; }
+  th.n, td.n { text-align: right; font-variant-numeric: tabular-nums; }
+  @media (max-width: 720px) { .row { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Refills led the quarter with 19 of 48 sign-ups</h1>
+    <p class="lede">Sign-ups to the trial between July and September, by region and by the product
+    each person asked about. Coverage: 48 of 48 rows.</p>
+  </header>
+  <div class="row">
+    <div class="tile">
+      <b>48</b>
+      <span>sign-ups this quarter</span>
+    </div>
+    <div class="tile">
+      <b>North — 17</b>
+      <span>region with the most sign-ups (35% of 48)</span>
+    </div>
+    <div class="tile">
+      <b>Refills — 19</b>
+      <span>product asked about most (40% of 48)</span>
+      <p class="note">"Other" and unspecified add up to 8 of 48 (17%) and sit outside this lead,
+      which stays with Refills by a clear margin.</p>
+    </div>
+  </div>
+  <table>
+    <thead><tr><th>Region</th><th class="n">Sign-ups</th></tr></thead>
+    <tbody>
+      <tr><td>North</td><td class="n">17</td></tr>
+      <tr><td>South</td><td class="n">14</td></tr>
+      <tr><td>East</td><td class="n">11</td></tr>
+      <tr><td>West</td><td class="n">6</td></tr>
+    </tbody>
+  </table>
+</body>
+</html>
