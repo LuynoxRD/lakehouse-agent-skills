@@ -1,9 +1,11 @@
 # Skill impact ledger
 
-Changes to skill descriptions or bodies that were rejected on eval evidence, so the same idea
+Changes to skills, commands or their packaging that were rejected on evidence, so the same idea
 is not retried without new arguments. Add a row when a pull request is closed because the Tier 2
-rank-1 rate, a negative trigger, a collision check or a Tier 3 behavioral eval got worse.
+rank-1 rate, a negative trigger, a collision check or a Tier 3 behavioral eval got worse — or
+because a measured run showed the change costing more than it saved.
 
 | Date | Skill | Change tried | Evidence | Outcome |
 | --- | --- | --- | --- | --- |
 | 2026-09-05 | `etl-before-dashboard` | Describing the second arrival of a source as "a new export or a corrected file", to route the arrival-comparison step | Tier 2 rank-1 fell from 100.0% to 97.7%. `export` already appeared in this description, so repeating it raised the term's weight enough to take rank 1 from `honest-data-limits-disclosure` on "I ran a batch over 200 exports and some of them threw errors that the loop swallowed" | Reworded to "a refreshed or corrected file". Same meaning, no repeated term; rank-1 back to 100.0% with 44 positives instead of 42. **A word already in a description is not free to reuse in it.** |
+| 2026-09-09 | `/profile`, `/clean`, `/model`, `/query` (Claude Code copies) | Running the four stage commands in a forked subagent (`context: fork`, `background: false`), so the invoking conversation carries each stage's artefact rather than the tool calls that produced it | One headless run per arm on the synthetic `orders.csv`, same prompt and machine. Without the fork, four stages and the disclosure: 77 main-conversation messages, 190 k cache-creation and 5.40 M cache-read tokens, 486 s, $4.29 as the CLI reports it. With the fork, **three of four stages** before the account's session limit cut the run: 8 main-conversation messages but 143 in the forks, 966 k cache-creation (×5.1) and 7.21 M cache-read (×1.3) tokens, 1,179 s, $7.69. Each fork starts cold — `CLAUDE.md`, the project, `etl-before-dashboard` loaded once per fork, the previous artefacts re-read — and that setup costs more than the context it saves | Not merged (#46 holds the diff and the table). **A fork saves the conversation the context and charges the fork for rebuilding it; with skills this size the rebuild is the larger number.** Retry only with a mechanism that lets a fork inherit the loaded skill. |
