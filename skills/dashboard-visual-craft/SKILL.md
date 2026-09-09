@@ -151,16 +151,16 @@ Applied to what actually accumulates on a generated page:
   shadow on a bar, a third dimension on a two-dimensional measure. A shadow on a bar makes the
   bar wider than its value.
 - **A border around the whole page is a boundary the window already provides.**
-- **Siblings share a shape.** Tiles in a row, label-and-value pairs down a list, badges on
-  sibling panels: the reader takes them as a set before reading any of them, because what
-  looks alike is read as alike. A set holds only while every member has the same slots — the
+- **Siblings share a shape.** A tile that carries an element its siblings do not stands taller
+  than they do, and the taller tile is read as the answer whatever Step 1 decided: a ranking
+  nobody made, delivered by a paragraph. Tiles in a row, label-and-value pairs down a list,
+  badges on sibling panels are taken as a set before any of them is read, because what looks
+  alike is read as alike, and a set holds only while every member has the same slots — the
   same elements, in the same place, at the same size. Whatever one member carries that its
   siblings do not either leaves the row or goes into every member; a note that qualifies one
-  tile's finding sits under the row at full width, where it qualifies the row. The tile that
-  grew a caption is the one that gets read as the answer, whatever Step 1 decided, and a row of
-  three where one is taller is a row of two plus an odd one. `align-items: start` on the row
-  exposes the difference; `stretch` hides it without fixing it, because the extra element is
-  still the only one of its kind in the set.
+  tile's finding sits under the row at full width, where it qualifies the row. `align-items:
+  start` on the row exposes the difference; `stretch` hides it without fixing it, because the
+  extra element is still the only one of its kind in the set.
 
 ### Step 6: The state the page opens in
 
