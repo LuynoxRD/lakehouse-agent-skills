@@ -204,7 +204,7 @@ by advisories and a release.
 npx skills list
 ```
 
-Count what came back. Fourteen is the whole catalogue; anything less means a skill was dropped,
+Count what came back. Fifteen is the whole catalogue; anything less means a skill was dropped,
 and the first place to look is the frontmatter of the ones that are missing.
 
 For the plugin, CI does the counting on every pull request: it installs, reads the component

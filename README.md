@@ -84,6 +84,27 @@ Run a command to enter a stage by name, or just describe the task and let the ro
 | Safety | [`data-privacy-before-llm`](skills/data-privacy-before-llm) | Rows are about to be pasted into a prompt or sent to a service |
 | | [`safe-live-database-access`](skills/safe-live-database-access) | Connecting to a database other people use |
 
+## Commands (9)
+
+One command per stage, in the order the stages run. Each one names the skills it invokes and
+the artefact it leaves behind, so the next stage starts from a file rather than from memory.
+
+| Stage | Command | What it does |
+| --- | --- | --- |
+| PROFILE | `/profile` | Profile a dataset before anything is cleaned, charted or claimed about it. |
+| CLEAN | `/clean` | Clean a profiled dataset, recording every rule and the number of rows it touched. |
+| MODEL | `/model` | Decide what one row means and persist the modelled table to columnar storage. |
+| QUERY | `/query` | Answer a question with SQL over the table that was already persisted. |
+| VISUALIZE | `/chart` | Choose the chart form the data shape allows, then the library the destination needs. |
+| ASSEMBLE | `/dashboard` | Lay out a page by what its panels are and how many of them there are. |
+| NARRATE | `/insight` | Write findings that survive their own arithmetic before they become sentences. |
+| DISCLOSE | `/disclose` | State what the run did not cover, in numbers, before the result is used. |
+| REDACT, across all of them | `/redact` | Decide what may leave the project before any rows are sent anywhere. |
+
+They reach Claude Code, as the plugin's commands, and Gemini CLI, generated into
+`.gemini/commands/*.toml` from the same sources. Every other tool gets the same steps by
+describing the task: the router names the stage, and the stage names its skills.
+
 ## Subagents (4)
 
 Four reviewer personas. They read and report; none of them can edit the work it reviews.
