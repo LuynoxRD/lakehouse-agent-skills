@@ -1,11 +1,10 @@
 # Lakehouse Agent Skills
 
-Data engineering discipline for AI coding agents. **15 skills, 9 commands and 4 reviewer
-subagents** that make an agent profile a file before it cleans it, clean it before it charts it,
-build the dashboard by BI rules rather than by its own guess, and say what it did not cover instead
-of inventing it.
+**15 skills, 9 commands and 4 reviewer subagents** that make an AI coding agent profile a file
+before it cleans it, clean it before it charts it, build the dashboard by BI rules rather than by
+its own guess, and say what it did not cover instead of inventing it.
 
-![You, the agent's code, the lakehouse pipeline and three subagents, all reading and writing one
+![You, the agent's code, the lakehouse pipeline and four subagents, all reading and writing one
 shared store of project files. Built on DuckDB, Polars, openpyxl and Parquet.](docs/architecture.webp)
 
 ## The lifecycle
