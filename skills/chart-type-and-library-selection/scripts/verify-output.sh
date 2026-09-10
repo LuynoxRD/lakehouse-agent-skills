@@ -39,6 +39,18 @@ set -euo pipefail
 # digest of each one; a failing run deletes any receipt that was there. That is what lets something
 # else check that this ran at all, rather than taking a checklist box at its word.
 #
+# The receipt's state covers the four notes beside the manifest whole -- profile, cleaning log,
+# model, disclosure -- whichever source each section of them is about. In a project holding more
+# than one source, a note edited for one source therefore moves the state of every delivery in
+# the project, and every recorded review reads as superseded until somebody looks again. That
+# cascade is chosen, not overlooked. The alternative, hashing only the sections that name a
+# delivery's own table, breaks on the first sentence that belongs to two sources at once: a model
+# note saying that two tables do not relate names both and would be covered by neither, so editing
+# it to declare a relation would leave every review standing. A review that stops covering its
+# bytes noisily is a cost; one that stops covering them silently is the failure this pack exists
+# to prevent. Found by a test run that added a second source to a project holding three reviewed
+# pages, and kept.
+#
 # Usage:
 #   scripts/verify-output.sh --manifest docs/data/figures.json --html dashboard.html
 #   scripts/verify-output.sh --manifest docs/data/figures.json --html a.html --html b.html \
@@ -1350,6 +1362,9 @@ def check_review_state(
     a standing property of the work, and it is not: it was true about the bytes in front of the
     reviewer that day. Every artefact this pack produces can be regenerated, and the review does
     not regenerate with them.
+
+    The state spans the notes whole, across every source the project holds; the header of this
+    file says why a per-source split was refused.
 
     Nothing here requires a review to be recorded. What it requires is that a recorded one be
     honest: if any note names a state, one of them has to be the state this run just read. Keeping
