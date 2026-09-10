@@ -61,8 +61,9 @@ right, and this time each claim is read off the file rather than asserted:
 - **Three sizes, and the ranking rides on them.** The title is the answer and the only element at
   `--t-figure`; the three tile figures are support at `--t-body`, bold; the lede, the tile
   captions and the note are apparatus at `--t-label`. Two weights.
-- **Two named gaps.** Every margin, padding and gap is `--gap-in` (12px) or `--gap-between`
-  (32px), and the between-group value is above twice the within-group one.
+- **Two of the three named steps.** Every margin, padding and gap is `--gap-in` (12px) or
+  `--gap-between` (32px); nothing on the page needs `--gap-micro`, and the between-group value
+  is above twice the within-group one.
 - **One left edge.** The header carries the same 12px inset as a tile's padding and a cell's
   padding, so the title, the lede, every figure and every cell start 44px in. Numbers are
   right-aligned in the table, headers included.

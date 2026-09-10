@@ -1,6 +1,6 @@
 ---
 name: dashboard-visual-craft
-description: Makes type, spacing, alignment and non-data ink carry the ranking of the information instead of decorating it, holding a page to one type scale of at most three sizes, two spacing steps, one alignment edge and a default state that answers. Use when a page is styled and nothing on it reads as more important than anything else, when the headline figure and its caption render at the same size, when every panel is separated by a border and a shadow and a fill at once, when the numbers in a column are centred so their digits do not line up, when a stylesheet carries a different gap value in every rule, or when the page opens on an empty state instead of on an answer.
+description: Makes type, spacing, alignment and non-data ink carry the ranking of the information instead of decorating it, holding a page to one type scale of at most three sizes, named spacing steps that double, one alignment edge and a default state that answers. Use when a page is styled and nothing on it reads as more important than anything else, when the headline figure and its caption render at the same size, when every panel is separated by a border and a shadow and a fill at once, when the numbers in a column are centred so their digits do not line up, when a stylesheet carries a different gap value in every rule, or when the page opens on an empty state instead of on an answer.
 ---
 
 # Dashboard visual craft
@@ -97,23 +97,33 @@ State the scale once, as named tokens at the top of the file — `--t-figure`, `
 visible in the source and a fourth size cannot be added by accident. The starting page in the
 `dashboard-layout-by-widget-mix` skill's `assets/` already carries exactly these three.
 
-### Step 3: Two spacing steps, and the larger one separates groups
+### Step 3: Three spacing steps, and each is twice the one below
 
 Space is what tells a reader which things belong together, and it does it before any label is
 read. It only works if the gaps differ enough to be read as different.
 
-- **Two values, not five.** One gap inside a group, one gap between groups. Name both, the same
-  way the sizes are named.
-- **The between-group gap is at least twice the within-group gap.** Below that ratio the two read
-  as one value applied unevenly, and the grouping the page intended is invisible.
+- **Three steps, not five values.** One gap that attaches a label or a caption to its own
+  element, one gap inside a group, one gap between groups. Name all three — `--gap-micro`,
+  `--gap-in`, `--gap-between` — the same way the sizes are named, and let every gap, margin
+  and panel padding on the page be one of them.
+- **Each step is at least twice the one below it.** Below that ratio two steps read as one
+  value applied unevenly, and whatever the page meant to group is invisible. 6, 12 and 32 are
+  three steps; 8, 12 and 32 are two steps with an extra name, and a third value derived by
+  `calc()` from the second is the second, whatever it is called.
 - **A label belongs to whatever it is nearest.** A caption sitting equidistant between two panels
   belongs to neither, and the reader assigns it to the wrong one. Tighten it against its own
-  panel rather than adding a line to say which one it describes.
+  panel rather than adding a line to say which one it describes. That is what the smallest
+  step is for.
+- **A control's own inset is not a step.** The padding inside a chip, a button or an input
+  sizes the control and groups nothing; it is named once, in the control's own rule, and it is
+  not counted.
 - **Space is the first separator to reach for**, before a border, a rule or a fill. It costs no
   ink and it cannot be mistaken for a boundary that means something.
 
 A page whose stylesheet carries a different number in every gap declaration has no grouping. It
-has whatever spacing each rule was written with, on the day it was written.
+has whatever spacing each rule was written with, on the day it was written. The starting page
+in the `dashboard-layout-by-widget-mix` skill's `assets/` carries the three steps, and every
+gap in it is one of them.
 
 ### Step 4: One alignment edge, and numbers align on the decimal
 
@@ -182,7 +192,8 @@ first screen at all is the layout skill's question, and it is answered before th
 
 ### Step 7: Record the four decisions where they can be checked
 
-The scale, the two spacing steps, the alignment rule and the separation device are four decisions.
+The scale, the three spacing steps, the alignment rule and the separation device are four
+decisions.
 Written as named tokens at the top of the page, they are four lines that anybody can read and that
 a check can count. Left as values inside individual rules, they are invisible, and the fifth size
 arrives with nobody noticing.
@@ -220,6 +231,7 @@ decides what gets fixed. It never decides what gets reported.
 | "More whitespace is always better." | Uniform whitespace is the same failure as uniform type: it groups nothing. The ratio between two gaps is what carries the grouping, not the amount. |
 | "The design system handles it." | A system supplies tokens. Which token carries which level of *this* page's information is the decision it cannot make for you. |
 | "The note belongs in the tile it qualifies." | Then that tile is no longer a sibling of the other two, and it is read first because it is bigger. Put the note under the row, at full width, where it qualifies the row. |
+| "The third gap is only a calc() of the second." | Then it is the second, applied unevenly, with a name that distinguishes nothing. A step earns its name by being at least twice the one below it. |
 | "The extra border makes it clearer." | It makes it bounded. Clarity came from the space that was already separating the panel; the border added a second boundary in the same place. |
 | "Centring the numbers looks tidier." | It looks tidier and it removes the comparison. A column of numbers exists so magnitudes line up, and centring is the one alignment that guarantees they do not. |
 | "The default filter is empty so the reader can choose." | Most readers choose nothing. An empty first screen hands the reader the work the page was built to do, and they will not do it. |
@@ -234,6 +246,7 @@ decides what gets fixed. It never decides what gets reported.
 - The headline figure and its caption render at the same size, or within 1.25× of each other.
 - The stylesheet carries a different gap value in nearly every rule.
 - The gap between two groups is the same as the gap inside them.
+- Two named spacing steps within twice of each other.
 - A column of numbers is centred, or its decimals do not align.
 - A unit is repeated in every cell of a column instead of sitting in the header once.
 - A panel is separated by more than one of: a border, a fill, a shadow, a rule.
@@ -258,8 +271,8 @@ decides what gets fixed. It never decides what gets reported.
 - [ ] The delivered file carries at most three distinct font sizes and at most two weights, and
       each step of the scale is at least 1.25× the one below it.
 - [ ] No reader-facing text is below 12px, and body text is at least 14px.
-- [ ] Exactly two spacing values are used, both named, and the between-group value is at least
-      twice the within-group value.
+- [ ] At most three spacing steps are used, all named, each at least twice the one below, and
+      every gap, margin and panel padding on the page is one of them.
 - [ ] Every caption is nearer to the panel it describes than to any other panel.
 - [ ] Text blocks share one left edge; numeric columns are right- or decimal-aligned, and their
       headers align with them.
@@ -272,6 +285,6 @@ decides what gets fixed. It never decides what gets reported.
       stack it falls back to.
 - [ ] The first screen, before any interaction, answers the question in the page's title: no
       empty state, no placeholder name, no legend entry named by index.
-- [ ] The scale, the two spacing steps, the alignment rule and the separation device are named
+- [ ] The scale, the three spacing steps, the alignment rule and the separation device are named
       once at the top of the file rather than repeated inside individual rules.
 - [ ] The delivered file was opened and read, not the generator that wrote it.

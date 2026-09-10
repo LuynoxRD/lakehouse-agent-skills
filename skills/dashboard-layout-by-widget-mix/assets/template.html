@@ -25,8 +25,11 @@
     --ground:#F7F8FA; --surface:#FFFFFF; --ink:#14181B; --muted:#5B6672; --line:#DDE2E7;
     /* One accent carries emphasis. Status colours are a separate set and never double as accent. */
     --accent:#1B4D5B; --good:#2F6B4F; --warn:#8A5410; --crit:#9C3126;
-    /* Two gaps, and the difference between them IS the grouping. */
-    --gap-in:12px; --gap-between:32px;
+    /* Three spacing steps, each twice the last: attached to its own label, inside a group,
+       between groups. The difference between them IS the grouping, and nothing below uses
+       another value. A control's inset sizes the control and is named once, here. */
+    --gap-micro:6px; --gap-in:12px; --gap-between:32px;
+    --inset:3px 10px;
     --measure:68ch;                       /* readable line length for any prose */
     /* Three type sizes, by role. A fourth distinction is a weight, a colour or letter-spacing. */
     --t-figure:1.75rem; --t-body:1rem; --t-label:0.8rem;
@@ -42,18 +45,18 @@
     --accent:#6FC0CE; --good:#6FBF93; --warn:#D9A253; --crit:#E0796B;
   }
   * { box-sizing:border-box; }
-  body { margin:0; padding:24px; background:var(--ground); color:var(--ink);
+  body { margin:0; padding:var(--gap-between); background:var(--ground); color:var(--ink);
          font:var(--t-body)/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
   .page { max-width:1400px; margin-inline:auto; }   /* bounded AND centred; one without the other
                                                        leaves the board against the left edge */
-  h1 { font-size:var(--t-figure); text-wrap:balance; margin:0 0 4px; }
+  h1 { font-size:var(--t-figure); text-wrap:balance; margin:0 0 var(--gap-micro); }
   .sub { color:var(--muted); max-width:var(--measure); margin:0 0 var(--gap-between); }
 
   /* ── Grid ──────────────────────────────────────────────────────────────────────────────────
      Twelve tracks, and spans come from the Step 1 table: area is a property of the content. */
   .board { display:grid; grid-template-columns:repeat(12,1fr); gap:var(--gap-in); }
   .group + .group { margin-top:var(--gap-between); }
-  .group > h2 { grid-column:1/-1; margin:0 0 4px; font-size:var(--t-label); font-weight:600;
+  .group > h2 { grid-column:1/-1; margin:0 0 var(--gap-micro); font-size:var(--t-label); font-weight:600;
                 letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
 
   .kpi    { grid-column:span 2; }                          /* read at a glance; never a full tile */
@@ -67,48 +70,51 @@
   /* ── Panels ───────────────────────────────────────────────────────────────────────────────
      Border, fill and radius each say "separate object". A KPI is not a separate object: it is a
      number with a label, so it gets none of them. Not everything is a card. */
-  .panel { background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:16px; }
-  .panel > h3 { margin:0 0 8px; font-size:var(--t-label); font-weight:600; color:var(--muted);
+  .panel { background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:var(--gap-in); }
+  .panel > h3 { margin:0 0 var(--gap-micro); font-size:var(--t-label); font-weight:600; color:var(--muted);
                 letter-spacing:.04em; text-transform:uppercase; }
   .chart { width:100%; height:100%; min-height:inherit; }  /* never a pixel width: that is what
                                                               overflows a phone */
-  .kpi { padding:8px 0; }
+  .kpi { padding:var(--gap-micro) 0; }
   .kpi b { display:block; font-size:var(--t-figure); font-variant-numeric:tabular-nums;
            line-height:1.15; }
   .kpi span { font-size:var(--t-label); color:var(--muted); }
 
   /* A caveat that changes how the figure is read sits with the figure, in label type. */
-  .note { margin:6px 0 0; font-size:var(--t-label); color:var(--muted); }
+  .note { margin:var(--gap-micro) 0 0; font-size:var(--t-label); color:var(--muted); }
 
   /* ── Filter state ─────────────────────────────────────────────────────────────────────────
      Visible, clearable in one action, and never hover-only: a control nobody can see is a
      feature that exists only in the source. */
-  .filterbar { display:flex; align-items:center; gap:8px; margin-bottom:var(--gap-in);
+  .filterbar { display:flex; align-items:center; gap:var(--gap-micro); margin-bottom:var(--gap-in);
                font-size:var(--t-label); color:var(--muted); }
-  .chip { border:1px solid var(--line); border-radius:999px; padding:3px 10px; color:var(--ink); }
-  #legend { display:flex; flex-wrap:wrap; gap:6px; }
-  .clear, .swatch { border:1px solid var(--line); border-radius:999px; padding:3px 10px;
+  .chip { border:1px solid var(--line); border-radius:999px; padding:var(--inset); color:var(--ink); }
+  #legend { display:flex; flex-wrap:wrap; gap:var(--gap-micro); }
+  .clear, .swatch { border:1px solid var(--line); border-radius:999px; padding:var(--inset);
                     cursor:pointer; background:none; color:var(--ink); font:inherit;
                     font-size:var(--t-label); }
   /* The dot is the legend; the pressed state is not colour alone, because colour alone is an
      encoding the colour skill refuses. Pressed also thickens the border and sets aria-pressed. */
   .swatch::before { content:""; display:inline-block; width:9px; height:9px; border-radius:50%;
-                    margin-right:6px; vertical-align:baseline; background:var(--swatch,currentColor); }
+                    margin-right:var(--gap-micro); vertical-align:baseline; background:var(--swatch,currentColor); }
   .swatch[aria-pressed="true"] { border-color:var(--ink); border-width:2px; padding:2px 9px; }
+  /* the inset less the extra border, so a pressed chip does not grow */
   .clear:focus-visible, .swatch:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 
   table { border-collapse:collapse; width:100%; font-size:var(--t-body); }
-  th,td { border-bottom:1px solid var(--line); padding:8px 10px; text-align:left; }
+  th,td { border-bottom:1px solid var(--line); padding:var(--gap-micro) var(--gap-in);
+          text-align:left; }
   td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
 
   /* Coverage and provenance go here, whole and visible — never behind a hover. */
-  footer { margin-top:var(--gap-between); border-top:1px solid var(--line); padding-top:12px;
+  footer { margin-top:var(--gap-between); border-top:1px solid var(--line);
+           padding-top:var(--gap-in);
            font-size:var(--t-label); color:var(--muted); max-width:var(--measure); }
 
   /* ── Narrow ───────────────────────────────────────────────────────────────────────────────
      What reflows, what stacks, and what is dropped on purpose because it cannot be read. */
   @media (max-width:800px) {
-    body { padding:16px; }
+    body { padding:var(--gap-in); }
     .board { grid-template-columns:repeat(4,1fr); }
     .kpi { grid-column:span 2; }                     /* two across instead of six */
     .trend,.ranked,.table,.prose { grid-column:span 4; }
