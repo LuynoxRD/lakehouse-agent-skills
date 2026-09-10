@@ -133,9 +133,14 @@ VERBATIM_ELEMENTS = frozenset({"code", "pre", "samp", "kbd"})
 # ("2025.5", "1,2025"): a real run had to declare a constant that measured nothing because the
 # full stop ending its sentence had turned the year into a figure.
 ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+YEAR_MONTH = re.compile(r"(?<!\d)(?:19|20)\d{2}-(?:0[1-9]|1[0-2])(?!\d)")
 CLOCK_TIME = re.compile(r"\d{1,2}:\d{2}(?::\d{2})?")
 BARE_YEAR = re.compile(r"(?<!\d)(?<!\d[.,])(?:19|20)\d{2}(?!\d)(?![.,]\d)")
-NUMBER_TOKEN = re.compile(r"\d[\d.,]*")
+# A sign belongs to the number when it opens it: a page that prints a negative net has to be
+# matched against the negative value the query returned, not against its magnitude. A hyphen
+# between two digits is a range, never a sign, which is what the lookbehind says. Both minus
+# characters a page uses are accepted.
+NUMBER_TOKEN = re.compile(r"(?<!\d)[-\u2212]?\d[\d.,]*")
 SELECT_ONLY = re.compile(r"^\s*(?:WITH|SELECT)\b", re.IGNORECASE)
 AGGREGATE_LABEL = re.compile(
     r"^\s*(grand\s+)?(total|subtotal|sum|average|mean|promedio|gran\s+total|totales)\b",
@@ -304,6 +309,9 @@ NOT_VERIFIED = (
     "whether markers of more than one of the six it knows sit in the same page text",
     "any language whose markers it does not carry, and anything inside <code>, <pre> or the "
     "<title>, none of which is read for language or for paths",
+    "which of two readings an ambiguous number was meant to have; a single separator with "
+    "three digits behind it, '299.651', is matched as a thousands group and as a fraction, "
+    "and the manifest decides which one the page meant",
     "whether a review that names the current state was any good, or happened at all; the "
     "state says which bytes a review covered, never what the reviewer did with them",
 )
@@ -483,48 +491,81 @@ class PageParser(HTMLParser):
         ]
 
 
-def to_number(token: str) -> float | None:
-    """Read a printed number, deciding the separators from how the token is grouped."""
-    token = token.strip().strip(".,")
-    if not token:
-        return None
-    if "," in token and "." in token:
-        decimal = "," if token.rfind(",") > token.rfind(".") else "."
-        token = token.replace("," if decimal == "." else ".", "").replace(decimal, ".")
-    elif "," in token:
-        groups = token.split(",")
-        grouped = len(groups[0]) <= 3 and all(len(group) == 3 for group in groups[1:])
-        token = token.replace(",", "" if grouped else ".")
-    elif token.count(".") > 1:
-        token = token.replace(".", "")
+Reading = tuple[float, int]
+
+
+def _read(text: str, sign: float) -> Reading | None:
+    """A decimal string as a value with its printed precision, or None when it is not one."""
     try:
-        return float(token)
+        value = float(text)
     except ValueError:
         return None
+    decimals = len(text.split(".")[1]) if "." in text else 0
+    return sign * value, decimals
 
 
-def shown_precision(token: str) -> int:
-    """How many decimals the page printed, which is the precision it may be checked to."""
-    tail = re.split(r"[.,]", token.strip().strip(".,"))[-1]
-    return len(tail) if len(tail) != 3 else 0
+def readings(token: str) -> list[Reading]:
+    """Every value a printed number can stand for, each with the decimals it was printed to.
+
+    Most tokens read one way. The exception is a single separator with exactly three digits
+    behind it: "299.651" is two hundred and ninety-nine thousand where a point groups thousands
+    and a fraction where it marks the decimals, and the token itself cannot say which. A real
+    run printed ",00" after every count on a Spanish page so the check would stop reading its
+    thousands as decimals, which improved nothing for the reader. So an ambiguous token stands
+    for both values and the manifest settles it: whichever reading a declared figure or constant
+    produces is the one the page meant, and only a token that matches under neither is a number
+    nobody computed.
+
+    A leading sign is part of the number. The token pattern never takes a hyphen between two
+    digits as one, so a range stays a range.
+    """
+    sign = -1.0 if token[:1] in ("-", "\u2212") else 1.0
+    body = token.lstrip("-\u2212").strip(".,")
+    if not body:
+        return []
+    found: list[Reading | None] = []
+    if "," in body and "." in body:
+        decimal = "," if body.rfind(",") > body.rfind(".") else "."
+        thousands = "." if decimal == "," else ","
+        found.append(_read(body.replace(thousands, "").replace(decimal, "."), sign))
+    elif body.count(".") + body.count(",") == 1:
+        separator = "." if "." in body else ","
+        head, tail = body.split(separator)
+        if len(tail) == 3 and 0 < len(head) <= 3:
+            found.append(_read(head + tail, sign))
+        found.append(_read(f"{head}.{tail}", sign))
+    elif "," in body:
+        groups = body.split(",")
+        grouped = len(groups[0]) <= 3 and all(len(group) == 3 for group in groups[1:])
+        found.append(_read(body.replace(",", "" if grouped else "."), sign))
+    else:
+        found.append(_read(body.replace(".", ""), sign))
+    return [reading for reading in found if reading is not None]
 
 
-def close_enough(printed: float, token: str, declared: float) -> bool:
+def shown(reading: Reading) -> str:
+    """A reading written back the way the page would print it, for a message."""
+    value, decimals = reading
+    return f"{value:.{decimals}f}"
+
+
+def close_enough(reading: Reading, declared: float) -> bool:
     """A printed figure matches a computed one when it is the computed one, rounded as shown."""
-    return abs(printed - declared) <= 0.5 * 10.0 ** -shown_precision(token)
+    value, decimals = reading
+    return abs(value - declared) <= 0.5 * 10.0 ** -decimals
 
 
-def page_numbers(parser: PageParser) -> list[tuple[int, str, float]]:
-    """Every number in the page's own text, with the line it sits on."""
-    found: list[tuple[int, str, float]] = []
+def page_numbers(parser: PageParser) -> list[tuple[int, str, list[Reading]]]:
+    """Every number in the page's own text, with its line and every value it can stand for."""
+    found: list[tuple[int, str, list[Reading]]] = []
     for line, chunk in parser.text:
-        stripped = BARE_YEAR.sub(" ", CLOCK_TIME.sub(" ", ISO_DATE.sub(" ", chunk)))
+        stripped = ISO_DATE.sub(" ", chunk)
+        stripped = BARE_YEAR.sub(" ", CLOCK_TIME.sub(" ", YEAR_MONTH.sub(" ", stripped)))
         for match in NUMBER_TOKEN.finditer(stripped):
-            value = to_number(match.group())
-            if value is not None:
-                found.append((line, match.group(), value))
+            values = readings(match.group())
+            if values:
+                found.append((line, match.group(), values))
     return found
-
 
 def check_structure(path: Path, report: Report) -> PageParser | None:
     """One page, one document. Everything here shipped from a real run."""
@@ -694,14 +735,15 @@ def check_page_numbers(
 ) -> None:
     """A number on the page that nothing accounts for is a number nobody computed."""
     for path, parser in pages.items():
-        for line, token, value in page_numbers(parser):
+        for line, token, values in page_numbers(parser):
             report.checked += 1
-            if any(close_enough(value, token, known) for known in accounted):
+            if any(close_enough(value, known) for value in values for known in accounted):
                 continue
+            read_as = " or ".join(shown(value) for value in values)
             report.error(
                 "page/undeclared-number",
-                f"{token!r} appears in the page text and no figure or declared constant "
-                "produces it; either compute it or remove it",
+                f"{token!r} appears in the page text (read as {read_as}) and no figure or "
+                "declared constant produces it; either compute it or remove it",
                 str(path),
                 line,
             )

@@ -239,6 +239,111 @@ def test_a_year_that_is_part_of_a_larger_number_is_still_a_figure(
     assert f"'{token}'" in messages(report)
 
 
+def with_constants(tmp_path: Path, page: str, *values: float) -> tuple[Path, Path]:
+    """A delivery whose manifest also declares the given constants, so the page may print them."""
+    document = manifest(tmp_path / "orders.csv")
+    document["constants"] = [
+        {"value": value, "label": f"declared {value}", "source": "docs/data/profile.md"}
+        for value in values
+    ]
+    return project(tmp_path, page, document)
+
+
+@pytest.mark.parametrize(
+    ("printed", "declared"),
+    [("299.651", 299651), ("299.651", 299.651), ("3,500", 3500), ("3,500", 3.5)],
+)
+def test_one_separator_with_three_digits_behind_it_is_read_both_ways(
+    tmp_path: Path, printed: str, declared: float
+) -> None:
+    """Found by a test run: a Spanish page printed 299.651 movements, the check read a fraction,
+    and every count on the page grew a ',00' it did not need. The token cannot say which it is;
+    the manifest can, and whichever reading a declared value produces is the one the page meant."""
+    page = CLEAN_PAGE.replace("<h1>Sales</h1>", f"<h1>Sales</h1>\n  <p>{printed} units</p>")
+    note, html = with_constants(tmp_path, page, declared)
+
+    _code, report = run(note, html)
+
+    assert "page/undeclared-number" not in rules(report)
+
+
+def test_an_ambiguous_number_nothing_declares_is_refused_under_both_readings(
+    tmp_path: Path,
+) -> None:
+    page = CLEAN_PAGE.replace("<h1>Sales</h1>", "<h1>Sales</h1>\n  <p>299.651 units</p>")
+    note, html = project(tmp_path, page)
+
+    code, report = run(note, html)
+
+    assert code == 1
+    assert "page/undeclared-number" in rules(report)
+    assert "read as 299651 or 299.651" in messages(report)
+
+
+@pytest.mark.parametrize(
+    ("printed", "declared", "verdict"),
+    [
+        ("1.234.567", 1234567, "accepted"),
+        ("1.234.567", 1234.567, "refused"),
+        ("1.234.567,89", 1234567.89, "accepted"),
+        ("1,234,567", 1234567, "accepted"),
+    ],
+)
+def test_more_than_one_separator_keeps_its_single_reading(
+    tmp_path: Path, printed: str, declared: float, verdict: str
+) -> None:
+    """Two points can only group thousands, so the ambiguity above never reaches them: a million
+    printed with points is matched as a million and as nothing else."""
+    page = CLEAN_PAGE.replace("<h1>Sales</h1>", f"<h1>Sales</h1>\n  <p>{printed} units</p>")
+    note, html = with_constants(tmp_path, page, declared)
+
+    _code, report = run(note, html)
+
+    assert ("page/undeclared-number" not in rules(report)) is (verdict == "accepted")
+
+
+@pytest.mark.parametrize("sign", ["-", "\u2212"])
+def test_a_negative_figure_is_read_with_its_sign(tmp_path: Path, sign: str) -> None:
+    """The same test run printed a negative net and had to declare its magnitude as a constant,
+    because the sign was not part of the token. It is now, in both characters a page uses."""
+    page = CLEAN_PAGE.replace("<h1>Sales</h1>", f"<h1>Sales</h1>\n  <p>Net {sign}1.234,56</p>")
+    note, html = with_constants(tmp_path, page, -1234.56)
+
+    _code, report = run(note, html)
+
+    assert "page/undeclared-number" not in rules(report)
+
+
+def test_a_magnitude_does_not_stand_for_its_negative(tmp_path: Path) -> None:
+    page = CLEAN_PAGE.replace("<h1>Sales</h1>", "<h1>Sales</h1>\n  <p>Net 1.234,56</p>")
+    note, html = with_constants(tmp_path, page, -1234.56)
+
+    code, report = run(note, html)
+
+    assert code == 1
+    assert "page/undeclared-number" in rules(report)
+
+
+def test_a_hyphen_between_two_digits_is_a_range_not_a_sign(tmp_path: Path) -> None:
+    page = CLEAN_PAGE.replace("<h1>Sales</h1>", "<h1>Sales</h1>\n  <p>1-3 units per order</p>")
+    note, html = with_constants(tmp_path, page, 1, 3)
+
+    _code, report = run(note, html)
+
+    assert "page/undeclared-number" not in rules(report)
+
+
+def test_a_year_and_month_is_not_a_figure(tmp_path: Path) -> None:
+    """2025-01 is a period label. Once the sign joined the token, the -01 a bare-year strip left
+    behind would have become a negative one."""
+    page = CLEAN_PAGE.replace("<h1>Sales</h1>", "<h1>Sales</h1>\n  <p>2025-01 to 2025-07</p>")
+    note, html = project(tmp_path, page)
+
+    _code, report = run(note, html)
+
+    assert "page/undeclared-number" not in rules(report)
+
+
 def test_a_figure_that_declares_no_population_is_refused(tmp_path: Path) -> None:
     """A total that hides an exclusion is wrong on the page, not in the notes."""
     table = tmp_path / "orders.csv"
