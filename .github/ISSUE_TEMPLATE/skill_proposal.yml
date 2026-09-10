@@ -1,0 +1,62 @@
+name: Propose a skill
+description: A new skill, with the failure it prevents, the standard it rests on, and why extending an existing skill is not enough.
+title: "[skill] "
+labels: ["skill-proposal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        `CONTRIBUTING.md` is the source of truth for this workflow; this form collects what a
+        proposal needs before anyone writes a SKILL.md. Prefer extending an existing skill over
+        adding a near-duplicate, and say here why that is not enough.
+  - type: input
+    id: name
+    attributes:
+      label: Name
+      description: Lowercase, hyphen-separated; it becomes the directory under `skills/`.
+      placeholder: incremental-load-idempotency
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What the skill does, in the third person, then one or more "Use when ..." triggers. This is the text the router matches on, so write the triggers the way a request sounds.
+    validations:
+      required: true
+  - type: textarea
+    id: failure
+    attributes:
+      label: The failure it prevents
+      description: What an agent does today without it, concretely — the confident wrong output, not "it could be better".
+    validations:
+      required: true
+  - type: textarea
+    id: standard
+    attributes:
+      label: The documented standard it rests on
+      description: Record linkage, visualization theory, accessibility, an open format's specification, a tool's own documentation. Name it. A skill grounded in one product's calibration is declined.
+    validations:
+      required: true
+  - type: textarea
+    id: not_extension
+    attributes:
+      label: Why extending an existing skill is not enough
+      description: Name the nearest skill and the seam between it and this one.
+    validations:
+      required: true
+  - type: textarea
+    id: triggers
+    attributes:
+      label: Triggers for the routing eval
+      description: At least three requests that must reach this skill, and two that must not, each naming the skill that owns them instead.
+      value: |
+        Must trigger:
+        1.
+        2.
+        3.
+        Must not trigger (and who owns it):
+        1.  →
+        2.  →
+    validations:
+      required: true

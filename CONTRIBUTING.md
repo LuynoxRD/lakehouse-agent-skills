@@ -16,6 +16,7 @@ skills are measured.
 - **Fixtures are 100 % synthetic.** Every `evals/fixtures/<skill>/` folder carries a `FIXTURE.md`
   explaining how the data was generated and which traps it contains. No real personal data, no
   real company data, nothing downloaded from the internet.
+- **`CODE_OF_CONDUCT.md` applies** to every issue, review and discussion here.
 - **Zero debt at merge.** A real gap is a blocker, a fix in the same pull request, or an explicit
   issue linked from the pull request. "Approve with minor comments" is not an outcome.
 

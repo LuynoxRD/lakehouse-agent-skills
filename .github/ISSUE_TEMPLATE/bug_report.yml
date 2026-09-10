@@ -1,0 +1,68 @@
+name: Something went wrong
+description: A skill, command, hook, reviewer persona, or the shipped check did something wrong.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks. Two things before you write: **no real data**. Do not paste rows, file names or
+        figures from a real dataset; describe the shape, or reproduce it on a synthetic file.
+        And for anything that looks like a security problem — a skill that would fetch code,
+        read secrets, write outside the project — use `SECURITY.md`, not this form.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Which piece
+      options:
+        - A skill (SKILL.md)
+        - A command (/profile, /clean, ...)
+        - A reviewer persona (agents/)
+        - A session hook (hooks/)
+        - verify-output.sh
+        - A validator or the eval runner (scripts/)
+        - Documentation
+    validations:
+      required: true
+  - type: input
+    id: name
+    attributes:
+      label: Its name
+      placeholder: etl-before-dashboard, /dashboard, design-reviewer, stop-evidence.sh ...
+    validations:
+      required: true
+  - type: dropdown
+    id: tool
+    attributes:
+      label: The coding agent it was loaded in
+      options:
+        - Claude Code (plugin)
+        - Claude Code (npx skills add)
+        - Cursor
+        - opencode
+        - Gemini CLI
+        - Codex
+        - Another tool (say which below)
+    validations:
+      required: true
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened
+      description: What the agent did, quoted where it matters. If a check reported something, paste its output.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What the skill or check says should have happened
+      description: The step, rule or checkbox in the file that was not followed, with the line if you have it.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce it
+      description: A synthetic file or a shape description, the request as typed, and the version (`git describe` or the tag you installed).
+    validations:
+      required: true

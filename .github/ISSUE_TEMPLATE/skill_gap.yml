@@ -1,0 +1,45 @@
+name: A data task the pack does not cover
+description: The agent had no skill for something it should have handled, or the nearest skill stopped short.
+title: "[gap] "
+labels: ["skill-gap"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is for a gap, not a proposal. Describe the task and what went wrong without a skill;
+        whether the answer is a new skill or an extension of an existing one is decided after.
+        Search the catalogue and the open issues first — most gaps are a missing step in a skill
+        that already exists. No real data in the report.
+  - type: textarea
+    id: task
+    attributes:
+      label: The task
+      description: What was asked of the agent, in the words that were used, and what kind of source it was (a spreadsheet, an export, a PDF, a live database ...).
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: What the agent did without a skill for it
+      description: The confident wrong answer, the step it skipped, the thing it invented. Concrete.
+    validations:
+      required: true
+  - type: input
+    id: nearest
+    attributes:
+      label: The nearest existing skill
+      placeholder: honest-data-limits-disclosure
+    validations:
+      required: true
+  - type: textarea
+    id: why_not
+    attributes:
+      label: Why that skill does not cover it
+      description: The step it lacks, or the case it excludes. Quote it if you can.
+    validations:
+      required: true
+  - type: textarea
+    id: standard
+    attributes:
+      label: The documented practice that would have prevented it
+      description: The rule a data engineer would have applied, and where it is written down (a standard, a library's docs, a textbook). A skill here rests on that, never on one product's habits.

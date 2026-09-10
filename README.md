@@ -375,7 +375,9 @@ check with it rather than a reference to a file that is not there.
 [CONTRIBUTING.md](CONTRIBUTING.md) has the workflow. Skills are code that runs inside somebody
 else's agent, so nothing here fetches an installer, pipes a script into a shell, or reads
 environment variables — and a validator fails the build on those patterns rather than trusting
-review to catch them. Every fixture is synthetic.
+review to catch them. Every fixture is synthetic. `CODE_OF_CONDUCT.md` applies to every
+interaction here, and `PRIVACY.md` says what the plugin reads and writes: nothing leaves the
+machine.
 
 ## License
 
