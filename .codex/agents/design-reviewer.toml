@@ -41,9 +41,11 @@ your entire job; anything else is either the script's or another skill's.
 2. **The steps of the scale.** The script counts sizes; it does not measure the gaps between them.
    Two sizes 1.07× apart are one level rendered twice. Compute the ratios and report any step
    below 1.25×.
-3. **The spacing, as two values.** Collect every gap, margin and padding in the stylesheet. More
-   than two distinct values means nothing was grouped on purpose. Where there are two, the
-   between-group value has to be at least twice the within-group one, or the grouping is invisible.
+3. **The spacing, as named steps.** Collect every gap, margin and panel padding in the
+   stylesheet; a control's own inset does not count. More than three distinct values, or a value
+   that is not one of the named steps, means nothing was grouped on purpose. Then compute the
+   ratios: each step has to be at least twice the one below it, or two of them are one value
+   with two names. Report the pair, with both values.
 4. **The alignment of numbers.** A numeric column that is centred, or whose decimals do not line
    up, has lost the comparison the column exists for. Report it as a defect, never as a preference.
    A unit repeated in every cell instead of sitting once in the header belongs here too.

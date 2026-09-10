@@ -294,11 +294,11 @@ row of columns, each panel spanning as many as its content needs:
 
 ```css
 :root {
-  --gap-within: 12px;   /* inside a group */
-  --gap-between: 32px;  /* between groups — visibly larger, and that difference IS the grouping */
+  --gap-micro: 6px; --gap-in: 12px; --gap-between: 32px;  /* attached, inside a group, between
+                        groups; each twice the last, and that difference IS the grouping */
   --measure: 68ch;      /* a readable line length for any block of prose */
 }
-.board { display: grid; grid-template-columns: repeat(12, 1fr); gap: var(--gap-within); }
+.board { display: grid; grid-template-columns: repeat(12, 1fr); gap: var(--gap-in); }
 .group + .group { margin-top: var(--gap-between); }
 
 /* Spans come from the Step 1 table: area is a property of the content. */
