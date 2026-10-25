@@ -30,10 +30,21 @@ fixtures = [
 [tool.uv]
 # The repository is not a distributable Python package; uv only manages the environment.
 package = false
-# semgrep pins mcp==1.29.0, inside GHSA-84m7-p3x7-pcfv (fixed in 1.30.0). Only `semgrep mcp`
-# imports it and nothing here serves MCP, but the lock should not carry the advisory either.
-# Remove this once semgrep's own pin reaches 1.30.0.
-override-dependencies = ["mcp>=1.30.0,<2"]
+# semgrep pins two things inside open advisories, and only semgrep brings them into the lock:
+# - mcp==1.29.0, GHSA-84m7-p3x7-pcfv, fixed in 1.30.0. Only `semgrep mcp` imports it.
+# - the OpenTelemetry family at ~=1.37.0 / ~=0.58b0, CVE-2026-114603 in opentelemetry-api,
+#   fixed in 1.45.1. The family moves together because sdk pins api and the instrumentations
+#   pin semantic-conventions, so it is overridden as one release line.
+# The Semgrep job installs from this lock and runs the scan on every pull request, which is what
+# shows the overrides do not break it. Remove each once semgrep's own pin passes the fix (#60).
+override-dependencies = [
+  "mcp>=1.30.0,<2",
+  "opentelemetry-api>=1.45.1,<2",
+  "opentelemetry-sdk>=1.45.1,<2",
+  "opentelemetry-exporter-otlp-proto-http>=1.45.1,<2",
+  "opentelemetry-instrumentation-requests>=0.66b1,<1",
+  "opentelemetry-instrumentation-threading>=0.66b1,<1",
+]
 
 [tool.ruff]
 line-length = 100
