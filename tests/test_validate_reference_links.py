@@ -24,6 +24,15 @@ def test_cli(repo: Layout, capsys: pytest.CaptureFixture[str]) -> None:
     assert "validate-reference-links" in capsys.readouterr().out
 
 
+def test_root_document_that_moved_is_an_error_not_a_silent_skip(repo: Layout) -> None:
+    (repo.root / ".claude" / "CLAUDE.md").rename(repo.root / "CLAUDE.md")
+    report = validate_reference_links.validate(repo)
+    assert [(f.rule, f.severity.value) for f in report.findings] == [
+        ("links/missing-root-document", "error")
+    ]
+    assert report.findings[0].path == repo.root / ".claude" / "CLAUDE.md"
+
+
 def test_broken_relative_link(repo: Layout) -> None:
     write(repo.docs / "guide.md", "See [missing](./nowhere.md) and [ok](skill-anatomy.md#top).\n")
     report = validate_reference_links.validate(repo)

@@ -1,8 +1,8 @@
 # Contributing
 
 Thank you for helping agents handle data honestly. This document is the single source of truth
-for how work enters the repository. `CLAUDE.md` and `AGENTS.md` configure coding agents that work
-here; `docs/skill-anatomy.md` describes what a skill must contain; `evals/README.md` describes how
+for how work enters the repository. `.claude/CLAUDE.md` and `AGENTS.md` configure coding agents
+that work here; `docs/skill-anatomy.md` describes what a skill must contain; `evals/README.md` describes how
 skills are measured.
 
 ## Ground rules

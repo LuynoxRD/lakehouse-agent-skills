@@ -3,13 +3,15 @@
 Data-engineering skills and subagents for AI coding agents: profile before you clean, clean before you chart, persist to columnar storage, query it with SQL, then build the dashboard by BI rules rather than by the model's guess, and disclose exactly what was and was not processed rather than invent it.
 
 > **Scope:** this file configures agents working on *this repository itself*. It is not meant to be copied into other projects or into a global agent configuration; the reusable assets are the skills in `skills/`.
+>
+> It lives in `.claude/` because the repository root is also the plugin root, and `claude plugin validate --strict` refuses a `CLAUDE.md` there. Claude Code reads `.claude/CLAUDE.md` as project instructions exactly as it reads a root one.
 
 ## Project structure
 
 ```
 skills/            → one directory per skill, each with a SKILL.md (the only required file)
 references/        → checklists shared by more than one skill (never inside a skill directory)
-commands/          → slash commands for the data lifecycle (source of truth; per-tool copies are validated for parity)
+commands/          → slash commands for the data lifecycle, TOML only (source of truth; per-tool copies are validated for parity; see docs/commands.md)
 agents/            → reviewer personas used by the lifecycle commands
 hooks/             → session lifecycle hooks (minimal, tested, no network)
 evals/             → eval cases, synthetic fixtures, framework docs (see evals/README.md)

@@ -2,9 +2,9 @@
 """Validate relative links and the use of shared references.
 
 Every relative markdown link in skills, commands, agents, docs, references and the root
-documents must resolve to a file. Every file in references/ must be used by more than one
-skill: a reference used by a single skill belongs inside that skill, and one used by none is
-dead weight.
+documents must resolve to a file, and every listed root document must exist. Every file in
+references/ must be used by more than one skill: a reference used by a single skill belongs
+inside that skill, and one used by none is dead weight.
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ from lib.markdown import markdown_links
 from lib.repo import Layout, add_root_argument, configure_output, iter_files, read_checked
 from lib.report import Report
 
-ROOT_DOCUMENTS = ("README.md", "CONTRIBUTING.md", "SECURITY.md", "AGENTS.md", "CLAUDE.md")
+ROOT_DOCUMENTS = ("README.md", "CONTRIBUTING.md", "SECURITY.md", "AGENTS.md", ".claude/CLAUDE.md")
 SCANNED_SUFFIXES = frozenset({".md", ".toml"})
 EXTERNAL_PREFIXES = ("http://", "https://", "mailto:", "tel:")
 REFERENCE_MENTION_RE = re.compile(r"(?<![\w/.-])references/([A-Za-z0-9_.-]+\.md)")
@@ -68,6 +68,16 @@ def validate(layout: Layout) -> Report:
     scan = _Scan(
         layout=layout, shared=shared, usage={name: set() for name in shared}, report=report
     )
+
+    # A root document that moved without this list following it would drop out of the scan in
+    # silence, and its links would go unchecked while this validator still passed.
+    for name in ROOT_DOCUMENTS:
+        if not (layout.root / name).is_file():
+            report.error(
+                "links/missing-root-document",
+                "listed as a root document but not found; update ROOT_DOCUMENTS if it moved",
+                layout.root / name,
+            )
 
     for path in scanned_files(layout):
         report.checked += 1
