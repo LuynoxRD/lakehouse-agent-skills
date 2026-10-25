@@ -3,7 +3,7 @@
   The starting page for a dashboard built with the lakehouse skills.
 
   It already carries the decisions this skill would otherwise ask you to make: a declared width,
-  a type scale with three roles, spans and height floors by content type, two gap sizes, a stated
+  a type scale with three roles, spans and height floors by content type, three gap steps, a stated
   narrow-viewport behaviour, one colour map every panel reads, and a place for each kind of caveat.
 
   Fill every FILL, delete every section you do not need, keep it one file. Departures from this
@@ -33,6 +33,8 @@
     --measure:68ch;                       /* readable line length for any prose */
     /* Three type sizes, by role. A fourth distinction is a weight, a colour or letter-spacing. */
     --t-figure:1.75rem; --t-body:1rem; --t-label:0.8rem;
+    /* One typeface, named once: a system stack, because this file has to open with no network. */
+    --font-body:system-ui,-apple-system,"Segoe UI",sans-serif;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -46,7 +48,7 @@
   }
   * { box-sizing:border-box; }
   body { margin:0; padding:var(--gap-between); background:var(--ground); color:var(--ink);
-         font:var(--t-body)/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
+         font:var(--t-body)/1.55 var(--font-body); }
   .page { max-width:1400px; margin-inline:auto; }   /* bounded AND centred; one without the other
                                                        leaves the board against the left edge */
   h1 { font-size:var(--t-figure); text-wrap:balance; margin:0 0 var(--gap-micro); }

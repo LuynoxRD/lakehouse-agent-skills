@@ -267,7 +267,5 @@ dataset is being turned into an answer.
 - [ ] Nothing was skipped beyond the reviewers and the length of the disclosure. Every stage ran
       and every skill that applied was invoked in full, because the gate is about the machinery
       around the stages and never about the stages.
-- [ ] Every applicable skill was invoked in full, not summarized.
-- [ ] No stage was skipped, or the skip is stated in the answer with its reason.
 - [ ] Every skill named in the answer exists in this catalog. If a request needs something the
       catalog does not cover, say so plainly rather than naming a skill that is not here.
