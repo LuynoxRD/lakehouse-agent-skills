@@ -1,8 +1,8 @@
 # AGENTS.md
 
 Guidance for AI coding agents (Codex, Cursor, OpenCode, Copilot, Gemini CLI and others) working on
-**this repository**. Claude Code reads the same rules from `CLAUDE.md`, which is the full version;
-this file is the condensed contract.
+**this repository**. Claude Code reads the same rules from `.claude/CLAUDE.md`, which is the full
+version; this file is the condensed contract.
 
 > **Scope:** this file configures agents that develop `lakehouse-agent-skills` itself. It is not
 > meant to be copied into other projects. The reusable assets are the skills in `skills/`.

@@ -1,9 +1,13 @@
 # Commands
 
-Slash commands for the data lifecycle, one TOML file per command. This directory is the source of
-truth; the per-tool copies under `.claude/commands/` (markdown with a `description` frontmatter
-and the prompt as body) and `.gemini/commands/` (identical TOML) are validated for parity by
-`scripts/validate_commands.py`.
+Slash commands for the data lifecycle, one TOML file per command in `commands/`. That directory is
+the source of truth; the per-tool copies under `.claude/commands/` (markdown with a `description`
+frontmatter and the prompt as body) and `.gemini/commands/` (identical TOML) are validated for
+parity by `scripts/validate_commands.py`.
+
+This page lives in `docs/` and not in `commands/` because `claude plugin validate` reads every
+markdown file in `commands/` as a command definition, and refuses one without frontmatter under
+`--strict`. Keep `commands/` to the TOML sources.
 
 ```toml
 description = "Profile a dataset before cleaning or charting it."
@@ -14,7 +18,7 @@ Invoke the `etl-before-dashboard` skill ...
 ```
 
 Every prompt invokes at least one existing skill by its backticked name and writes its artifacts
-to the canonical paths in [docs/skill-anatomy.md](../docs/skill-anatomy.md).
+to the canonical paths in [docs/skill-anatomy.md](skill-anatomy.md).
 
 **Never edit a copy by hand.** After changing a command, run
 `uv run python scripts/sync_commands.py` and commit all three files. The validator can only tell

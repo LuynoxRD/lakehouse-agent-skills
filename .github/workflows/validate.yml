@@ -17,7 +17,7 @@ env:
   UV_VERSION: "0.11.6"
   # Node is a tool here, not code: it runs Claude Code's plugin validator. Versions are pinned
   # by hand because this repository has no package.json for Dependabot to track.
-  CLAUDE_CODE_VERSION: "2.1.259"
+  CLAUDE_CODE_VERSION: "2.1.310"
 
 jobs:
   python-quality:
@@ -130,7 +130,7 @@ jobs:
           node-version: "24"
       - name: Install Claude Code
         # The validator is a tool, installed at an exact pinned version; this repository has no
-        # package.json, so there is no lockfile for it by design (see CLAUDE.md, tooling rules).
+        # package.json, so there is no lockfile for it by design (see .claude/CLAUDE.md, tooling rules).
         run: npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" # zizmor: ignore[adhoc-packages]
       - name: Validate plugin and marketplace manifests
         run: claude plugin validate . --strict

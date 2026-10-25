@@ -215,6 +215,9 @@ def build_repo(root: Path, *, version: str = "0.1.0") -> Layout:
     )
     write(root / "CONTRIBUTING.md", "# Contributing\n")
     write(root / "README.md", "# Test repo\n")
+    write(root / "SECURITY.md", "# Security\n")
+    write(root / "AGENTS.md", "# AGENTS.md\n")
+    write(root / ".claude" / "CLAUDE.md", "# Test repo\n")
     return layout
 
 
