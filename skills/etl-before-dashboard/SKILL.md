@@ -140,9 +140,9 @@ with a name or a count rather than a recollection:
 
 Then run it, and treat what it wrote as a first delivery: Step 6 over the file, and the skills
 that own its form — `chart-type-and-library-selection`, `dashboard-color-and-visual-hierarchy`,
-`dashboard-layout-by-widget-mix`, `insight-narrative-integrity` — over the page itself. Changing
-one line of the script does not narrow that, because the file is regenerated whole and the reader
-opens all of it.
+`dashboard-layout-by-widget-mix`, `dashboard-visual-craft`, `insight-narrative-integrity` — over
+the page itself. Changing one line of the script does not narrow that, because the file is
+regenerated whole and the reader opens all of it.
 
 ### Step 1: Profile before touching anything
 
@@ -359,15 +359,17 @@ later, because every artefact here can be regenerated and the review does not re
 so a note whose only recorded review names a state this run did not produce is refused rather than
 read as coverage.
 
-**A recorded review goes in `docs/data/reviews.md`, and it has to.** The four notes above are
-hashed into the state, so a review written inside one of them changes the state it just named: it
-is stale the moment it is saved, and correcting it moves the target again. That file sits outside
-the hashed set on purpose, which is what lets the record settle. The check refuses the circular
-placement by name rather than leaving it to be discovered. That receipt is the evidence, not the claim: pasting
-the output into an answer says the check passed, and the receipt is what something else can look
-at. Never write it by hand, and never edit a checked file afterwards without running the check
-again — the receipt then describes bytes that no longer exist, which is the state it is designed
-to expose.
+**A recorded review goes in `docs/data/reviews.md`, and it has to.** `profile.md`,
+`cleaning-log.md`, `model.md` and `disclosure.md` are hashed into the state, so a review written
+inside one of them changes the state it just named: it is stale the moment it is saved, and
+correcting it moves the target again. `reviews.md` sits outside the hashed set on purpose, which
+is what lets the record settle. The check refuses the circular placement by name rather than
+leaving it to be discovered.
+
+`docs/data/verification.json` is the evidence, not the claim: pasting the output into an answer
+says the check passed, and the receipt is what something else can look at. Never write the
+receipt by hand, and never edit a checked file afterwards without running the check again — the
+receipt then describes bytes that no longer exist, which is the state it is designed to expose.
 
 ## Common Rationalizations
 
@@ -415,8 +417,8 @@ Stop and return to Step 1 when you notice any of these:
 - A distinct count in the profile equals the row count exactly. That is what a non-null count
   looks like when it has been filed under the wrong heading.
 - A generator is about to be re-run and nothing has listed the values it hard-codes.
-- An output was regenerated and the skills that own its charts, colours, layout and wording were
-  not opened, because the script predated the run.
+- An output was regenerated and the skills that own its charts, colours, layout, type and spacing,
+  and wording were not opened, because the script predated the run.
 - A green receipt is being cited as evidence about something the check states in its own output
   that it does not read.
 - A number appears in the output that no query produced.

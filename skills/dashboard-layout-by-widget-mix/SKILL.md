@@ -110,7 +110,7 @@ skill directory**, beside this file. It already carries:
   colour or a letter-spacing change, and a delivered page that grew to eight sizes had no figure
   and no label, only text;
 - the twelve-track grid, with the span and the height floor of every panel type taken from the
-  Step 1 table, and two gap sizes whose difference is the grouping;
+  Step 1 table, and three named gap steps, each twice the last, whose differences are the grouping;
 - a stated narrow-viewport rule that names the panel it drops and why;
 - the filter bar, visible and clearable in one action, with the selection in the URL;
 - one colour map read by every panel, and one `render()` that recomputes every panel from the
@@ -136,7 +136,7 @@ Four things that template does which the failing page did not, each traceable to
 - **Nothing sets a pixel width.** The container that was `width:1000px` is the reason that page
   overflows every phone.
 
-Three numbers the procedure below leaves open, so they are fixed here:
+Four numbers the procedure below leaves open, so they are fixed here:
 
 | Decision | Default | When to move it |
 | --- | --- | --- |
@@ -321,9 +321,9 @@ Four rules the shape encodes, each one traceable to a reason already stated:
 
 - **Different spans, because area is a property of the content.** Twelve equal tiles is the
   container this skill refuses; the spans above are Step 1's table turned into numbers.
-- **Two gap sizes, not one.** Proximity is what the reader uses to tell groups apart, so the gap
-  between groups has to be visibly larger than the gap inside one. A single uniform gap groups
-  nothing.
+- **Three gap steps, not one.** Proximity is what the reader uses to tell groups apart, so the
+  gap between groups has to be visibly larger than the gap inside one, and the gap that attaches a
+  label to its own element smaller still. A single uniform gap groups nothing.
 - **A minimum height per panel type, not a shared one.** A trend and a table fail in different
   ways when squeezed, so they get different floors.
 - **A stated narrow-viewport behaviour, including what is hidden.** The panel dropped at a narrow
@@ -357,13 +357,13 @@ bash scripts/verify-output.sh --manifest docs/data/figures.json   --html <the pa
 
 It fails on more than one doctype, a repeated `<html>`, `<head>` or `<body>`, a duplicated
 charset, an unclosed or stray tag, a page that does not decode as UTF-8, and on any number in the
-page's own text that no declared figure produces. It also reads the layout back out of the file
-in the only three ways a file can be read on that: a missing viewport meta, a stylesheet with no
+page's own text that no declared figure produces. That last one catches the fault assembly is
+uniquely prone to: a count typed into a header or a subtitle by hand, sitting a few centimetres
+from a computed tile that disagrees with it. It also reads the layout back out of the file in the
+only three ways a file can be read on that: a missing viewport meta, a stylesheet with no
 responsive mechanism at all, and a blank title. With `--project` it also **looks for the pages
 rather than trusting the ones it was handed**, and fails when several were delivered with no
-stated reason, or when the same inline script sits in more than one of them. That last one catches the fault assembly is
-uniquely prone to: a count typed into a header or a subtitle by hand, sitting a few centimetres
-from a computed tile that disagrees with it.
+stated reason, or when the same bundled library is embedded inline in more than one of them.
 
 When the figure writer offers it, ask for a fragment rather than a document, and check the
 resulting file rather than assuming the option took effect.
@@ -482,8 +482,8 @@ Stop when any of these is true:
       panel stated, including any that are deliberately hidden.
 - [ ] Panels of different content types have different spans and different minimum heights, and
       each one traces to what that content needs rather than to the grid.
-- [ ] The gap between groups is larger than the gap inside a group, and both are named once
-      rather than repeated per panel.
+- [ ] The gap between groups is larger than the gap inside a group, and all three steps are named
+      once rather than repeated per panel.
 - [ ] The page carries a viewport meta, at least one rule that responds to width, and a title
       naming the question it answers.
 - [ ] Anything removed from the page is named, with the reason.

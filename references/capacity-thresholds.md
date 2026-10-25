@@ -37,11 +37,17 @@ for values instead of formulas gets an empty cell where a number used to be.
 
 ## Query engine extensions
 
-Verified on DuckDB 1.5.5.
+Verified on DuckDB 1.5.5 and 1.5.6, in the Python package on Linux and Windows and in the 1.5.5
+command-line binary. On a clean install, an `ATTACH … (TYPE postgres)` installs `postgres_scanner`
+from the extension repository before it even tries to connect.
 
 | Bundled and loaded already | Fetched over the network on first use |
 | --- | --- |
-| `json`, `postgres_scanner` | `iceberg`, `delta`, `excel`, `httpfs`, `sqlite_scanner` |
+| `json`, `parquet` | `iceberg`, `delta`, `excel`, `httpfs`, `postgres_scanner`, `sqlite_scanner` |
+
+To check a machine, read `install_mode` in `duckdb_extensions()`: `STATICALLY_LINKED` is bundled,
+`REPOSITORY` was downloaded. `installed = true` alone says neither, because an extension an
+earlier statement fetched reads as installed from then on.
 
 An extension in the right-hand column is downloaded and installed **without prompting** when a
 statement first needs it, and persists under the user's home directory. Once it is on disk,
