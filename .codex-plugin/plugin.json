@@ -11,6 +11,10 @@
   "repository": "https://github.com/LuynoxRD/lakehouse-agent-skills",
   "license": "MIT",
   "skills": "./skills/",
+  "hooks": {
+    "description": "Empty on purpose. hooks/hooks.json holds the Claude Code session hooks, and Codex loads that file whenever this field is absent or an empty list.",
+    "hooks": {}
+  },
   "interface": {
     "displayName": "Lakehouse Agent Skills",
     "shortDescription": "Data-engineering skills and subagents for coding agents: profile, clean, model, query, then build the dashboard by BI rules.",

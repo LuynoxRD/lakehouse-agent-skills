@@ -122,6 +122,75 @@ def test_manifests_that_describe_the_package_differently_are_refused(repo: Layou
     assert "manifest/description-mismatch" in {finding.rule for finding in report.findings}
 
 
+def test_a_root_manifest_without_the_agent_plugins_schema_is_refused(repo: Layout) -> None:
+    """Codex ignores such a file and Copilot reads it as a legacy plugin, personas and hooks too."""
+    path = repo.root / "plugin.json"
+    document = json.loads(path.read_text(encoding="utf-8"))
+    del document["$schema"]
+    write(path, json.dumps(document, indent=2) + "\n")
+
+    assert rules(repo) == ["manifest/agent-plugins-schema"]
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [("displayName", "Lakehouse Agent Skills"), ("commands", "./.claude/commands")],
+)
+def test_a_root_manifest_field_the_standard_does_not_have_is_refused(
+    repo: Layout, field: str, value: str
+) -> None:
+    """Both were in the root manifest until it followed the standard."""
+    path = repo.root / "plugin.json"
+    document = json.loads(path.read_text(encoding="utf-8"))
+    document[field] = value
+    write(path, json.dumps(document, indent=2) + "\n")
+
+    assert rules(repo) == ["manifest/agent-plugins-field"]
+
+
+def test_an_author_field_the_standard_does_not_have_is_refused(repo: Layout) -> None:
+    path = repo.root / "plugin.json"
+    document = json.loads(path.read_text(encoding="utf-8"))
+    document["author"] = {"name": "Maintainer", "github": "maintainer"}
+    write(path, json.dumps(document, indent=2) + "\n")
+
+    assert rules(repo) == ["manifest/agent-plugins-field"]
+
+
+def test_a_root_manifest_name_outside_the_standard_is_refused(repo: Layout) -> None:
+    path = repo.root / "plugin.json"
+    document = json.loads(path.read_text(encoding="utf-8"))
+    document["name"] = "lakehouse--skills"
+    write(path, json.dumps(document, indent=2) + "\n")
+
+    assert "manifest/agent-plugins-name" in rules(repo)
+
+
+@pytest.mark.parametrize("hooks", [None, [], ""], ids=["absent", "empty-list", "empty-string"])
+def test_a_codex_manifest_that_leaves_codex_the_claude_hooks_is_refused(
+    repo: Layout, hooks: object
+) -> None:
+    """Codex 0.164.0 loaded both Claude Code hooks from a manifest with no `hooks` field."""
+    write(repo.hooks / "hooks.json", '{"hooks": {}}\n')
+    path = repo.root / ".codex-plugin" / "plugin.json"
+    document = json.loads(path.read_text(encoding="utf-8"))
+    if hooks is not None:
+        document["hooks"] = hooks
+    write(path, json.dumps(document, indent=2) + "\n")
+
+    assert "manifest/codex-hooks" in rules(repo)
+
+
+def test_a_codex_manifest_that_declares_no_hooks_inline_is_clean(repo: Layout) -> None:
+    write(repo.hooks / "hooks.json", '{"hooks": {}}\n')
+    path = repo.root / ".codex-plugin" / "plugin.json"
+    document = json.loads(path.read_text(encoding="utf-8"))
+    document["hooks"] = {"description": "None for Codex.", "hooks": {}}
+    write(path, json.dumps(document, indent=2) + "\n")
+
+    assert rules(repo) == []
+
+
 def test_a_hooks_field_pointing_somewhere_else_is_allowed(
     repo: Layout, capsys: pytest.CaptureFixture[str]
 ) -> None:

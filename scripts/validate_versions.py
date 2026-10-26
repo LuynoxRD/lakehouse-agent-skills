@@ -3,6 +3,14 @@
 
 Manifests: plugin.json, .claude-plugin/plugin.json, .claude-plugin/marketplace.json,
 .codex-plugin/plugin.json and pyproject.toml. A release tag is only valid when all five agree.
+
+The root plugin.json is also held to Agent Plugins 1.0, the portable format several clients read
+from that path. Its schema is closed and its `$schema` decides how a client treats the file. A
+file without it is rejected by a client that follows the standard to the letter. Codex instead
+ignores it and falls back to `.codex-plugin/plugin.json`. GitHub Copilot loads it as a legacy
+plugin, which also picks up the reviewer personas and the session hooks, and nobody has verified
+either one there. With the schema declared, the portable reading is the one every client gets:
+the skills, and nothing written for one tool.
 """
 
 from __future__ import annotations
@@ -38,6 +46,29 @@ CONVENTIONAL_PATHS = {
     "hooks": ("./hooks/hooks.json", "hooks/hooks.json"),
 }
 
+AGENT_PLUGINS_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
+# The specification closes the manifest to these fields and the author object to its three.
+AGENT_PLUGINS_FIELDS = (
+    "$schema",
+    "name",
+    "version",
+    "description",
+    "author",
+    "homepage",
+    "repository",
+    "license",
+    "keywords",
+    "extensions",
+)
+AGENT_PLUGINS_AUTHOR_FIELDS = ("name", "email", "url")
+AGENT_PLUGINS_NAME_MAX = 64
+AGENT_PLUGINS_NAME_RE = re.compile(r"^(?!.*(?:--|\.\.))[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$")
+
+# Codex loads hooks/hooks.json whenever the manifest that supplies its settings does not name
+# hooks, and it reads an empty list as not naming them. Those are the Claude Code session hooks,
+# so the Codex manifest has to say which hooks it wants, even when the answer is none.
+DEFAULT_HOOKS_FILE = Path("hooks") / "hooks.json"
+
 
 def _load_json(path: Path, report: Report) -> dict[str, object] | None:
     if not path.is_file():
@@ -71,6 +102,9 @@ def _check_paths(document: dict[str, object], root: Path, path: Path, report: Re
             continue
         entries = value if isinstance(value, list) else [value]
         for entry in entries:
+            # Codex takes hooks inline as well as by path, and an inline object has no path.
+            if field == "hooks" and isinstance(entry, dict):
+                continue
             if not isinstance(entry, str):
                 report.error("manifest/path", f"'{field}' entries must be strings", path)
                 continue
@@ -103,6 +137,71 @@ def _plugin_manifest(path: Path, root: Path, report: Report) -> tuple[str | None
     return (name if isinstance(name, str) else None), _check_version(
         document.get("version"), path, report
     )
+
+
+def _agent_plugin_manifest(path: Path, report: Report) -> None:
+    """Hold the root manifest to the closed Agent Plugins 1.0 schema."""
+    if not path.is_file():
+        return
+    document = _load_json(path, report)
+    if document is None:
+        return
+    if document.get("$schema") != AGENT_PLUGINS_SCHEMA:
+        report.error(
+            "manifest/agent-plugins-schema",
+            f"'$schema' must be '{AGENT_PLUGINS_SCHEMA}'; without it a client that follows "
+            "Agent Plugins rejects the plugin, and one that falls back reads it as its own legacy "
+            "format",
+            path,
+        )
+    for field in document:
+        if field not in AGENT_PLUGINS_FIELDS:
+            report.error(
+                "manifest/agent-plugins-field",
+                f"'{field}' is not an Agent Plugins field; the schema is closed, so a "
+                "client-specific setting belongs in that client's own manifest or under "
+                "'extensions'",
+                path,
+            )
+    author = document.get("author")
+    if isinstance(author, dict):
+        for field in author:
+            if field not in AGENT_PLUGINS_AUTHOR_FIELDS:
+                report.error(
+                    "manifest/agent-plugins-field",
+                    f"'author.{field}' is not an Agent Plugins field; the author object takes "
+                    f"{', '.join(AGENT_PLUGINS_AUTHOR_FIELDS)}",
+                    path,
+                )
+    name = document.get("name")
+    if isinstance(name, str) and (
+        len(name) > AGENT_PLUGINS_NAME_MAX or not AGENT_PLUGINS_NAME_RE.match(name)
+    ):
+        report.error(
+            "manifest/agent-plugins-name",
+            f"'{name}' is not an Agent Plugins name: at most {AGENT_PLUGINS_NAME_MAX} lowercase "
+            "letters, digits, hyphens and periods, starting and ending with a letter or digit, "
+            "never '--' or '..'",
+            path,
+        )
+
+
+def _codex_hooks(path: Path, root: Path, report: Report) -> None:
+    """Refuse a Codex manifest that would leave Codex to load the Claude Code hooks."""
+    if not (root / DEFAULT_HOOKS_FILE).is_file() or not path.is_file():
+        return
+    document = _load_json(path, report)
+    if document is None:
+        return
+    hooks = document.get("hooks")
+    if hooks is None or hooks in ([], ""):
+        report.error(
+            "manifest/codex-hooks",
+            "Codex loads hooks/hooks.json when 'hooks' is absent or an empty list, and that file "
+            "holds the Claude Code hooks; declare the hooks Codex should run, or none with "
+            '\'"hooks": {"hooks": {}}\'',
+            path,
+        )
 
 
 def _description(document: dict[str, object]) -> str | None:
@@ -195,6 +294,8 @@ def validate(layout: Layout) -> Report:
         if version:
             versions[path] = version
         _collect_descriptions(path, root, descriptions, report)
+    _agent_plugin_manifest(root / "plugin.json", report)
+    _codex_hooks(root / ".codex-plugin" / "plugin.json", root, report)
 
     marketplace = root / ".claude-plugin" / "marketplace.json"
     report.checked += 1

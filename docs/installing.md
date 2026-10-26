@@ -72,6 +72,33 @@ So the validator and the loader do not agree, and the validator is the one that 
 way to know which shape works is to install the plugin and read the inventory, which is why that
 is a step in this document and not an assumption in it.
 
+### In Codex and ChatGPT
+
+Codex reads the same marketplace, so the same checkout installs there too:
+
+```bash
+codex plugin marketplace add /path/to/lakehouse-agent-skills
+codex plugin add lakehouse-agent-skills@lakehouse-skills
+```
+
+What arrives is narrower than in Claude Code: **the fifteen skills and nothing else**. Codex has no
+place for the commands or the reviewer personas, and `.codex-plugin/plugin.json` declares an empty
+set of hooks. It has to: Codex loads `hooks/hooks.json` whenever that field is missing or an empty
+list, and those hooks are written for Claude Code. Measured with Codex 0.164.0 in a throwaway
+container, by asking its app server what the installed plugin carries: without the field, 15
+skills and both hooks; with it, 15 skills and none. OpenAI's documentation says the ChatGPT desktop
+app reads `.claude-plugin/marketplace.json` as well; that was not tested here.
+
+Which manifest Codex reads is decided by the root `plugin.json`. That file follows
+[Agent Plugins 1.0](https://agent-plugins.org/plugin-authors/manifest), the portable format that
+Codex, VS Code, GitHub Copilot and Cursor read from a plugin's root: it declares the standard's
+`$schema` and holds only the standard's fields, so a setting for one tool lives in that tool's own
+manifest. Codex takes the plugin's identity from it and the rest from `.codex-plugin/plugin.json`.
+Without the `$schema`, Codex ignored the file, and GitHub Copilot's documentation says it would
+load it as a legacy plugin, reviewer personas and hooks included, neither of them verified there.
+`scripts/validate_versions.py` refuses a root manifest without the schema or with a field the
+standard does not have, and a Codex manifest that would leave Codex the Claude Code hooks.
+
 ## What the frontmatter has to survive
 
 A skill is found by reading the frontmatter at the top of its `SKILL.md`. Readers differ in how
@@ -123,10 +150,10 @@ shared one. Look in `.agents/skills/`.
 
 | Component | Reaches |
 | --- | --- |
-| The 15 skills | The installer writes them for any of the 77 names above, into `.agents/skills` or the tool's own directory. **Loading was verified only in Claude Code**; elsewhere what was measured is that the files arrive, and a file arriving is not a skill running. |
+| The 15 skills | The installer writes them for any of the 77 names above, into `.agents/skills` or the tool's own directory. **Loading was verified in Claude Code, and in Codex as a plugin** (see above); elsewhere what was measured is that the files arrive, and a file arriving is not a skill running. |
 | The 9 commands | Claude Code, as `.claude/commands/*.md`, and Gemini, as `.gemini/commands/*.toml`. Both are generated from `commands/*.toml` by `scripts/sync_commands.py`. |
 | The 4 reviewer personas | Claude Code from `agents/`, opencode from `.opencode/agent/`, Cursor from `.cursor/agents/`, Gemini CLI from `.gemini/agents/`, Codex from `.codex/agents/`. The four copies are generated from `agents/` by `scripts/sync_agents.py` and checked for drift by `scripts/validate_agent_copies.py`. **Only the Claude Code and opencode personas have been verified loading**; the other three are files in the documented place, and a file arriving is not an agent running. |
-| The 2 session hooks | Claude Code, through `hooks/hooks.json` |
+| The 2 session hooks | Claude Code, through `hooks/hooks.json`. The Codex manifest declares none, so Codex does not pick them up. |
 
 **In Claude Code the personas start without your instruction files.** Each declares
 `omitClaudeMd: true`, so a reviewer does not load the user, project or local `CLAUDE.md` of the
