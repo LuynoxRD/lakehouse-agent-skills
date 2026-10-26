@@ -18,9 +18,9 @@ and any conduct that would be unacceptable in a professional setting are not tol
 
 ## Reporting
 
-Report conduct problems privately to the maintainer through the contact on the GitHub profile
-linked from the plugin manifest (`.claude-plugin/plugin.json`, `author.url`). Reports are
-acknowledged within 7 days and handled in confidence. Do not use the security reporting channel
+Report conduct problems privately to the maintainer at
+[contacto@luynoxrd.com](mailto:contacto@luynoxrd.com). Reports are acknowledged within 7 days and
+handled in confidence. Do not use the security reporting channel
 for conduct problems; `SECURITY.md` describes what that channel is for.
 
 ## Enforcement

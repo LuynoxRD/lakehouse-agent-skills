@@ -36,5 +36,5 @@ stored here, and `CONTRIBUTING.md` forbids adding any.
 
 ## Contact
 
-Questions about this statement: the maintainer, through the contact on the GitHub profile linked
-from the plugin manifest (`.claude-plugin/plugin.json`, `author.url`).
+Questions about this statement: the maintainer, at
+[contacto@luynoxrd.com](mailto:contacto@luynoxrd.com).

@@ -377,7 +377,8 @@ else's agent, so nothing here fetches an installer, pipes a script into a shell,
 environment variables — and a validator fails the build on those patterns rather than trusting
 review to catch them. Every fixture is synthetic. `CODE_OF_CONDUCT.md` applies to every
 interaction here, and `PRIVACY.md` says what the plugin reads and writes: nothing leaves the
-machine.
+machine. Questions, and anything you would rather not raise in a public issue, go to
+[contacto@luynoxrd.com](mailto:contacto@luynoxrd.com); security problems follow `SECURITY.md`.
 
 ## License
 
