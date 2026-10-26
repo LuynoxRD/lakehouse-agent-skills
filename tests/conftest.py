@@ -148,6 +148,19 @@ def manifest(version: str, *, name: str = "lakehouse-agent-skills") -> str:
     )
 
 
+def agent_plugin_manifest(version: str, *, name: str = "lakehouse-agent-skills") -> str:
+    """The root manifest, which follows Agent Plugins 1.0 and so carries no tool's own fields."""
+    return json.dumps(
+        {
+            "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+            "name": name,
+            "version": version,
+            "description": "Data-engineering discipline skills for AI coding agents.",
+        },
+        indent=2,
+    )
+
+
 def marketplace(version: str, *, name: str = "lakehouse-agent-skills") -> str:
     return json.dumps(
         {
@@ -197,7 +210,7 @@ def build_repo(root: Path, *, version: str = "0.1.0") -> Layout:
         layout.eval_config,
         json.dumps({"min_rank1_percent": 0, "collision_error": 0.75, "collision_warning": 0.5}),
     )
-    write(root / "plugin.json", manifest(version))
+    write(root / "plugin.json", agent_plugin_manifest(version))
     write(root / ".claude-plugin" / "plugin.json", manifest(version))
     write(root / ".claude-plugin" / "marketplace.json", marketplace(version))
     write(root / ".codex-plugin" / "plugin.json", manifest(version))

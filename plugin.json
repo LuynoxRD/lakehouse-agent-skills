@@ -1,7 +1,24 @@
 {
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "lakehouse-agent-skills",
-  "displayName": "Lakehouse Agent Skills",
   "version": "0.2.0",
   "description": "Data-engineering skills and subagents for AI coding agents: profile before you clean, clean before you chart, persist to columnar storage, query it with SQL, then build the dashboard by BI rules rather than by the model's guess, and disclose exactly what was and was not processed rather than invent it.",
-  "commands": "./.claude/commands"
+  "author": {
+    "name": "Luis Castillo",
+    "email": "contacto@luynoxrd.com",
+    "url": "https://github.com/LuynoxRD"
+  },
+  "homepage": "https://github.com/LuynoxRD/lakehouse-agent-skills",
+  "repository": "https://github.com/LuynoxRD/lakehouse-agent-skills",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "agents",
+    "data-engineering",
+    "lakehouse",
+    "parquet",
+    "duckdb",
+    "data-quality",
+    "dashboards"
+  ]
 }
