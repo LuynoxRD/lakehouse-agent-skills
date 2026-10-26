@@ -128,6 +128,15 @@ shared one. Look in `.agents/skills/`.
 | The 4 reviewer personas | Claude Code from `agents/`, opencode from `.opencode/agent/`, Cursor from `.cursor/agents/`, Gemini CLI from `.gemini/agents/`, Codex from `.codex/agents/`. The four copies are generated from `agents/` by `scripts/sync_agents.py` and checked for drift by `scripts/validate_agent_copies.py`. **Only the Claude Code and opencode personas have been verified loading**; the other three are files in the documented place, and a file arriving is not an agent running. |
 | The 2 session hooks | Claude Code, through `hooks/hooks.json` |
 
+**In Claude Code the personas start without your instruction files.** Each declares
+`omitClaudeMd: true`, so a reviewer does not load the user, project or local `CLAUDE.md` of the
+project it was called into; managed policy files still load. Those files were written for doing
+the work, a reviewer judges the work against its own protocol, and they would be paid for on every
+review. What that costs is worth knowing: a rule that lives only there, such as a column your
+organisation treats as personal data, does not reach the reviewer, so say it in the request.
+`scripts/validate_agents.py` refuses a persona without the key. Only Claude Code reads it, from
+2.1.271, and the generated copies leave it out.
+
 ### One promise, five different fields
 
 A reviewer that can edit what it reviews is not one, and no two of these tools say that the same

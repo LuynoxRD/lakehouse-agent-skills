@@ -4,6 +4,7 @@ description: Audits a written finding against the numbers it rests on, checking 
 model: inherit
 color: purple
 tools: ["Read", "Grep", "Glob", "Bash"]
+omitClaudeMd: true
 ---
 
 # Claim auditor
