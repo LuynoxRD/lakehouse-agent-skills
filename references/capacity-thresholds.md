@@ -37,9 +37,10 @@ for values instead of formulas gets an empty cell where a number used to be.
 
 ## Query engine extensions
 
-Verified on DuckDB 1.5.5 and 1.5.6, in the Python package on Linux and Windows and in the 1.5.5
-command-line binary. On a clean install, an `ATTACH … (TYPE postgres)` installs `postgres_scanner`
-from the extension repository before it even tries to connect.
+Verified on DuckDB 1.5.5, 1.5.6 and 2.0.0, in the Python package on Linux and Windows and in the
+1.5.5 and 2.0.0 command-line binaries; 2.0 changed none of it. On a clean install, an
+`ATTACH … (TYPE postgres)` installs `postgres_scanner` from the extension repository before it
+even tries to connect.
 
 | Bundled and loaded already | Fetched over the network on first use |
 | --- | --- |
