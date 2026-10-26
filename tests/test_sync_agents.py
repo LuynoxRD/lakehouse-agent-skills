@@ -35,7 +35,7 @@ def staffed(repo: Layout) -> Layout:
     write(
         repo.agents / f"{NAME}.md",
         f"---\nname: {NAME}\ndescription: {DESCRIPTION}\nmodel: inherit\ncolor: cyan\n"
-        f'tools: ["Read", "Grep", "Glob", "Bash"]\n---\n{BODY}',
+        f'tools: ["Read", "Grep", "Glob", "Bash"]\nomitClaudeMd: true\n---\n{BODY}',
     )
     return repo
 
@@ -68,6 +68,15 @@ def test_the_opencode_copy_denies_editing_and_never_says_tools(staffed: Layout) 
     assert "color: '#06B6D4'" in text
     # The name comes from the filename there, so carrying it would be a field nothing reads.
     assert "name:" not in text.split("---")[1]
+
+
+def test_a_key_only_claude_code_reads_stays_out_of_every_copy(staffed: Layout) -> None:
+    """opencode routes a key it does not know into `options` in silence, so carrying
+    `omitClaudeMd` across would put a field there that nothing reads."""
+    sync.main(["--root", str(staffed.root)])
+
+    for tool in sync.TARGETS:
+        assert "omitClaudeMd" not in copy(staffed, tool).read_text(encoding="utf-8"), tool
 
 
 def test_the_cursor_copy_is_readonly(staffed: Layout) -> None:

@@ -4,6 +4,7 @@ description: Reviews what is about to leave the project, classifying every field
 model: inherit
 color: orange
 tools: ["Read", "Grep", "Glob", "Bash"]
+omitClaudeMd: true
 ---
 
 # Outbound data gate

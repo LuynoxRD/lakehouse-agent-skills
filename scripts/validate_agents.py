@@ -20,6 +20,14 @@ ordinary path, not every path, and the personas say so in their own text. `color
 because the loader's own documentation lists it as required and a field that is optional in
 practice is a field that drifts.
 
+`omitClaudeMd: true` is required for the same reason. Without it a subagent starts with every
+instruction file of the project it was called into, and that project is somebody else's: its
+instructions were written for doing the work, not for reviewing it, and they are paid for on every
+invocation. A reviewer judges the artifacts against its own protocol, so it starts without them.
+This was verified rather than read: asked for a codename that only the project's instruction file
+stated, a persona without the field quoted it and the same persona with the field answered that
+there was none. Only Claude Code reads the key, and the generated copies leave it out.
+
 Standard library only.
 """
 
@@ -36,6 +44,7 @@ REQUIRED = ("name", "description", "model", "color", "tools")
 MODELS = ("inherit", "opus", "sonnet", "haiku")
 # A reviewer that can rewrite the artifacts it is reviewing can make its own report come true.
 FORBIDDEN_TOOLS = ("Write", "Edit", "MultiEdit", "NotebookEdit")
+OMIT_PROJECT_INSTRUCTIONS = "omitClaudeMd"
 
 
 def validate(layout: Layout) -> Report:
@@ -96,6 +105,16 @@ def validate(layout: Layout) -> Report:
                         "these personas read and report",
                         path,
                     )
+
+        # The frontmatter subset has no booleans, so the value arrives as text. Absent and
+        # `false` are one mistake with one message: the reviewer loads the caller's instructions.
+        if str(fields.get(OMIT_PROJECT_INSTRUCTIONS, "")).strip() != "true":
+            report.error(
+                "agents/omit-claude-md",
+                f"'{OMIT_PROJECT_INSTRUCTIONS}: true' is required; without it the reviewer starts "
+                "with the instructions of the project it was called into",
+                path,
+            )
     return report
 
 

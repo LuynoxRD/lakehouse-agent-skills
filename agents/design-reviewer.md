@@ -4,6 +4,7 @@ description: Reads a delivered page against the craft decisions it should have m
 model: inherit
 color: green
 tools: ["Read", "Grep", "Glob", "Bash"]
+omitClaudeMd: true
 ---
 
 # Design reviewer

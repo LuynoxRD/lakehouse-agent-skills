@@ -23,6 +23,7 @@ PERSONA = (
     "model: inherit\n"
     "color: cyan\n"
     'tools: ["Read", "Grep"]\n'
+    "omitClaudeMd: true\n"
     "---\n\nBody\n"
 )
 
@@ -74,6 +75,18 @@ def test_a_tool_list_that_is_not_a_list_is_refused(repo: Layout) -> None:
     """An empty list is an empty field, checked above. This is the other shape mistake."""
     persona(repo, PERSONA.replace('tools: ["Read", "Grep"]', "tools: Read"))
     assert "agents/tools-shape" in rules(repo)
+
+
+def test_a_reviewer_that_would_start_with_the_callers_instructions_is_refused(
+    repo: Layout,
+) -> None:
+    persona(repo, PERSONA.replace("omitClaudeMd: true\n", ""))
+    assert rules(repo) == ["agents/omit-claude-md"]
+
+
+def test_omit_claude_md_set_to_false_is_the_same_mistake_and_one_finding(repo: Layout) -> None:
+    persona(repo, PERSONA.replace("omitClaudeMd: true", "omitClaudeMd: false"))
+    assert rules(repo) == ["agents/omit-claude-md"]
 
 
 def test_the_real_personas_declare_both() -> None:

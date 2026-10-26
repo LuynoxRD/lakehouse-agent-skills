@@ -4,6 +4,7 @@ description: Reviews finished data work against the artifacts it left behind, re
 model: inherit
 color: cyan
 tools: ["Read", "Grep", "Glob", "Bash"]
+omitClaudeMd: true
 ---
 
 # Data work reviewer
