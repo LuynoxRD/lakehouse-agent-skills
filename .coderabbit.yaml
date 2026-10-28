@@ -1,0 +1,53 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# Settings for the automated pull request review. The rules it reviews against are the
+# repository's own, read from the files under knowledge_base below; nothing here adds a rule.
+language: en-US
+reviews:
+  profile: chill
+  # The pull request body becomes the squash commit on main, so it stays the author's text and
+  # the summary goes in the review comment instead.
+  high_level_summary_in_walkthrough: true
+  poem: false
+  # It comments and never approves: the review CODEOWNERS requires stays the maintainer's.
+  request_changes_workflow: false
+  suggested_reviewers: false
+  path_filters:
+    # The fixtures are defective on purpose. The CRLF exports, mixed date formats and broken
+    # workbooks are the traps the evals exercise, and a review that fixes one deletes a test.
+    - "!evals/fixtures/**"
+    - "!uv.lock"
+    # Generated copies. The source is reviewed, and a validator fails the build when a copy
+    # drifts from it.
+    - "!skills/*/scripts/**"
+    - "!.claude/commands/**"
+    - "!.gemini/commands/**"
+    - "!.gemini/agents/**"
+    - "!.codex/agents/**"
+    - "!.cursor/agents/**"
+    - "!.opencode/agent/**"
+  path_instructions:
+    - path: "skills/**/SKILL.md"
+      instructions: >-
+        A SKILL.md is code that runs inside someone else's coding agent. Flag any instruction to
+        call an undocumented host, pipe a download into a shell, eval, decode base64, write
+        outside the user's project, delete user data, or read or send environment variables.
+        Flag a rule that rests on one product's calibration rather than on a documented standard
+        of the discipline, and any sentence that promotes or recommends a commercial product.
+    - path: "agents/*.md"
+      instructions: >-
+        A reviewer persona may not edit what it reviews. Flag any tool beyond Read, Grep, Glob
+        and Bash, and any instruction to change the files under review.
+    - path: ".github/workflows/*.yml"
+      instructions: >-
+        Every action is pinned to a full commit SHA with its version in a comment, permissions
+        start at contents: read, and nothing from a pull request runs with a secret.
+  pre_merge_checks:
+    docstrings:
+      mode: "off"
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - ".claude/CLAUDE.md"
+      - "AGENTS.md"
+      - "CONTRIBUTING.md"
