@@ -44,11 +44,13 @@ claude plugin install lakehouse-agent-skills@lakehouse-skills
 claude plugin details lakehouse-agent-skills
 ```
 
-Verified end to end in a throwaway project, and measured again on every change that adds a
-component rather than recomputed. The inventory that comes back is **24 skills**, which is the
-fifteen skills plus the nine commands, since commands load through the same mechanism;
+Verified end to end from a clone in a throwaway project and, once the repository was public, from
+`LuynoxRD/lakehouse-agent-skills` in a clean configuration; measured again on every change that
+adds a component rather than recomputed. The inventory that comes back is **24 skills**, which is
+the fifteen skills plus the nine commands, since commands load through the same mechanism;
 **4 agents**; and **2 hooks**, one on `SessionStart` and one on `Stop`. The pack costs about
-**3,348 tokens always-on**, and each skill costs its own text again only when it fires.
+**2,704 tokens always-on** as Claude Code 2.1.311 counts them, and each skill costs its own text
+again only when it fires.
 
 The manifest declares:
 
@@ -74,7 +76,9 @@ is a step in this document and not an assumption in it.
 
 ### In Codex and ChatGPT
 
-Codex reads the same marketplace, so the same checkout installs there too:
+Codex reads the same marketplace, so the same checkout installs there too, and so does the
+repository itself: `LuynoxRD/lakehouse-agent-skills` in place of the path, verified from GitHub
+with Codex 0.164.0.
 
 ```bash
 codex plugin marketplace add /path/to/lakehouse-agent-skills
