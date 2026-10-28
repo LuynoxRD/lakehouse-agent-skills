@@ -6,8 +6,10 @@ that gate them as part of the trusted computing base.
 
 ## Reporting a vulnerability
 
-Use GitHub's private vulnerability reporting for this repository (**Security → Report a
-vulnerability**). Do not open a public issue, discussion or pull request for a security problem.
+Use GitHub's private vulnerability reporting for this repository:
+[report a vulnerability](https://github.com/LuynoxRD/lakehouse-agent-skills/security/advisories/new),
+or **Security → Report a vulnerability** on the repository page. Do not open a public issue,
+discussion or pull request for a security problem.
 
 Include what you found, where it is (file and line), how it could be abused, and, if you have one, a
 suggested fix. You will receive an acknowledgement within 3 business days and a status update within
