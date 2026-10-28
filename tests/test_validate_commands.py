@@ -96,3 +96,17 @@ def test_empty_command_set_only_flags_orphans(repo: Layout) -> None:
     (repo.commands / "profile.toml").unlink()
     found = [f.rule for f in validate_commands.validate(repo).findings]
     assert found == ["command/orphan-copy", "command/orphan-copy"]
+
+
+@pytest.mark.parametrize("key", ["allowed-tools: Bash", "user-invocable: false"])
+def test_a_claude_copy_with_frontmatter_the_source_does_not_generate_is_refused(
+    repo: Layout, key: str
+) -> None:
+    """Description and body still match, so drift alone never saw it."""
+    write(
+        repo.claude_commands / "profile.md",
+        f"---\ndescription: Profile a dataset before cleaning or charting it.\n{key}\n---\n\n"
+        "Invoke the `etl-before-dashboard` skill and write `docs/data/profile.md`.\n",
+    )
+
+    assert rules(repo) == {"command/copy-extra-frontmatter": "error"}

@@ -109,3 +109,16 @@ def test_the_real_repository_ships_what_its_skills_name() -> None:
     """The check that matters: this repository, as committed."""
     root = Path(__file__).resolve().parents[1]
     assert validate.validate(Layout(root)).exit_code == 0
+
+
+@pytest.mark.parametrize("name", ["setup.sh", "helper.py"])
+def test_a_shipped_file_with_no_source_fails_the_check(
+    packaged: Layout, capsys: pytest.CaptureFixture[str], name: str
+) -> None:
+    """Nothing compares it with anything, and a review skips the directory as generated copies."""
+    sync.main(["--root", str(packaged.root)])
+    write(packaged.skills / SKILL_A / "scripts" / name, BODY)
+    capsys.readouterr()
+
+    assert validate.main(["--root", str(packaged.root)]) == 1
+    assert "skill-scripts/no-source" in capsys.readouterr().out

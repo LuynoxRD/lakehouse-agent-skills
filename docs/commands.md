@@ -3,7 +3,9 @@
 Slash commands for the data lifecycle, one TOML file per command in `commands/`. That directory is
 the source of truth; the per-tool copies under `.claude/commands/` (markdown with a `description`
 frontmatter and the prompt as body) and `.gemini/commands/` (identical TOML) are validated for
-parity by `scripts/validate_commands.py`.
+parity by `scripts/validate_commands.py`. A Claude copy carries no frontmatter key but
+`description`: a key such as `allowed-tools` would change how the command runs without the source
+knowing, so the validator refuses it.
 
 This page lives in `docs/` and not in `commands/` because `claude plugin validate` reads every
 markdown file in `commands/` as a command definition, and refuses one without frontmatter under
