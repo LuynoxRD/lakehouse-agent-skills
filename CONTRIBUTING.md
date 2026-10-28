@@ -59,15 +59,15 @@ Commands live in `commands/*.toml` and are copied per tool. Run
 `uv run python scripts/sync_commands.py` after any change and commit the source together with both
 copies; editing a copy directly only produces a parity failure later.
 
-Changes to `skills/`, `hooks/`, `scripts/`, `commands/`, `agents/` and `.github/` require
-code-owner review (`.github/CODEOWNERS`).
+Changes to `skills/`, `hooks/`, `scripts/`, `commands/`, `agents/` and `.github/` are reviewed by
+their code owner (`.github/CODEOWNERS`), who is also the only person who can merge.
 
-The protection rules for `main` (required checks, linear history, no force pushes, code-owner
-review) live in `.github/branch-protection.json` and are applied with
-`gh api -X PUT repos/<owner>/<repo>/branches/main/protection --input .github/branch-protection.json`.
-GitHub only enforces them on a private repository under a paid plan, so while the repository is
-private the pre-commit hooks, `scripts/ci-local.sh` and the pull-request flow above are the gate;
-the rules are applied the moment the repository becomes public.
+`main` is protected by a repository ruleset. Every change arrives through a pull request and is
+squash-merged, the CI checks must pass, every review thread must be resolved, history stays
+linear, and `main` cannot be force-pushed or deleted. No approval count is required: the one
+maintainer cannot approve their own pull request, and the code owner merging is the review.
+Release tags (`v*` and `lakehouse-agent-skills--v*`) cannot be moved or deleted, and a published
+release cannot be changed.
 
 ## Proposing a new skill
 
