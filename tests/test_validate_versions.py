@@ -240,8 +240,9 @@ def test_a_square_png_listing_icon_is_clean(repo: Layout) -> None:
         ("./assets/wide.png", png(1024, 512)),
         ("./assets/icon.svg", b"<svg xmlns='http://www.w3.org/2000/svg'/>"),
         ("assets/icon.png", png(1024, 1024)),
+        ("./../outside.png", png(1024, 1024)),
     ],
-    ids=["missing", "not-square", "not-png", "no-dot-slash"],
+    ids=["missing", "not-square", "not-png", "no-dot-slash", "outside-the-plugin"],
 )
 def test_a_listing_icon_a_directory_would_refuse_is_reported_for_every_field(
     repo: Layout, entry: str, content: bytes | None

@@ -152,6 +152,11 @@ def _check_listing_images(
             )
             continue
         target = root / entry
+        if not target.resolve().is_relative_to(root.resolve()):
+            report.error(
+                "manifest/listing-image", f"'{field}' points at '{entry}', outside the plugin", path
+            )
+            continue
         if not target.is_file():
             report.error(
                 "manifest/listing-image",
