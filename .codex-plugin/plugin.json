@@ -1,6 +1,6 @@
 {
   "name": "lakehouse-agent-skills",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "Data-engineering skills and subagents for AI coding agents: profile before you clean, clean before you chart, persist to columnar storage, query it with SQL, then build the dashboard by BI rules rather than by the model's guess, and disclose exactly what was and was not processed rather than invent it.",
   "author": {
     "name": "Luis Castillo",
