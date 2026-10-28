@@ -19,6 +19,7 @@ scripts/           → validators and the eval runner, Python standard library o
 scripts/skill-scripts/ → the one copy of each script a skill ships; `sync_skill_scripts.py` copies it into every skill whose SKILL.md names it
 tests/             → pytest suite covering every validator and the eval runner
 docs/              → skill anatomy, getting started, per-tool setup guides
+assets/            → the plugin icon: the SVG it is drawn from and the PNG the directory listings read
 .github/           → CI workflows, Dependabot, CODEOWNERS
 ```
 

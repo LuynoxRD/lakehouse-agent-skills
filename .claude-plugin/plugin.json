@@ -21,6 +21,7 @@
     "data-quality",
     "dashboards"
   ],
+  "icon": "./assets/icon.png",
   "skills": "./skills",
   "commands": "./.claude/commands"
 }
