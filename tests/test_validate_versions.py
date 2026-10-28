@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import zlib
 
 import pytest
 
@@ -203,3 +204,53 @@ def test_a_hooks_field_pointing_somewhere_else_is_allowed(
 
     assert validate_versions.main(["--root", str(repo.root)]) == 0
     assert "conventional-path" not in capsys.readouterr().out
+
+
+def png(width: int, height: int) -> bytes:
+    """The signature and IHDR chunk of a PNG, which is as far as the check reads."""
+    body = b"IHDR" + width.to_bytes(4, "big") + height.to_bytes(4, "big") + bytes([8, 2, 0, 0, 0])
+    return (
+        b"\x89PNG\r\n\x1a\n" + (13).to_bytes(4, "big") + body + zlib.crc32(body).to_bytes(4, "big")
+    )
+
+
+def set_listing_images(repo: Layout, entry: str) -> None:
+    claude = repo.root / ".claude-plugin" / "plugin.json"
+    document = json.loads(claude.read_text(encoding="utf-8"))
+    document["icon"] = entry
+    write(claude, json.dumps(document, indent=2) + "\n")
+    codex = repo.root / ".codex-plugin" / "plugin.json"
+    document = json.loads(codex.read_text(encoding="utf-8"))
+    document["interface"] = {"logo": entry, "composerIcon": entry}
+    write(codex, json.dumps(document, indent=2) + "\n")
+
+
+def test_a_square_png_listing_icon_is_clean(repo: Layout) -> None:
+    (repo.root / "assets").mkdir()
+    (repo.root / "assets" / "icon.png").write_bytes(png(1024, 1024))
+    set_listing_images(repo, "./assets/icon.png")
+
+    assert rules(repo) == []
+
+
+@pytest.mark.parametrize(
+    ("entry", "content"),
+    [
+        ("./assets/missing.png", None),
+        ("./assets/wide.png", png(1024, 512)),
+        ("./assets/icon.svg", b"<svg xmlns='http://www.w3.org/2000/svg'/>"),
+        ("assets/icon.png", png(1024, 1024)),
+    ],
+    ids=["missing", "not-square", "not-png", "no-dot-slash"],
+)
+def test_a_listing_icon_a_directory_would_refuse_is_reported_for_every_field(
+    repo: Layout, entry: str, content: bytes | None
+) -> None:
+    """No loader opens these files, so without the check they fail in a directory's review."""
+    if content is not None:
+        target = repo.root / entry
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(content)
+    set_listing_images(repo, entry)
+
+    assert rules(repo) == ["manifest/listing-image"] * 3

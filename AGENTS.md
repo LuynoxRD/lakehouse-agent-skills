@@ -47,6 +47,7 @@ dashboard by BI rules rather than by the model's guess, and disclose exactly wha
 | `scripts/` | validators and the eval runner |
 | `tests/` | pytest suite for every validator and the runner |
 | `docs/` | skill anatomy, getting started, per-tool setup |
+| `assets/` | the plugin icon: the SVG it is drawn from and the PNG the directory listings read |
 
 The contributor workflow (branching, pull-request unit, review, squash merge) is in
 `CONTRIBUTING.md`. The security policy is in `SECURITY.md`.

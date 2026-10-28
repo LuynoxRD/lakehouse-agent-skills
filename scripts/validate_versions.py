@@ -11,6 +11,9 @@ ignores it and falls back to `.codex-plugin/plugin.json`. GitHub Copilot loads i
 plugin, which also picks up the reviewer personas and the session hooks, and nobody has verified
 either one there. With the schema declared, the portable reading is the one every client gets:
 the skills, and nothing written for one tool.
+
+The listing icon is checked as well: the image Claude's directory reads from `icon` and Codex's
+reads from `interface.logo` and `interface.composerIcon` has to exist and be a square PNG.
 """
 
 from __future__ import annotations
@@ -31,6 +34,13 @@ SEMVER_RE = re.compile(
 )
 REQUIRED_PLUGIN_FIELDS = ("name", "version", "description")
 PATH_FIELDS = ("skills", "commands", "agents", "hooks")
+
+# The images a directory listing shows: Claude's directory reads `icon`, Codex's reads `logo` and
+# `composerIcon` under `interface`. No loader opens them, so a missing or misshapen file surfaces
+# only in a directory's review. One square PNG is the format both accept.
+LISTING_IMAGE_FIELDS = ("icon",)
+LISTING_INTERFACE_IMAGE_FIELDS = ("logo", "composerIcon")
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
 # Paths the plugin loader finds on its own. Declaring one of these is not a harmless duplicate:
 # the loader refuses the plugin outright, because the file is already loaded by convention and
@@ -124,6 +134,48 @@ def _check_paths(document: dict[str, object], root: Path, path: Path, report: Re
                 )
 
 
+def _check_listing_images(
+    document: dict[str, object], root: Path, path: Path, report: Report
+) -> None:
+    fields = [(field, document.get(field)) for field in LISTING_IMAGE_FIELDS]
+    interface = document.get("interface")
+    if isinstance(interface, dict):
+        fields += [
+            (f"interface.{field}", interface.get(field)) for field in LISTING_INTERFACE_IMAGE_FIELDS
+        ]
+    for field, entry in fields:
+        if entry is None:
+            continue
+        if not isinstance(entry, str) or not entry.startswith("./"):
+            report.error(
+                "manifest/listing-image", f"'{field}' must be a './' path inside the plugin", path
+            )
+            continue
+        target = root / entry
+        if not target.is_file():
+            report.error(
+                "manifest/listing-image",
+                f"'{field}' points at '{entry}', which does not exist",
+                path,
+            )
+            continue
+        # The PNG signature, then the IHDR chunk: its length, its type, width, height.
+        head = target.read_bytes()[:24]
+        if head[:8] != PNG_SIGNATURE:
+            report.error(
+                "manifest/listing-image", f"'{field}' points at '{entry}', which is not a PNG", path
+            )
+            continue
+        width, height = int.from_bytes(head[16:20], "big"), int.from_bytes(head[20:24], "big")
+        if width != height:
+            report.error(
+                "manifest/listing-image",
+                f"'{field}' points at '{entry}', which is {width}x{height}; "
+                "a listing icon is square",
+                path,
+            )
+
+
 def _plugin_manifest(path: Path, root: Path, report: Report) -> tuple[str | None, str | None]:
     document = _load_json(path, report)
     if document is None:
@@ -133,6 +185,7 @@ def _plugin_manifest(path: Path, root: Path, report: Report) -> tuple[str | None
         if not isinstance(value, str) or not value.strip():
             report.error("manifest/required", f"'{field}' must be a non-empty string", path)
     _check_paths(document, root, path, report)
+    _check_listing_images(document, root, path, report)
     name = document.get("name")
     return (name if isinstance(name, str) else None), _check_version(
         document.get("version"), path, report

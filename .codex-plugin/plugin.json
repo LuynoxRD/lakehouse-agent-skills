@@ -20,6 +20,8 @@
     "shortDescription": "Data-engineering skills and subagents for coding agents: profile, clean, model, query, then build the dashboard by BI rules.",
     "longDescription": "Lakehouse Agent Skills teaches coding agents to profile data before cleaning it, clean it before charting it, persist it to columnar storage, query it with SQL, build the dashboard by BI rules rather than by the model's guess, and disclose exactly what was and was not processed rather than invent it.",
     "developerName": "Luis Castillo",
+    "logo": "./assets/icon.png",
+    "composerIcon": "./assets/icon.png",
     "category": "Productivity",
     "capabilities": [
       "Interactive",
