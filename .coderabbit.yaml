@@ -8,6 +8,7 @@ reviews:
   # the summary goes in the review comment instead.
   high_level_summary_in_walkthrough: true
   poem: false
+  in_progress_fortune: false
   # It comments and never approves: the review CODEOWNERS requires stays the maintainer's.
   request_changes_workflow: false
   suggested_reviewers: false
@@ -17,7 +18,7 @@ reviews:
     - "!evals/fixtures/**"
     - "!uv.lock"
     # Generated copies. The source is reviewed, and a validator fails the build when a copy
-    # drifts from it.
+    # drifts from it, carries frontmatter the source does not generate, or has no source.
     - "!skills/*/scripts/**"
     - "!.claude/commands/**"
     - "!.gemini/commands/**"
@@ -48,13 +49,30 @@ reviews:
       instructions: >-
         A reviewer persona may not edit what it reviews. Flag any tool beyond Read, Grep, Glob
         and Bash, and any instruction to change the files under review.
-    - path: ".github/workflows/*.yml"
+    - path: ".github/workflows/**"
       instructions: >-
         Every action is pinned to a full commit SHA with its version in a comment, permissions
         start at contents: read, and nothing from a pull request runs with a secret.
   pre_merge_checks:
     docstrings:
       mode: "off"
+  # Nothing here commits to a pull request. A change lands as its author's commit, through the
+  # same checks as every other one.
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+    simplify:
+      enabled: false
+    autofix:
+      enabled: false
+    fix_ci:
+      enabled: false
+    resolve_merge_conflict:
+      enabled: false
+chat:
+  art: false
 knowledge_base:
   code_guidelines:
     enabled: true

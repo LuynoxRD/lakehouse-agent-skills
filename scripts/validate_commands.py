@@ -2,8 +2,9 @@
 """Validate slash commands: source TOML shape, per-tool copies in parity, skill references.
 
 `commands/<name>.toml` is the source of truth. `.claude/commands/<name>.md` must carry the same
-description in its frontmatter and the same prompt as its body; `.gemini/commands/<name>.toml`
-must be identical to the source. Every command must invoke at least one existing skill.
+description in its frontmatter, no other frontmatter key, and the same prompt as its body;
+`.gemini/commands/<name>.toml` must be identical to the source. Every command must invoke at
+least one existing skill.
 """
 
 from __future__ import annotations
@@ -20,6 +21,10 @@ from lib.report import Report
 from lib.skill_lint import NAME_RE
 
 COMMAND_KEYS = frozenset({"description", "prompt"})
+# The only frontmatter a Claude copy is generated with. Any other key changes how the command
+# runs without the source knowing: `allowed-tools` grants tools without a prompt, and
+# `user-invocable: false` hides the command.
+CLAUDE_COPY_KEYS = frozenset({"description"})
 SKILL_REFERENCE_RE = re.compile(r"`([a-z0-9]+(?:-[a-z0-9]+)+)`")
 MAX_DESCRIPTION_LENGTH = 250
 
@@ -83,6 +88,13 @@ def check_claude_copy(name: str, fields: dict[str, str], layout: Layout, report:
     except frontmatter.FrontmatterError as error:
         report.error("command/copy-frontmatter", error.detail, copy, error.line)
         return
+    extra = sorted(set(parsed.data) - CLAUDE_COPY_KEYS)
+    if extra:
+        report.error(
+            "command/copy-extra-frontmatter",
+            f"frontmatter carries {', '.join(extra)}, which commands/*.toml does not generate",
+            copy,
+        )
     if parsed.data.get("description") != fields["description"]:
         report.error(
             "command/description-drift",
