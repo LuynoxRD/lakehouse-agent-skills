@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Ask a question
+    url: https://github.com/LuynoxRD/lakehouse-agent-skills/discussions
+    about: How to use the pack, which skill fits a task, or an idea you want to talk through. Bugs and skill gaps are issues; SUPPORT.md has the map.
   - name: Report a security problem
     url: https://github.com/LuynoxRD/lakehouse-agent-skills/security/advisories/new
     about: A skill or script that would fetch code, read secrets, write outside the project or delete data. Private, never a public issue. See SECURITY.md.
