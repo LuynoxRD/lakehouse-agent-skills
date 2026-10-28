@@ -255,3 +255,34 @@ def test_a_listing_icon_a_directory_would_refuse_is_reported_for_every_field(
     set_listing_images(repo, entry)
 
     assert rules(repo) == ["manifest/listing-image"] * 3
+
+
+def set_listing_urls(repo: Layout, url: object) -> None:
+    claude = repo.root / ".claude-plugin" / "plugin.json"
+    document = json.loads(claude.read_text(encoding="utf-8"))
+    document.update({"documentationUrl": url, "supportUrl": url, "privacyPolicyUrl": url})
+    write(claude, json.dumps(document, indent=2) + "\n")
+    codex = repo.root / ".codex-plugin" / "plugin.json"
+    document = json.loads(codex.read_text(encoding="utf-8"))
+    document["interface"] = {"websiteURL": url, "privacyPolicyURL": url}
+    write(codex, json.dumps(document, indent=2) + "\n")
+
+
+def test_https_listing_links_are_clean(repo: Layout) -> None:
+    set_listing_urls(
+        repo, "https://github.com/LuynoxRD/lakehouse-agent-skills/blob/main/PRIVACY.md"
+    )
+
+    assert rules(repo) == []
+
+
+@pytest.mark.parametrize(
+    "url", ["http://example.com/privacy", "mailto:maintainer@example.com", "PRIVACY.md", 42]
+)
+def test_a_listing_link_that_is_not_https_is_reported_for_every_field(
+    repo: Layout, url: object
+) -> None:
+    """Both directories take only https; an email address belongs in the author field instead."""
+    set_listing_urls(repo, url)
+
+    assert rules(repo) == ["manifest/listing-url"] * 5

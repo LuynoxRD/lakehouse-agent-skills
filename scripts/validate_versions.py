@@ -12,8 +12,9 @@ plugin, which also picks up the reviewer personas and the session hooks, and nob
 either one there. With the schema declared, the portable reading is the one every client gets:
 the skills, and nothing written for one tool.
 
-The listing icon is checked as well: the image Claude's directory reads from `icon` and Codex's
-reads from `interface.logo` and `interface.composerIcon` has to exist and be a square PNG.
+The listing is checked as well. The icon Claude's directory reads from `icon` and Codex's reads
+from `interface.logo` and `interface.composerIcon` has to exist and be a square PNG, and every link
+a listing shows (documentation, support, privacy policy, terms, website) has to be an https URL.
 """
 
 from __future__ import annotations
@@ -41,6 +42,17 @@ PATH_FIELDS = ("skills", "commands", "agents", "hooks")
 LISTING_IMAGE_FIELDS = ("icon",)
 LISTING_INTERFACE_IMAGE_FIELDS = ("logo", "composerIcon")
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+# The links a listing shows. Claude's directory takes them from the top level of its manifest and
+# Codex's from `interface`, and both accept only https.
+LISTING_URL_FIELDS = ("documentationUrl", "supportUrl", "privacyPolicyUrl", "termsOfServiceUrl")
+LISTING_INTERFACE_URL_FIELDS = (
+    "websiteURL",
+    "privacyPolicyURL",
+    "termsOfServiceURL",
+    "websiteUrl",
+    "privacyPolicyUrl",
+    "termsOfServiceUrl",
+)
 
 # Paths the plugin loader finds on its own. Declaring one of these is not a harmless duplicate:
 # the loader refuses the plugin outright, because the file is already loaded by convention and
@@ -181,6 +193,20 @@ def _check_listing_images(
             )
 
 
+def _check_listing_urls(document: dict[str, object], path: Path, report: Report) -> None:
+    fields = [(field, document.get(field)) for field in LISTING_URL_FIELDS]
+    interface = document.get("interface")
+    if isinstance(interface, dict):
+        fields += [
+            (f"interface.{field}", interface.get(field)) for field in LISTING_INTERFACE_URL_FIELDS
+        ]
+    for field, value in fields:
+        if value is None:
+            continue
+        if not isinstance(value, str) or not value.startswith("https://") or " " in value:
+            report.error("manifest/listing-url", f"'{field}' must be an https URL", path)
+
+
 def _plugin_manifest(path: Path, root: Path, report: Report) -> tuple[str | None, str | None]:
     document = _load_json(path, report)
     if document is None:
@@ -191,6 +217,7 @@ def _plugin_manifest(path: Path, root: Path, report: Report) -> tuple[str | None
             report.error("manifest/required", f"'{field}' must be a non-empty string", path)
     _check_paths(document, root, path, report)
     _check_listing_images(document, root, path, report)
+    _check_listing_urls(document, path, report)
     name = document.get("name")
     return (name if isinstance(name, str) else None), _check_version(
         document.get("version"), path, report

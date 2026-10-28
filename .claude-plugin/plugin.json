@@ -22,6 +22,9 @@
     "dashboards"
   ],
   "icon": "./assets/icon.png",
+  "documentationUrl": "https://github.com/LuynoxRD/lakehouse-agent-skills#readme",
+  "supportUrl": "https://github.com/LuynoxRD/lakehouse-agent-skills/blob/main/SUPPORT.md",
+  "privacyPolicyUrl": "https://github.com/LuynoxRD/lakehouse-agent-skills/blob/main/PRIVACY.md",
   "skills": "./skills",
   "commands": "./.claude/commands"
 }

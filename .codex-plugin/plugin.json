@@ -28,6 +28,8 @@
       "Read",
       "Write"
     ],
+    "websiteURL": "https://github.com/LuynoxRD/lakehouse-agent-skills",
+    "privacyPolicyURL": "https://github.com/LuynoxRD/lakehouse-agent-skills/blob/main/PRIVACY.md",
     "defaultPrompt": [
       "Profile this dataset before we clean or chart anything",
       "Which lakehouse skill applies to this data task?"
