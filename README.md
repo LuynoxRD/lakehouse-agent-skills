@@ -19,6 +19,16 @@ PROFILE → CLEAN → MODEL → QUERY → VISUALIZE → ASSEMBLE → NARRATE →
 
 Run a command to enter a stage by name, or just describe the task and let the router pick.
 
+![A sales page for an online clothing store. Four headline figures, delivered revenue,
+delivered orders, average order value and cancellation rate, each stating which of the 200 orders
+it covers. Below them, the status of every order, delivered revenue by month, and revenue by
+category, product, sales channel, payment method and province.](docs/dashboard-example.webp)
+
+A page an agent built with these skills from a 200-order sales export that holds no names or contact
+details. The shipped check traced all 85 figures on it back to the curated table. Every figure says
+which of the 200 orders it covers, and the category, channel, payment and province breakdowns each
+add up to the $7,316.65 at the top.
+
 ## What you get
 
 **A working data architecture in your project, not an answer in a chat.**
