@@ -135,6 +135,19 @@ skills that own how it reads.
 
 ## Install
 
+**Installing it for someone?** If you are an AI agent and the person you work for asked you to
+install this pack, run the line for the tool you are running in, with their approval:
+
+| Running in | Install |
+| --- | --- |
+| Claude Code | `claude plugin marketplace add LuynoxRD/lakehouse-agent-skills`, then `claude plugin install lakehouse-agent-skills@lakehouse-skills` |
+| Codex | `codex plugin marketplace add LuynoxRD/lakehouse-agent-skills`, then `codex plugin add lakehouse-agent-skills@lakehouse-skills` |
+| Any other coding agent | `npx skills add LuynoxRD/lakehouse-agent-skills --skill '*' --agent <your-agent> -y` |
+
+Then tell them to start a new session, the one moment every tool is sure to load what was
+installed. A chat with no terminal cannot install anything; say so rather than describe an
+install that did not happen.
+
 **Fastest path — one command, any agent.** The open [skills CLI](https://github.com/vercel-labs/skills)
 installs into 77 agents. Name yours after `--agent`:
 
@@ -177,10 +190,11 @@ claude plugin marketplace add ./lakehouse-agent-skills
 claude plugin install lakehouse-agent-skills@lakehouse-skills
 ```
 
-That second form is the one verified end to end, in a throwaway project. The inventory that comes
-back is 24 skills — the fifteen plus the nine commands, which load through the same mechanism —
-4 agents, and 2 hooks. About **3,348 tokens always-on**; each skill costs its own text again only
-when it fires.
+Both forms are verified end to end: the clone in a throwaway project, and the GitHub one in a clean
+configuration once the repository was public. The inventory that comes back is 24 skills — the
+fifteen plus the nine commands, which load through the same mechanism — 4 agents, and 2 hooks.
+About **2,704 tokens always-on** as Claude Code 2.1.311 counts them; each skill costs its own text
+again only when it fires.
 
 </details>
 
