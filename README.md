@@ -377,8 +377,10 @@ else's agent, so nothing here fetches an installer, pipes a script into a shell,
 environment variables — and a validator fails the build on those patterns rather than trusting
 review to catch them. Every fixture is synthetic. `CODE_OF_CONDUCT.md` applies to every
 interaction here, and `PRIVACY.md` says what the plugin reads and writes: nothing leaves the
-machine. Questions, and anything you would rather not raise in a public issue, go to
-[contacto@luynoxrd.com](mailto:contacto@luynoxrd.com); security problems follow `SECURITY.md`.
+machine. Questions go to
+[Discussions](https://github.com/LuynoxRD/lakehouse-agent-skills/discussions), anything you would
+rather not raise in public to [contacto@luynoxrd.com](mailto:contacto@luynoxrd.com), and security
+problems follow `SECURITY.md`. [SUPPORT.md](SUPPORT.md) says where each kind of request goes.
 
 ## License
 

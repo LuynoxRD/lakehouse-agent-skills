@@ -107,8 +107,10 @@ add a rule, document it in `docs/skill-anatomy.md` in the same pull request.
 ## Reporting problems
 
 Bugs in a skill's guidance, wrong thresholds, missing exclusions and routing mistakes are regular
-issues. Security problems follow `SECURITY.md`. A question, or anything you would rather not raise
-in a public issue, goes to the maintainer at [contacto@luynoxrd.com](mailto:contacto@luynoxrd.com).
+issues. Security problems follow `SECURITY.md`. A question goes to
+[Discussions](https://github.com/LuynoxRD/lakehouse-agent-skills/discussions), and anything you
+would rather not raise in public goes to the maintainer at
+[contacto@luynoxrd.com](mailto:contacto@luynoxrd.com). `SUPPORT.md` has the whole map.
 
 ## License
 
